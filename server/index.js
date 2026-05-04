@@ -80,6 +80,9 @@ const server = http.createServer((req, res) => {
       spawn('node', [__filename], { detached: true, stdio: 'ignore' })
       process.exit(0)
     }, 1000)
+  } else if (req.method === 'GET' && req.url === '/api/config') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ model: MODEL }))
   } else {
     res.writeHead(404)
     res.end()
