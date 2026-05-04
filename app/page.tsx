@@ -2,42 +2,51 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-interface ChatBox {
-  id: number
-  input: string
-  response: string
-  isStreaming: boolean
-}
-
-const DEFAULT_PROMPT = `You are a Dutch to English language tutor. When the user types a Dutch sentence:
-1. Provide the English translation
-2. Explain what was wrong or not optimal (if anything), max 5 sentences
-3. Suggest a better way to say it (if applicable)
-
-Keep feedback concise, max 5 sentences total.`
+const DEFAULT_PROMPT = `When the user types a Dutch sentence:
+1. Provide the English translation with format: "It seems you are trying to say: [translation]"
+2. Explain what was wrong or not optimal (if anything), max 2 short sentences
+3. Suggest a better way to say it (if applicable), max 2 short sentences`
 
 const WS_URL = typeof window !== 'undefined' ? `ws://${window.location.hostname}:8080` : ''
 
 export default function Home() {
   const [input, setInput] = useState('')
-  const [chatBoxes, setChatBoxes] = useState<ChatBox[]>([])
+  const [response, setResponse] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
   const [isRealTime, setIsRealTime] = useState(false)
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT)
   const [showPrompt, setShowPrompt] = useState(true)
   const [promptOverride, setPromptOverride] = useState('')
-  const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [backendConnected, setBackendConnected] = useState(true)
   
   const wsRef = useRef<WebSocket | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const boxIdRef = useRef(0)
 
   useEffect(() => {
     const savedPrompt = localStorage.getItem('promptOverride')
     if (savedPrompt) {
       setPromptOverride(savedPrompt)
     }
+
+    const checkBackend = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'ping', prompt: 'ping' })
+        })
+        setBackendConnected(res.ok)
+      } catch {
+        setBackendConnected(false)
+      }
+    }
+
+    checkBackend()
+    const interval = setInterval(checkBackend, 5000)
+    
     return () => {
+      clearInterval(interval)
       if (wsRef.current) wsRef.current.close()
     }
   }, [])
@@ -50,35 +59,21 @@ export default function Home() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
     
     const ws = new WebSocket(WS_URL)
-    ws.onopen = () => setIsConnected(true)
-    ws.onclose = () => setIsConnected(false)
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
       if (data.type === 'chunk') {
-        setChatBoxes(prev => {
-          const newBoxes = [...prev]
-          if (newBoxes.length > 0 && newBoxes[newBoxes.length - 1].isStreaming) {
-            newBoxes[newBoxes.length - 1].response += data.content
-          }
-          return newBoxes
-        })
+        setResponse(prev => prev + data.content)
       } else if (data.type === 'done') {
-        setChatBoxes(prev => {
-          const newBoxes = [...prev]
-          if (newBoxes.length > 0) {
-            newBoxes[newBoxes.length - 1].isStreaming = false
-          }
-          return newBoxes
-        })
+        setIsStreaming(false)
       }
     }
     wsRef.current = ws
   }, [])
 
-  const sendRequest = useCallback((text: string, isStreaming = false) => {
+  const sendRequest = useCallback((text: string, isStreamingMode = false) => {
     const effectivePrompt = getEffectivePrompt()
     
-    if (isStreaming && wsRef.current?.readyState === WebSocket.OPEN) {
+    if (isStreamingMode && wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'message',
         text,
@@ -86,6 +81,7 @@ export default function Home() {
       }))
     } else {
       setIsLoading(true)
+      setResponse('')
       fetch('http://localhost:8080/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,17 +89,7 @@ export default function Home() {
       })
         .then(res => res.json())
         .then(data => {
-          const newBox: ChatBox = {
-            id: ++boxIdRef.current,
-            input: text,
-            response: data.response || data.error || 'Error occurred',
-            isStreaming: false
-          }
-          setChatBoxes(prev => {
-            const newBoxes = [...prev, newBox]
-            if (newBoxes.length > 10) newBoxes.shift()
-            return newBoxes
-          })
+          setResponse(data.response || data.error || 'Error occurred')
           setIsLoading(false)
         })
         .catch(err => {
@@ -116,18 +102,8 @@ export default function Home() {
   const handleSubmit = () => {
     if (!input.trim()) return
     
-    const newBox: ChatBox = {
-      id: ++boxIdRef.current,
-      input: input,
-      response: '',
-      isStreaming: isRealTime
-    }
-    
-    setChatBoxes(prev => {
-      const newBoxes = [...prev, newBox]
-      if (newBoxes.length > 10) newBoxes.shift()
-      return newBoxes
-    })
+    setResponse('')
+    setIsStreaming(isRealTime)
     
     if (isRealTime) {
       connectWS()
@@ -135,29 +111,23 @@ export default function Home() {
     } else {
       sendRequest(input, false)
     }
-    
-    setInput('')
+  }
+
+  const capitalizeFirstLetter = (str: string) => {
+    return str.replace(/(^|[.!?]\s+)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase())
   }
 
   const handleInputChange = (value: string) => {
-    setInput(value)
+    const capitalized = capitalizeFirstLetter(value)
+    setInput(capitalized)
     
-    if (isRealTime && value.trim()) {
+    if (isRealTime && capitalized.trim()) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        const newBox: ChatBox = {
-          id: ++boxIdRef.current,
-          input: value,
-          response: '',
-          isStreaming: true
-        }
-        setChatBoxes(prev => {
-          const newBoxes = [...prev, newBox]
-          if (newBoxes.length > 10) newBoxes.shift()
-          return newBoxes
-        })
+        setResponse('')
+        setIsStreaming(true)
         connectWS()
-        setTimeout(() => sendRequest(value, true), 100)
+        setTimeout(() => sendRequest(capitalized, true), 100)
       }, 500)
     }
   }
@@ -167,97 +137,101 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen p-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Dutch Tutor</h1>
-      
-      <div className="flex items-center gap-4 mb-4">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isRealTime}
-            onChange={(e) => setIsRealTime(e.target.checked)}
-            className="w-4 h-4"
-          />
-          Real-time (WebSocket, 500ms debounce)
-        </label>
+    <div className="min-h-screen flex">
+      <aside className="w-64 bg-gray-50 p-4 border-r">
+        <h1 className="text-xl font-bold mb-6">Dutch Tutor</h1>
+        
+        <div className="mb-4">
+          <label className="flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              checked={isRealTime}
+              onChange={(e) => setIsRealTime(e.target.checked)}
+              className="w-4 h-4"
+            />
+            Real-time
+          </label>
+        </div>
         
         <button
           onClick={() => setShowPrompt(!showPrompt)}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-sm text-blue-600 hover:underline mb-4 block"
         >
-          {showPrompt ? 'Hide' : 'Show'} Prompt
+          {showPrompt ? 'Verberg' : 'Toon'} Prompt
         </button>
-      </div>
-      
-      {showPrompt && (
-        <div className="mb-4 p-3 bg-gray-100 rounded">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium">System Prompt</span>
-            <button
-              onClick={handlePromptSave}
-              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-            >
-              Save Override
-            </button>
-          </div>
-          <textarea
-            value={promptOverride || prompt}
-            onChange={(e) => setPromptOverride(e.target.value)}
-            className="w-full p-2 border rounded text-sm font-mono"
-            rows={4}
-            placeholder="Enter system prompt..."
-          />
-          {promptOverride && (
-            <button
-              onClick={() => {
-                setPromptOverride('')
-                localStorage.removeItem('promptOverride')
-              }}
-              className="text-xs text-red-500 mt-1 hover:underline"
-            >
-              Reset to default
-            </button>
-          )}
-        </div>
-      )}
-      
-      <div className="space-y-3 mb-4">
-        {chatBoxes.map((box) => (
-          <div key={box.id} className="border rounded p-3 bg-white">
-            <div className="text-sm text-gray-500 mb-1">Dutch:</div>
-            <div className="mb-2 font-medium">{box.input}</div>
-            <div className="text-sm text-gray-500 mb-1">English:</div>
-            <div className="text-gray-800 whitespace-pre-wrap">
-              {box.response || (box.isStreaming ? '...' : '')}
+        
+        {showPrompt && (
+          <div className="p-3 bg-gray-100 rounded">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">System Prompt</span>
+              <button
+                onClick={handlePromptSave}
+                className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+              >
+                Opslaan
+              </button>
             </div>
+            <textarea
+              value={promptOverride || prompt}
+              onChange={(e) => setPromptOverride(e.target.value)}
+              className="w-full p-2 border rounded text-sm font-mono"
+              rows={6}
+              placeholder="Enter system prompt..."
+            />
+            {promptOverride && (
+              <button
+                onClick={() => {
+                  setPromptOverride('')
+                  localStorage.removeItem('promptOverride')
+                }}
+                className="text-xs text-red-500 mt-1 hover:underline"
+              >
+                Reset naar standaard
+              </button>
+            )}
           </div>
-        ))}
-      </div>
+        )}
+      </aside>
       
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => handleInputChange(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !isRealTime && handleSubmit()}
-          placeholder="Type Dutch sentence..."
-          className="flex-1 p-2 border rounded"
-          disabled={isRealTime}
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={isRealTime || isLoading || !input.trim()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-        >
-          {isLoading ? 'Sending...' : 'Submit'}
-        </button>
-      </div>
-      
-      {!isRealTime && (
-        <div className="text-xs text-gray-500 mt-2">
-          Press Enter to submit
+      <main className="flex-1 p-4 max-w-2xl mx-auto">
+        {!backendConnected && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            Backend disconnected. Please ensure the server is running on port 8080.
+          </div>
+        )}
+        
+        <div className="border rounded p-3 bg-white mb-4 min-h-[100px]">
+          <div className="text-sm text-gray-500 mb-1">Engels:</div>
+          <div className="text-gray-800 whitespace-pre-wrap">
+            {response || (isStreaming ? '...' : '')}
+          </div>
         </div>
-      )}
-    </main>
+        
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !isRealTime && handleSubmit()}
+            placeholder="Type Dutch sentence..."
+            className="flex-1 p-2 border rounded"
+            disabled={isRealTime}
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={isRealTime || isLoading || !input.trim()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isLoading ? 'Verzenden...' : 'Verzenden'}
+          </button>
+        </div>
+        
+        {!isRealTime && (
+          <div className="text-xs text-gray-500 mt-2">
+            Druk op Enter om te verzenden
+          </div>
+        )}
+      </main>
+    </div>
   )
 }

@@ -16,12 +16,6 @@ try {
 
 const OPENROUTER_API_KEY = config.openrouterApiKey
 const MODEL = config.model || 'meta-llama/llama-3.2-3b-instruct'
-const DEFAULT_PROMPT = config.defaultPrompt || `You are a Dutch to English language tutor. When the user types a Dutch sentence:
-1. Provide the English translation
-2. Explain what was wrong or not optimal (if anything), max 5 sentences
-3. Suggest a better way to say it (if applicable)
-
-Keep feedback concise, max 5 sentences total.`
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -40,14 +34,18 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         const { text, prompt } = JSON.parse(body)
-        const systemPrompt = prompt || DEFAULT_PROMPT
+        if (!prompt) {
+          res.writeHead(400, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Prompt is required' }))
+          return
+        }
 
         const response = await axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
             model: MODEL,
             messages: [
-              { role: 'system', content: systemPrompt },
+              { role: 'system', content: prompt },
               { role: 'user', content: text }
             ],
             stream: false
@@ -66,7 +64,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ response: aiResponse }))
       } catch (error) {
-        console.error('Error:', error.message)
+        console.error('Error:', error.response ? error.response.data : error.message)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Failed to get response from AI' }))
       }
@@ -87,14 +85,17 @@ wss.on('connection', (ws) => {
       const data = JSON.parse(message)
       
       if (data.type === 'message') {
-        const systemPrompt = data.prompt || DEFAULT_PROMPT
+        if (!data.prompt) {
+          ws.send(JSON.stringify({ type: 'error', content: 'Prompt is required' }))
+          return
+        }
         
         const response = await axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
             model: MODEL,
             messages: [
-              { role: 'system', content: systemPrompt },
+              { role: 'system', content: data.prompt },
               { role: 'user', content: data.text }
             ],
             stream: true
