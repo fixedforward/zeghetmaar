@@ -3,6 +3,7 @@ const WebSocket = require('ws')
 const axios = require('axios')
 const fs = require('fs')
 const path = require('path')
+const { spawn } = require('child_process')
 
 const configPath = path.join(__dirname, 'config.json')
 let config = {}
@@ -33,7 +34,7 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => body += chunk)
     req.on('end', async () => {
       try {
-        const { text, prompt } = JSON.parse(body)
+        const { text, prompt, model } = JSON.parse(body)
         if (!prompt) {
           res.writeHead(400, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ error: 'Prompt is required' }))
@@ -43,12 +44,13 @@ const server = http.createServer((req, res) => {
         const response = await axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
-            model: MODEL,
+            model: model || MODEL,
             messages: [
               { role: 'system', content: prompt },
               { role: 'user', content: text }
             ],
-            stream: false
+            stream: false,
+            extra_body: { cache: true }
           },
           {
             headers: {
@@ -61,14 +63,23 @@ const server = http.createServer((req, res) => {
         )
 
         const aiResponse = response.data.choices[0].message.content
+        const cached = response.headers['x-ratelimit-remaining'] !== undefined && response.headers['openrouter-calculation-cache-hit'] === 'true'
         res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ response: aiResponse }))
+        res.end(JSON.stringify({ response: aiResponse, cached: cached }))
       } catch (error) {
         console.error('Error:', error.response ? error.response.data : error.message)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Failed to get response from AI' }))
       }
     })
+  } else if (req.method === 'POST' && req.url === '/api/restart') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ message: 'Restarting server...' }))
+    console.log('Restarting server...')
+    setTimeout(() => {
+      spawn('node', [__filename], { detached: true, stdio: 'ignore' })
+      process.exit(0)
+    }, 1000)
   } else {
     res.writeHead(404)
     res.end()
@@ -93,12 +104,13 @@ wss.on('connection', (ws) => {
         const response = await axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
-            model: MODEL,
+            model: data.model || MODEL,
             messages: [
               { role: 'system', content: data.prompt },
               { role: 'user', content: data.text }
             ],
-            stream: true
+            stream: true,
+            extra_body: { cache: true }
           },
           {
             headers: {
