@@ -5,8 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 1. Try to guess what it is trying to say in English and respond with: "Seems you are trying to say: [translation]"
 2. Explain what was wrong or not optimal (if anything), max 2 short sentences
-3. Suggest an alternative Dutch sentence, if applicable
-4. Give me a hyperlink to chatgpt with the same input so I can ask it for more help if needed.`
+3. Suggest an alternative Dutch sentence, if applicable`
 
 const REAL_TIME_FEATURE_ENABLED = false
 
