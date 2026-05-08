@@ -27,7 +27,9 @@ if (!OPENROUTER_API_KEY) {
   process.exit(1)
 }
 
-const MODEL = config.model || 'meta-llama/llama-3.2-3b-instruct'
+// Resolve the model: environment variable takes precedence over config file,
+// with a hardcoded default as final fallback.
+const MODEL = process.env.model || config.model || 'openai/gpt-4o-mini'
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
