@@ -11,11 +11,22 @@ let config = {}
 try {
   config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
 } catch (e) {
-  console.error('Config file not found. Please create server/config.json')
+  // Config file is optional when the API key is provided via environment variable
+  console.warn('Warning: server/config.json not found or unreadable. Falling back to environment variables.')
+}
+
+// Resolve the API key: environment variable takes precedence over config file.
+// This allows deployment without a config.json by setting the env var instead.
+const OPENROUTER_API_KEY = process.env.openrouterApiKey || config.openrouterApiKey
+
+if (!OPENROUTER_API_KEY) {
+  console.error(
+    'Error: OpenRouter API key is missing.\n' +
+    '  Set the environment variable "openrouterApiKey", or add "openrouterApiKey" to server/config.json.'
+  )
   process.exit(1)
 }
 
-const OPENROUTER_API_KEY = config.openrouterApiKey
 const MODEL = config.model || 'meta-llama/llama-3.2-3b-instruct'
 
 const server = http.createServer((req, res) => {
