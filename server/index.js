@@ -171,9 +171,7 @@ wss.on('connection', (ws) => {
   })
 })
 
-// Render (and most PaaS platforms) assign a dynamic port via PORT env var.
-// Fall back to 8080 for local development.
-const PORT = process.env.PORT || 8080
+const PORT = 8080
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
   console.log(`WebSocket server running on ws://localhost:${PORT}`)
