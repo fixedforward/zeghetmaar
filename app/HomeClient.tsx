@@ -36,7 +36,7 @@ export default function HomeClient() {
 
   // The backend port is read from /api/port (which reads server/port.json written
   // by the backend on startup). Defaults to 8080 until the port is resolved.
-  const [backendPort, setBackendPort] = useState(8080)
+  const [backendPort, setBackendPort] = useState(9292)
 
   // Herschrijver state
   const [input, setInput] = useState('')
@@ -84,7 +84,7 @@ export default function HomeClient() {
         setBackendPort(port)
         startPolling(port)
       })
-      .catch(() => startPolling(8080))
+      .catch(() => startPolling(9292))
 
     const startPolling = (port: number) => {
       const backendUrl = () => `http://localhost:${port}`

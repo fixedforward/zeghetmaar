@@ -10,7 +10,7 @@ export async function GET() {
     const { port } = JSON.parse(fs.readFileSync(portFile, 'utf8'))
     return NextResponse.json({ port })
   } catch {
-    // Fall back to 8080 if the file doesn't exist yet
-    return NextResponse.json({ port: 8080 })
+    // Fall back to 9292 if the file doesn't exist yet
+    return NextResponse.json({ port: 9292 })
   }
 }
