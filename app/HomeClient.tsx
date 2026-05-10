@@ -1,19 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 1. Try to guess what it is trying to say in English and respond with: "Seems you are trying to say: [translation]"
 2. Explain what was wrong or not optimal (if anything), max 2 short sentences
 3. Suggest an alternative Dutch sentence, if applicable`
 
-const REAL_TIME_FEATURE_ENABLED = false
-
-// WS_URL is derived at connection time (inside useEffect/callbacks) to avoid
-// accessing window during SSR, which would cause a hydration mismatch.
-const getWsUrl = () => `ws://${window.location.hostname}:8080`
-
-// Tab type for the two main sections
+// Tab type for the main sections
 type Tab = 'herschrijver' | 'vertaler' | 'woordenlijst'
 
 // Shape of each entry in public/woordenlijst.json
@@ -43,8 +37,6 @@ export default function HomeClient() {
   // Herschrijver state
   const [input, setInput] = useState('')
   const [response, setResponse] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [isRealTime, setIsRealTime] = useState(false)
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT)
   const [promptOverride, setPromptOverride] = useState('')
   const [model, setModel] = useState('')
@@ -72,9 +64,6 @@ export default function HomeClient() {
   // Popup shown when the user highlights text in the response area
   const [selectionPopup, setSelectionPopup] = useState<SelectionPopup | null>(null)
 
-  const wsRef = useRef<WebSocket | null>(null)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
-
   useEffect(() => {
     setMounted(true)
 
@@ -86,19 +75,14 @@ export default function HomeClient() {
 
     const checkBackend = async () => {
       try {
-        const [chatRes, configRes] = await Promise.all([
-          fetch('http://localhost:8080/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: 'ping', prompt: 'ping' })
-          }),
+        const [healthRes, configRes] = await Promise.all([
+          fetch('http://localhost:8080/api/health'),
           fetch('http://localhost:8080/api/config')
         ])
-        setBackendConnected(chatRes.ok)
+        setBackendConnected(healthRes.ok)
         const configData = await configRes.json()
         if (configData.model) setModel(configData.model)
-      } catch (err) {
-        console.error('Backend connection failed', err)
+      } catch {
         setBackendConnected(false)
       }
     }
@@ -118,7 +102,6 @@ export default function HomeClient() {
     return () => {
       clearInterval(interval)
       document.removeEventListener('mousedown', handleMouseDown)
-      if (wsRef.current) wsRef.current.close()
     }
   }, [])
 
@@ -130,80 +113,42 @@ export default function HomeClient() {
     return modelOverride || model
   }, [model, modelOverride])
 
-  const connectWS = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return
-    const ws = new WebSocket(getWsUrl())
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'chunk') {
-        setResponse(prev => prev + data.content)
-      } else if (data.type === 'done') {
-        setIsStreaming(false)
-      }
-    }
-    wsRef.current = ws
-  }, [])
-
-  const sendRequest = useCallback((text: string, isStreamingMode = false) => {
-    const effectivePrompt = getEffectivePrompt()
-    const effectiveModel = getEffectiveModel()
-
-    if (isStreamingMode && wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'message', text, prompt: effectivePrompt, model: effectiveModel }))
-    } else {
-      setIsLoading(true)
-      setResponse('')
-      setIsCached(false)
-      fetch('http://localhost:8080/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, prompt: effectivePrompt, model: effectiveModel })
+  const sendRequest = useCallback((text: string) => {
+    setIsLoading(true)
+    setResponse('')
+    setIsCached(false)
+    fetch('http://localhost:8080/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, prompt: getEffectivePrompt(), model: getEffectiveModel() })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setResponse(data.response || data.error || 'Error occurred')
+        setIsCached(data.cached || false)
+        setIsLoading(false)
       })
-        .then(res => res.json())
-        .then(data => {
-          setResponse(data.response || data.error || 'Error occurred')
-          setIsCached(data.cached || false)
-          setIsLoading(false)
-        })
-        .catch(err => {
-          console.error(err)
-          setIsLoading(false)
-        })
-    }
+      .catch(err => {
+        console.error(err)
+        setIsLoading(false)
+      })
   }, [getEffectivePrompt, getEffectiveModel])
 
   const handleSubmit = () => {
     if (!input.trim()) return
-    setResponse('')
-    setIsStreaming(isRealTime)
-    if (isRealTime) {
-      connectWS()
-      setTimeout(() => sendRequest(input, true), 100)
-    } else {
-      sendRequest(input, false)
-    }
+    sendRequest(input)
+  }
+
+  const handleRefresh = () => {
+    if (!input.trim() || isLoading) return
+    sendRequest(input)
   }
 
   const capitalizeFirstLetter = (str: string) =>
     str.replace(/(^|[.!?]\s+)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase())
 
   const handleInputChange = (value: string) => {
-    const capitalized = capitalizeFirstLetter(value)
-    setInput(capitalized)
-    if (isRealTime && capitalized.trim()) {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => {
-        setResponse('')
-        setIsStreaming(true)
-        connectWS()
-        setTimeout(() => sendRequest(capitalized, true), 100)
-      }, 500)
-    }
-  }
-
-  const handleRefresh = () => {
-    if (!input.trim() || isLoading) return
-    sendRequest(input, false)
+    setInput(capitalizeFirstLetter(value))
   }
 
   const handleTranslate = () => {
@@ -228,8 +173,8 @@ export default function HomeClient() {
   }
 
   // Called when the user releases the mouse after selecting text inside the
-  // response box. Positions the popup at the end of the selection and fires
-  // an AI request to explain the highlighted word or phrase.
+  // response box. Positions the popup at the cursor and fires an AI request
+  // to explain the highlighted word or phrase.
   const handleTextSelection = useCallback((e: React.MouseEvent) => {
     const selected = window.getSelection()?.toString().trim()
     if (!selected) {
@@ -237,15 +182,7 @@ export default function HomeClient() {
       return
     }
 
-    // Position the popup just below the mouse cursor
-    const popup: SelectionPopup = {
-      x: e.clientX,
-      y: e.clientY + 12,
-      text: selected,
-      explanation: null,
-      loading: true,
-    }
-    setSelectionPopup(popup)
+    setSelectionPopup({ x: e.clientX, y: e.clientY + 12, text: selected, explanation: null, loading: true })
 
     const explainPrompt = 'The user is learning Dutch. They highlighted the following word or phrase and want to know what it means. Give a short, clear explanation in English: what it means, and (if it is Dutch) how it is typically used. Keep it to 2-3 sentences max.'
     fetch('http://localhost:8080/api/chat', {
@@ -356,7 +293,7 @@ export default function HomeClient() {
             Herschrijver
           </button>
           <button
-            onClick={() => { setActiveTab('vertaler') }}
+            onClick={() => setActiveTab('vertaler')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'vertaler' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Engels → Nederlands
@@ -383,23 +320,20 @@ export default function HomeClient() {
                 type="text"
                 value={input}
                 onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !isRealTime && handleSubmit()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                 placeholder="Type Dutch sentence..."
                 className="flex-1 p-2 border rounded"
-                disabled={isRealTime}
               />
               <button
                 onClick={handleSubmit}
-                disabled={isRealTime || isLoading || !input.trim()}
+                disabled={isLoading || !input.trim()}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
               >
                 {isLoading ? 'Verzenden...' : 'Verzenden'}
               </button>
             </div>
 
-            {!isRealTime && (
-              <div className="text-xs text-gray-500 mb-4">Druk op Enter om te verzenden</div>
-            )}
+            <div className="text-xs text-gray-500 mb-4">Druk op Enter om te verzenden</div>
 
             <div className="border rounded p-3 bg-white mb-4 min-h-[100px]" onMouseUp={handleTextSelection}>
               <div className="flex justify-between items-center mb-1">
@@ -420,22 +354,8 @@ export default function HomeClient() {
                 )}
               </div>
               <div className="text-gray-800 whitespace-pre-wrap">
-                {response || (isStreaming ? '...' : '')}
+                {response}
               </div>
-            </div>
-
-            <div className="flex items-center gap-4 mb-4">
-              {REAL_TIME_FEATURE_ENABLED && (
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isRealTime}
-                    onChange={(e) => setIsRealTime(e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  Real-time
-                </label>
-              )}
             </div>
 
             <div className="mb-4 border rounded p-3">
@@ -529,14 +449,8 @@ export default function HomeClient() {
               Pas <code className="bg-gray-100 px-1 rounded">public/woordenlijst.json</code> aan om woorden toe te voegen.
             </p>
 
-            {wordsLoading && (
-              <p className="text-sm text-gray-400 italic">Laden...</p>
-            )}
-
-            {wordsError && (
-              <p className="text-sm text-red-600">{wordsError}</p>
-            )}
-
+            {wordsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
+            {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
             {!wordsLoading && !wordsError && words.length === 0 && (
               <p className="text-sm text-gray-400">Geen woorden gevonden in woordenlijst.json.</p>
             )}
@@ -544,13 +458,11 @@ export default function HomeClient() {
             <ul className="space-y-2">
               {words.map(entry => (
                 <li key={entry.id} className="border rounded p-3 bg-white">
-                  {/* Word and translation row */}
                   <div className="flex justify-between items-start gap-4">
                     <div>
                       <span className="font-semibold text-gray-900">{entry.word}</span>
                       <span className="text-gray-500 text-sm ml-3">{entry.translation}</span>
                     </div>
-                    {/* Toggle examples button — only shown if examples exist */}
                     {entry.examples.length > 0 && (
                       <button
                         onClick={() => toggleExamples(entry.id)}
@@ -561,7 +473,6 @@ export default function HomeClient() {
                     )}
                   </div>
 
-                  {/* Collapsible examples section */}
                   {expandedWords.has(entry.id) && (
                     <ul className="mt-2 space-y-1 border-t pt-2">
                       {entry.examples.map((ex, i) => (
@@ -576,7 +487,6 @@ export default function HomeClient() {
             </ul>
           </div>
         )}
-
       </main>
 
       {/* Selection explanation popup — rendered outside main to allow fixed positioning */}
