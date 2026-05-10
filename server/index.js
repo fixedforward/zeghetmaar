@@ -104,7 +104,22 @@ const server = http.createServer((req, res) => {
   }
 })
 
-const PORT = 8080
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
+// get-port is ESM-only, so we use a dynamic import and wrap startup in an async function.
+// The chosen port is written to server/port.json so the frontend can read it on startup.
+const portFilePath = path.join(__dirname, 'port.json')
+
+async function start() {
+  const { default: getPort } = await import('get-port')
+
+  // Find a free port, preferring 8080 for local convenience
+  const PORT = await getPort({ port: 8080 })
+
+  // Persist the port so the frontend knows where to connect
+  fs.writeFileSync(portFilePath, JSON.stringify({ port: PORT }))
+
+  server.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`)
+  })
+}
+
+start()

@@ -34,6 +34,10 @@ export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('herschrijver')
 
+  // The backend port is read from /api/port (which reads server/port.json written
+  // by the backend on startup). Defaults to 8080 until the port is resolved.
+  const [backendPort, setBackendPort] = useState(8080)
+
   // Herschrijver state
   const [input, setInput] = useState('')
   const [response, setResponse] = useState('')
@@ -73,22 +77,36 @@ export default function HomeClient() {
     const savedModel = localStorage.getItem('modelOverride')
     if (savedModel) setModelOverride(savedModel)
 
-    const checkBackend = async () => {
-      try {
-        const [healthRes, configRes] = await Promise.all([
-          fetch('http://localhost:8080/api/health'),
-          fetch('http://localhost:8080/api/config')
-        ])
-        setBackendConnected(healthRes.ok)
-        const configData = await configRes.json()
-        if (configData.model) setModel(configData.model)
-      } catch {
-        setBackendConnected(false)
-      }
-    }
+    // Resolve the backend port from the Next.js API route, then start polling
+    fetch('/api/port')
+      .then(r => r.json())
+      .then(({ port }) => {
+        setBackendPort(port)
+        startPolling(port)
+      })
+      .catch(() => startPolling(8080))
 
-    checkBackend()
-    const interval = setInterval(checkBackend, 5000)
+    const startPolling = (port: number) => {
+      const backendUrl = () => `http://localhost:${port}`
+
+      const checkBackend = async () => {
+        try {
+          const [healthRes, configRes] = await Promise.all([
+            fetch(`${backendUrl()}/api/health`),
+            fetch(`${backendUrl()}/api/config`)
+          ])
+          setBackendConnected(healthRes.ok)
+          const configData = await configRes.json()
+          if (configData.model) setModel(configData.model)
+        } catch {
+          setBackendConnected(false)
+        }
+      }
+
+      checkBackend()
+      const interval = setInterval(checkBackend, 5000)
+      return () => clearInterval(interval)
+    }
 
     // Close the selection popup when the user clicks anywhere outside it
     const handleMouseDown = (e: MouseEvent) => {
@@ -100,10 +118,11 @@ export default function HomeClient() {
     document.addEventListener('mousedown', handleMouseDown)
 
     return () => {
-      clearInterval(interval)
       document.removeEventListener('mousedown', handleMouseDown)
     }
   }, [])
+
+  const backendUrl = useCallback(() => `http://localhost:${backendPort}`, [backendPort])
 
   const getEffectivePrompt = useCallback(() => {
     return promptOverride || prompt
@@ -117,7 +136,7 @@ export default function HomeClient() {
     setIsLoading(true)
     setResponse('')
     setIsCached(false)
-    fetch('http://localhost:8080/api/chat', {
+    fetch(`${backendUrl()}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, prompt: getEffectivePrompt(), model: getEffectiveModel() })
@@ -156,7 +175,7 @@ export default function HomeClient() {
     setIsTranslating(true)
     setTranslationResult('')
     const translatePrompt = 'Give 2 or 3 different natural ways to say the following English sentence in Dutch. Number each option and briefly note any difference in tone or formality if relevant. Reply only with the Dutch options, no extra explanation.'
-    fetch('http://localhost:8080/api/chat', {
+    fetch(`${backendUrl()}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: englishInput, prompt: translatePrompt, model: getEffectiveModel() })
@@ -185,7 +204,7 @@ export default function HomeClient() {
     setSelectionPopup({ x: e.clientX, y: e.clientY + 12, text: selected, explanation: null, loading: true })
 
     const explainPrompt = 'The user is learning Dutch. They highlighted the following word or phrase and want to know what it means. Give a short, clear explanation in English: what it means, and (if it is Dutch) how it is typically used. Keep it to 2-3 sentences max.'
-    fetch('http://localhost:8080/api/chat', {
+    fetch(`${backendUrl()}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: selected, prompt: explainPrompt, model: getEffectiveModel() })
@@ -273,7 +292,7 @@ export default function HomeClient() {
           {isLocalhost && (
             <button
               onClick={() => {
-                fetch('http://localhost:8080/api/restart', { method: 'POST' })
+                fetch(`${backendUrl()}/api/restart`, { method: 'POST' })
                 setBackendConnected(false)
                 setTimeout(() => window.location.reload(), 2000)
               }}
