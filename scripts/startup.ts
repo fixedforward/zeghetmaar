@@ -1,9 +1,8 @@
 /**
- * Startup wrapper: validates MongoDB connectivity before launching Next.js.
+ * Startup wrapper: launches Next.js (JSON file store, no external DB needed).
  * Usage:  tsx scripts/startup.ts dev | start
  */
 import { spawn } from 'child_process'
-import { initializeMongo } from '../app/lib/mongodb'
 
 const mode = process.argv[2] ?? 'dev'
 
@@ -13,15 +12,7 @@ if (mode !== 'dev' && mode !== 'start') {
 }
 
 async function main() {
-  console.log('[startup] Connecting to MongoDB Atlas...')
-  try {
-    await initializeMongo()
-    console.log('[startup] MongoDB connected and index ensured. Starting Next.js...')
-  } catch (err) {
-    console.error('[startup] MongoDB connection failed — aborting startup.')
-    console.error(err)
-    process.exit(1)
-  }
+  console.log('[startup] Using local JSON file store. Starting Next.js...')
 
   const child = spawn('npx', ['next', mode], {
     stdio: 'inherit',

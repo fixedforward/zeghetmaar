@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ObjectId } from 'mongodb'
 import {
-  getCollection,
+  getAllWords,
+  findByNormalizedWord,
+  insertWord,
+  updateWord,
+  deleteWord,
+  findById,
   toApiEntry,
   normalizeWord,
   isValidObjectId,
@@ -9,8 +13,7 @@ import {
 
 export async function GET() {
   try {
-    const col = await getCollection()
-    const docs = await col.find({}).sort({ updatedAt: -1 }).toArray()
+    const docs = await getAllWords()
     return NextResponse.json(docs.map(toApiEntry))
   } catch (err) {
     console.error('[/api/words] Failed to read words:', err)
@@ -45,25 +48,25 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
   )]
 
-  const normalizedWord = normalizeWord(word)
-  const now = new Date()
+  const nw = normalizeWord(word)
+  const now = new Date().toISOString()
 
   try {
-    const col = await getCollection()
-    const result = await col.insertOne({
+    const conflict = await findByNormalizedWord(nw)
+    if (conflict) {
+      return NextResponse.json({ error: 'A word with this name already exists.' }, { status: 409 })
+    }
+
+    const inserted = await insertWord({
       word,
-      normalizedWord,
+      normalizedWord: nw,
       translation,
       examples,
       createdAt: now,
       updatedAt: now,
     })
-    const inserted = await col.findOne({ _id: result.insertedId })
-    return NextResponse.json(toApiEntry(inserted!), { status: 201 })
-  } catch (err: unknown) {
-    if ((err as { code?: number }).code === 11000) {
-      return NextResponse.json({ error: 'A word with this name already exists.' }, { status: 409 })
-    }
+    return NextResponse.json(toApiEntry(inserted), { status: 201 })
+  } catch (err) {
     console.error('[/api/words] Failed to add word:', err)
     return NextResponse.json({ error: 'Failed to add word.' }, { status: 500 })
   }
@@ -78,10 +81,10 @@ export async function PUT(req: NextRequest) {
   }
 
   if (typeof body.id !== 'string' || !isValidObjectId(body.id)) {
-    return NextResponse.json({ error: 'id must be a valid ObjectId string.' }, { status: 400 })
+    return NextResponse.json({ error: 'id must be a valid string.' }, { status: 400 })
   }
 
-  const update: Record<string, unknown> = { updatedAt: new Date() }
+  const update: Record<string, unknown> = { updatedAt: new Date().toISOString() }
 
   if (body.word !== undefined) {
     if (typeof body.word !== 'string' || !body.word.trim()) {
@@ -111,25 +114,18 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const col = await getCollection()
-    const oid = new ObjectId(body.id)
-
     // Duplicate check: if updating word, ensure no other doc has same normalizedWord
     if (update.normalizedWord) {
-      const conflict = await col.findOne({
-        normalizedWord: update.normalizedWord,
-        _id: { $ne: oid },
-      })
+      const conflict = await findByNormalizedWord(
+        update.normalizedWord as string,
+        body.id as string
+      )
       if (conflict) {
         return NextResponse.json({ error: 'A word with this name already exists.' }, { status: 409 })
       }
     }
 
-    const updated = await col.findOneAndUpdate(
-      { _id: oid },
-      { $set: update },
-      { returnDocument: 'after' }
-    )
+    const updated = await updateWord(body.id as string, update)
     if (!updated) {
       return NextResponse.json({ error: 'Word not found.' }, { status: 404 })
     }
@@ -149,12 +145,11 @@ export async function DELETE(req: NextRequest) {
   }
 
   if (typeof body.id !== 'string' || !isValidObjectId(body.id)) {
-    return NextResponse.json({ error: 'id must be a valid ObjectId string.' }, { status: 400 })
+    return NextResponse.json({ error: 'id must be a valid string.' }, { status: 400 })
   }
 
   try {
-    const col = await getCollection()
-    const deleted = await col.findOneAndDelete({ _id: new ObjectId(body.id) })
+    const deleted = await deleteWord(body.id)
     if (!deleted) {
       return NextResponse.json({ error: 'Word not found.' }, { status: 404 })
     }

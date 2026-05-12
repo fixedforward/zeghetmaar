@@ -1,39 +1,31 @@
 /**
- * MongoDB helper for the fraselijst feature.
- * NOTE: public/woordenlijst.json is a legacy remnant — it is no longer the
- * source of truth. The collection `zeghetmaar.fraselijst` is the only store.
+ * JSON-file-backed store for the fraselijst feature.
+ * Data is persisted to public/woordenlijst.json.
  */
-import { MongoClient, Collection, ObjectId, WithId } from 'mongodb'
-import configFile from '../config.json'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { join } from 'path'
+import { randomUUID } from 'crypto'
 
 // ---------------------------------------------------------------------------
-// Config resolution: MONGODB_URI env var → app/config.json mongodbUri
+// File path
 // ---------------------------------------------------------------------------
-const mongodbUri: string =
-  process.env.MONGODB_URI ||
-  (configFile as { mongodbUri?: string }).mongodbUri ||
-  ''
-
-if (!mongodbUri) {
-  throw new Error(
-    'MongoDB URI is not configured. Set MONGODB_URI env var or mongodbUri in app/config.json.'
-  )
-}
+const DATA_FILE = join(process.cwd(), 'public', 'woordenlijst.json')
 
 // ---------------------------------------------------------------------------
-// Document shape stored in MongoDB
+// Document shape stored in the JSON file
 // ---------------------------------------------------------------------------
 export interface FraselijstDoc {
+  id: string
   word: string
   normalizedWord: string
   translation: string
   examples: string[]
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 // ---------------------------------------------------------------------------
-// Shape returned by the API (no _id / normalizedWord exposed)
+// Shape returned by the API
 // ---------------------------------------------------------------------------
 export interface WordEntry {
   id: string
@@ -42,9 +34,9 @@ export interface WordEntry {
   examples: string[]
 }
 
-export function toApiEntry(doc: WithId<FraselijstDoc>): WordEntry {
+export function toApiEntry(doc: FraselijstDoc): WordEntry {
   return {
-    id: doc._id.toHexString(),
+    id: doc.id,
     word: doc.word,
     translation: doc.translation,
     examples: doc.examples,
@@ -56,46 +48,93 @@ export function normalizeWord(word: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Singleton client
+// Read / write helpers
 // ---------------------------------------------------------------------------
-declare global {
-  // eslint-disable-next-line no-var
-  var _mongoClient: MongoClient | null
+function readAll(): FraselijstDoc[] {
+  if (!existsSync(DATA_FILE)) return []
+  const raw = readFileSync(DATA_FILE, 'utf-8')
+  const parsed = JSON.parse(raw) as Record<string, unknown>[]
+  // Migrate legacy entries (numeric id, no normalizedWord/dates)
+  return parsed.map((entry) => ({
+    id: String(entry.id ?? randomUUID()),
+    word: String(entry.word ?? ''),
+    normalizedWord: String(entry.normalizedWord ?? normalizeWord(String(entry.word ?? ''))),
+    translation: String(entry.translation ?? ''),
+    examples: Array.isArray(entry.examples) ? entry.examples.map(String) : [],
+    createdAt: String(entry.createdAt ?? new Date().toISOString()),
+    updatedAt: String(entry.updatedAt ?? new Date().toISOString()),
+  }))
 }
 
-let clientPromise: Promise<MongoClient>
-
-if (!global._mongoClient) {
-  const client = new MongoClient(mongodbUri)
-  global._mongoClient = client
-  clientPromise = client.connect()
-} else {
-  clientPromise = Promise.resolve(global._mongoClient)
+function writeAll(docs: FraselijstDoc[]): void {
+  writeFileSync(DATA_FILE, JSON.stringify(docs, null, 2) + '\n', 'utf-8')
 }
 
 // ---------------------------------------------------------------------------
-// initializeMongo — call once at startup to validate connection + ensure index
+// CRUD operations
+// ---------------------------------------------------------------------------
+export async function getAllWords(): Promise<FraselijstDoc[]> {
+  return readAll().sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
+}
+
+export async function findById(id: string): Promise<FraselijstDoc | null> {
+  return readAll().find((d) => d.id === id) ?? null
+}
+
+export async function findByNormalizedWord(
+  nw: string,
+  excludeId?: string
+): Promise<FraselijstDoc | null> {
+  return (
+    readAll().find(
+      (d) => d.normalizedWord === nw && d.id !== excludeId
+    ) ?? null
+  )
+}
+
+export async function insertWord(
+  doc: Omit<FraselijstDoc, 'id'>
+): Promise<FraselijstDoc> {
+  const all = readAll()
+  const newDoc: FraselijstDoc = { id: randomUUID(), ...doc }
+  all.push(newDoc)
+  writeAll(all)
+  return newDoc
+}
+
+export async function updateWord(
+  id: string,
+  update: Partial<Omit<FraselijstDoc, 'id'>>
+): Promise<FraselijstDoc | null> {
+  const all = readAll()
+  const idx = all.findIndex((d) => d.id === id)
+  if (idx === -1) return null
+  all[idx] = { ...all[idx], ...update }
+  writeAll(all)
+  return all[idx]
+}
+
+export async function deleteWord(id: string): Promise<FraselijstDoc | null> {
+  const all = readAll()
+  const idx = all.findIndex((d) => d.id === id)
+  if (idx === -1) return null
+  const [removed] = all.splice(idx, 1)
+  writeAll(all)
+  return removed
+}
+
+// ---------------------------------------------------------------------------
+// initializeMongo — kept for backward compat (now a no-op)
 // ---------------------------------------------------------------------------
 export async function initializeMongo(): Promise<void> {
-  const client = await clientPromise
-  // Ping to validate connectivity
-  await client.db('zeghetmaar').command({ ping: 1 })
-  // Ensure unique index on normalizedWord
-  const col = client.db('zeghetmaar').collection<FraselijstDoc>('fraselijst')
-  await col.createIndex({ normalizedWord: 1 }, { unique: true })
+  // No-op: using local JSON file
 }
 
 // ---------------------------------------------------------------------------
-// getCollection — returns the typed collection handle
-// ---------------------------------------------------------------------------
-export async function getCollection(): Promise<Collection<FraselijstDoc>> {
-  const client = await clientPromise
-  return client.db('zeghetmaar').collection<FraselijstDoc>('fraselijst')
-}
-
-// ---------------------------------------------------------------------------
-// isValidObjectId — guard for route handlers
+// isValidId — accepts any non-empty string
 // ---------------------------------------------------------------------------
 export function isValidObjectId(id: string): boolean {
-  return ObjectId.isValid(id) && new ObjectId(id).toHexString() === id
+  return typeof id === 'string' && id.length > 0
 }
