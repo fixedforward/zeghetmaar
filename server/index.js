@@ -82,7 +82,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ response: aiResponse, cached }))
       } catch (error) {
-        console.error('Error:', error.response ? error.response.data : error.message)
+        const status = error.response?.status
+        const detail = error.response ? JSON.stringify(error.response.data) : error.message
+        console.error(`[/api/chat] OpenRouter request failed${status ? ` (HTTP ${status})` : ''}: ${detail}`)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Failed to get response from AI' }))
       }
@@ -110,7 +112,7 @@ const portFilePath = path.join(__dirname, 'port.json')
 
 async function start() {
   const { default: getPort } = await import('get-port')
-
+  console.log('Finding a free port for the server...')
   // Find a free port, preferring 9292 for local convenience
   const PORT = await getPort({ port: 9292 })
 

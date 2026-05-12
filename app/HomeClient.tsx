@@ -90,15 +90,23 @@ export default function HomeClient() {
       const backendUrl = () => `http://localhost:${port}`
 
       const checkBackend = async () => {
+        const url = backendUrl()
+        console.log(`[backend] Checking connection at ${url}`)
         try {
           const [healthRes, configRes] = await Promise.all([
-            fetch(`${backendUrl()}/api/health`),
-            fetch(`${backendUrl()}/api/config`)
+            fetch(`${url}/api/health`),
+            fetch(`${url}/api/config`)
           ])
+          if (!healthRes.ok) {
+            console.warn(`[backend] Health check failed: HTTP ${healthRes.status} from ${url}/api/health`)
+          } else {
+            console.log(`[backend] Connected successfully at ${url}`)
+          }
           setBackendConnected(healthRes.ok)
           const configData = await configRes.json()
           if (configData.model) setModel(configData.model)
-        } catch {
+        } catch (err) {
+          console.error(`[backend] Connection failed at ${url} —`, err instanceof Error ? err.message : err)
           setBackendConnected(false)
         }
       }
@@ -148,7 +156,8 @@ export default function HomeClient() {
         setIsLoading(false)
       })
       .catch(err => {
-        console.error(err)
+        console.error(`[sendRequest] Failed to reach backend at ${backendUrl()}/api/chat —`, err instanceof Error ? err.message : err)
+        setResponse('Could not reach the backend. Is the server running?')
         setIsLoading(false)
       })
   }, [getEffectivePrompt, getEffectiveModel])
@@ -186,7 +195,8 @@ export default function HomeClient() {
         setIsTranslating(false)
       })
       .catch(() => {
-        setTranslationResult('Er is een fout opgetreden')
+        console.error(`[handleTranslate] Failed to reach backend at ${backendUrl()}/api/chat`)
+        setTranslationResult('Could not reach the backend. Is the server running?')
         setIsTranslating(false)
       })
   }
@@ -214,7 +224,8 @@ export default function HomeClient() {
         setSelectionPopup(prev => prev ? { ...prev, explanation: data.response || data.error || 'Geen uitleg gevonden', loading: false } : null)
       })
       .catch(() => {
-        setSelectionPopup(prev => prev ? { ...prev, explanation: 'Er is een fout opgetreden', loading: false } : null)
+        console.error(`[handleTextSelection] Failed to reach backend at ${backendUrl()}/api/chat`)
+        setSelectionPopup(prev => prev ? { ...prev, explanation: 'Could not reach the backend. Is the server running?', loading: false } : null)
       })
   }, [getEffectiveModel])
 
@@ -327,7 +338,7 @@ export default function HomeClient() {
 
         {!backendConnected && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            Backend disconnected. Please ensure the server is running on port 8080.
+            Backend disconnected. Please ensure the server is running.
           </div>
         )}
 
