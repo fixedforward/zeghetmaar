@@ -91,7 +91,7 @@ export default function HomeClient() {
 
       const checkBackend = async () => {
         const url = backendUrl()
-        console.log(`[backend] Checking connection at ${url}`)
+        console.log(`Checking backend connection at ${url}`)
         try {
           const [healthRes, configRes] = await Promise.all([
             fetch(`${url}/api/health`),
@@ -106,7 +106,7 @@ export default function HomeClient() {
           const configData = await configRes.json()
           if (configData.model) setModel(configData.model)
         } catch (err) {
-          console.error(`[backend] Connection failed at ${url} —`, err instanceof Error ? err.message : err)
+          console.error(`[backend] Connection failed at ${url} —`, err)
           setBackendConnected(false)
         }
       }

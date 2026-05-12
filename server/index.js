@@ -112,9 +112,10 @@ const portFilePath = path.join(__dirname, 'port.json')
 
 async function start() {
   const { default: getPort } = await import('get-port')
-  console.log('Finding a free port for the server...')
   // Find a free port, preferring 9292 for local convenience
   const PORT = await getPort({ port: 9292 })
+
+  console.log(`Starting backend on port ${PORT}...`)
 
   // Persist the port so the frontend knows where to connect
   fs.writeFileSync(portFilePath, JSON.stringify({ port: PORT }))
