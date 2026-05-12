@@ -14,8 +14,7 @@ translate English sentences into Dutch, and browse a vocabulary list.
 - **Backend:** Next.js API route handlers (`app/api/*`) — no separate server process.
 - **AI Provider:** [OpenRouter](https://openrouter.ai) — default model is `openai/gpt-4o-mini`.
 
-Everything is served from a single Next.js process on a single port. The old Node.js backend
-(`server/index.js`) is retained for reference but is no longer used at runtime.
+Everything is served from a single Next.js process on a single port.
 
 ## Key Files
 
@@ -25,9 +24,8 @@ Everything is served from a single Next.js process on a single port. The old Nod
 | `app/HomeClient.tsx` | All client-side logic: tabs, AI calls, selection popup, state |
 | `app/api/chat/route.ts` | POST handler: proxies requests to OpenRouter |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
-| `app/api/config/route.ts` | GET handler: returns the active model name |
-| `app/config.example.json` | Example config file for local development |
-| `server/index.js` | Legacy standalone Node backend (not used in production) |
+| `app/config.json` | Optional local config for API key and model (not committed) |
+| `app/config.example.json` | Example config file — copy to `app/config.json` to use |
 | `public/woordenlijst.json` | Static word list data for the Vocabulary tab |
 | `next.config.js` | Next.js config with Turbopack root fix |
 
@@ -37,8 +35,7 @@ Everything is served from a single Next.js process on a single port. The old Nod
 npm run dev    # Next.js on http://localhost:3000 — frontend + API routes
 ```
 
-No separate backend process is needed. In development, `server/index.js` can still be run
-standalone (`npm run server:dev`) for isolated backend testing, but the app does not depend on it.
+No separate backend process is needed.
 
 ## Configuration
 
@@ -56,8 +53,7 @@ The API route handlers resolve the API key and model in this priority order:
   so there are no CORS concerns and no port discovery needed.
 - **No WebSockets / streaming:** All AI calls are standard HTTP POST requests.
 - **Hydration guard:** `HomeClient` renders `null` on the server and on the initial client pass,
-  then switches to the real UI in `useEffect`. This prevents SSR mismatches caused by
-  `localStorage` access.
+  then switches to the real UI in `useEffect`. This prevents SSR mismatches.
 - **Health check is local:** `GET /api/health` returns a hardcoded `{ ok: true }` — it does not
   call OpenRouter, so it never wastes API tokens.
 - **Turbopack root:** `next.config.js` sets `turbopack.root: __dirname` to prevent Turbopack from
@@ -78,6 +74,6 @@ Highlighting any text inside the Herschrijver response area triggers a floating 
 
 ## Logging
 
-All backend fetch calls in `HomeClient.tsx` log to the browser console with a `[tag]` prefix
-(e.g. `[backend]`, `[sendRequest]`). The Node server logs HTTP status and error detail for every
-failed OpenRouter request.
+All fetch calls in `HomeClient.tsx` log errors to the browser console with a `[tag]` prefix
+(e.g. `[sendRequest]`, `[handleTranslate]`, `[handleTextSelection]`). The API route handler logs
+HTTP status and error detail for every failed OpenRouter request.
