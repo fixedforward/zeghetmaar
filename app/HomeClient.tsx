@@ -8,7 +8,7 @@ const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 3. Suggest an alternative Dutch sentence, if applicable`
 
 // Tab type for the main sections
-type Tab = 'herschrijver' | 'vertaler' | 'fraselijst'
+type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen'
 
 interface WordEntry {
   id: string
@@ -16,6 +16,20 @@ interface WordEntry {
   translation: string
   examples: string[]
 }
+
+interface Exercise {
+  id: string
+  name: string
+  url: string
+}
+
+const DEFAULT_EXERCISES: Exercise[] = [
+  { id: '1', name: 'NT2 Taalmenu', url: 'https://www.nt2taalmenu.nl/' },
+  { id: '2', name: 'Oefenen.nl', url: 'https://oefenen.nl/' },
+  { id: '3', name: 'Learn Dutch with Kim', url: 'https://www.learndutchwithkim.com/' },
+]
+
+const EXERCISES_STORAGE_KEY = 'extra-oefeningen'
 
 // Position and content for the selection popup
 interface SelectionPopup {
@@ -74,6 +88,16 @@ export default function HomeClient() {
   // AI example generation
   const [aiExamplesLoading, setAiExamplesLoading] = useState(false)
 
+  // Extra Oefeningen state
+  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [showAddExercise, setShowAddExercise] = useState(false)
+  const [newExerciseName, setNewExerciseName] = useState('')
+  const [newExerciseUrl, setNewExerciseUrl] = useState('')
+  const [editExerciseId, setEditExerciseId] = useState<string | null>(null)
+  const [editExerciseName, setEditExerciseName] = useState('')
+  const [editExerciseUrl, setEditExerciseUrl] = useState('')
+  const [deleteExerciseConfirmId, setDeleteExerciseConfirmId] = useState<string | null>(null)
+
   // Shared state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
@@ -83,7 +107,45 @@ export default function HomeClient() {
   useEffect(() => {
     setMounted(true)
     loadWords()
+    // Load exercises from localStorage, falling back to defaults
+    try {
+      const stored = localStorage.getItem(EXERCISES_STORAGE_KEY)
+      setExercises(stored ? JSON.parse(stored) : DEFAULT_EXERCISES)
+    } catch {
+      setExercises(DEFAULT_EXERCISES)
+    }
   }, [])
+
+  const saveExercises = (updated: Exercise[]) => {
+    setExercises(updated)
+    localStorage.setItem(EXERCISES_STORAGE_KEY, JSON.stringify(updated))
+  }
+
+  const handleAddExercise = () => {
+    if (!newExerciseName.trim() || !newExerciseUrl.trim()) return
+    const exercise: Exercise = { id: Date.now().toString(), name: newExerciseName.trim(), url: newExerciseUrl.trim() }
+    saveExercises([...exercises, exercise])
+    setNewExerciseName('')
+    setNewExerciseUrl('')
+    setShowAddExercise(false)
+  }
+
+  const handleEditExercise = () => {
+    if (!editExerciseId || !editExerciseName.trim() || !editExerciseUrl.trim()) return
+    saveExercises(exercises.map(e => e.id === editExerciseId ? { ...e, name: editExerciseName.trim(), url: editExerciseUrl.trim() } : e))
+    setEditExerciseId(null)
+  }
+
+  const handleDeleteExercise = (id: string) => {
+    saveExercises(exercises.filter(e => e.id !== id))
+    setDeleteExerciseConfirmId(null)
+  }
+
+  const startEditExercise = (exercise: Exercise) => {
+    setEditExerciseId(exercise.id)
+    setEditExerciseName(exercise.name)
+    setEditExerciseUrl(exercise.url)
+  }
 
   // All AI calls go through the Next.js /api/chat route handler (same origin).
   // No port discovery or cross-origin requests needed.
@@ -331,6 +393,12 @@ export default function HomeClient() {
             >
               Vertaler
             </button>
+            <button
+              onClick={() => setActiveTab('oefeningen')}
+              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'oefeningen' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
+            >
+              Extra Oefeningen
+            </button>
           </nav>
         )}
       </aside>
@@ -359,6 +427,12 @@ export default function HomeClient() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'vertaler' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Engels → Nederlands
+          </button>
+          <button
+            onClick={() => setActiveTab('oefeningen')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefeningen' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Extra Oefeningen
           </button>
         </div>
 
@@ -677,6 +751,131 @@ export default function HomeClient() {
                 {translationResult}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Extra Oefeningen tab */}
+        {activeTab === 'oefeningen' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">Handige links naar extra oefeningen om je Nederlands te verbeteren.</p>
+              <button
+                onClick={() => setShowAddExercise(!showAddExercise)}
+                className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
+              >
+                {showAddExercise ? 'Annuleren' : '+ Toevoegen'}
+              </button>
+            </div>
+
+            {showAddExercise && (
+              <div className="mb-4 p-3 border rounded bg-gray-50 space-y-2">
+                <input
+                  type="text"
+                  value={newExerciseName}
+                  onChange={(e) => setNewExerciseName(e.target.value)}
+                  placeholder="Naam van de oefening"
+                  className="w-full p-2 border rounded"
+                />
+                <input
+                  type="url"
+                  value={newExerciseUrl}
+                  onChange={(e) => setNewExerciseUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full p-2 border rounded"
+                />
+                <button
+                  onClick={handleAddExercise}
+                  disabled={!newExerciseName.trim() || !newExerciseUrl.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+                >
+                  Opslaan
+                </button>
+              </div>
+            )}
+
+            {exercises.length === 0 && <p className="text-sm text-gray-400">Geen oefeningen. Voeg er een toe!</p>}
+
+            <ul className="space-y-2">
+              {exercises.map((exercise) => (
+                <li key={exercise.id} className="border rounded p-3 bg-white">
+                  {editExerciseId === exercise.id ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editExerciseName}
+                        onChange={(e) => setEditExerciseName(e.target.value)}
+                        className="w-full p-2 border rounded"
+                      />
+                      <input
+                        type="url"
+                        value={editExerciseUrl}
+                        onChange={(e) => setEditExerciseUrl(e.target.value)}
+                        className="w-full p-2 border rounded"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleEditExercise}
+                          disabled={!editExerciseName.trim() || !editExerciseUrl.trim()}
+                          className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                        >
+                          Opslaan
+                        </button>
+                        <button
+                          onClick={() => setEditExerciseId(null)}
+                          className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                        >
+                          Annuleren
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <a
+                        href={exercise.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline font-semibold"
+                      >
+                        {exercise.name}
+                      </a>
+                      <div className="flex gap-2">
+                        {deleteExerciseConfirmId === exercise.id ? (
+                          <>
+                            <button
+                              onClick={() => handleDeleteExercise(exercise.id)}
+                              className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                            >
+                              Bevestigen
+                            </button>
+                            <button
+                              onClick={() => setDeleteExerciseConfirmId(null)}
+                              className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                              Annuleren
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEditExercise(exercise)}
+                              className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                            >
+                              Bewerken
+                            </button>
+                            <button
+                              onClick={() => setDeleteExerciseConfirmId(exercise.id)}
+                              className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
+                            >
+                              Verwijderen
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </main>
