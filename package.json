@@ -10,7 +10,7 @@
     "server:dev": "nodemon server/index.js",
     "dev:all": "npm run dev & npm run server:dev",
     "build:all": "npm run build && node server/index.js",
-    "start:all": "npm run start & node server/index.js"
+    "start:all": "npm run start"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.4",

@@ -34,20 +34,11 @@ export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('herschrijver')
 
-  // The backend port is read from /api/port (which reads server/port.json written
-  // by the backend on startup). Defaults to 8080 until the port is resolved.
-  const [backendPort, setBackendPort] = useState(9292)
-
   // Herschrijver state
   const [input, setInput] = useState('')
   const [response, setResponse] = useState('')
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT)
-  const [promptOverride, setPromptOverride] = useState('')
-  const [model, setModel] = useState('')
-  const [modelOverride, setModelOverride] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isCached, setIsCached] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Vertaler state
   const [englishInput, setEnglishInput] = useState('')
@@ -62,7 +53,6 @@ export default function HomeClient() {
   const [expandedWords, setExpandedWords] = useState<Set<number>>(new Set())
 
   // Shared state
-  const [backendConnected, setBackendConnected] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   // Popup shown when the user highlights text in the response area
@@ -70,84 +60,18 @@ export default function HomeClient() {
 
   useEffect(() => {
     setMounted(true)
-
-    const savedPrompt = localStorage.getItem('promptOverride')
-    if (savedPrompt) setPromptOverride(savedPrompt)
-
-    const savedModel = localStorage.getItem('modelOverride')
-    if (savedModel) setModelOverride(savedModel)
-
-    // Resolve the backend port from the Next.js API route, then start polling
-    fetch('/api/port')
-      .then(r => r.json())
-      .then(({ port }) => {
-        setBackendPort(port)
-        startPolling(port)
-      })
-      .catch(() => startPolling(9292))
-
-    const startPolling = (port: number) => {
-      const backendUrl = () => `http://localhost:${port}`
-
-      const checkBackend = async () => {
-        const url = backendUrl()
-        console.log(`Checking backend connection at ${url}`)
-        try {
-          const [healthRes, configRes] = await Promise.all([
-            fetch(`/api/health`),
-            fetch(`/api/config`)
-          ])
-          if (!healthRes.ok) {
-            console.warn(`[backend] Health check failed: HTTP ${healthRes.status} from ${url}/api/health`)
-          } else {
-            console.log(`[backend] Connected successfully at ${url}`)
-          }
-          setBackendConnected(healthRes.ok)
-          const configData = await configRes.json()
-          if (configData.model) setModel(configData.model)
-        } catch (err) {
-          console.error(`[backend] Connection failed at ${url} —`, err)
-          setBackendConnected(false)
-        }
-      }
-
-      checkBackend()
-      const interval = setInterval(checkBackend, 5000)
-      return () => clearInterval(interval)
-    }
-
-    // Close the selection popup when the user clicks anywhere outside it
-    const handleMouseDown = (e: MouseEvent) => {
-      const popup = document.querySelector('[data-selection-popup]')
-      if (popup && !popup.contains(e.target as Node)) {
-        setSelectionPopup(null)
-      }
-    }
-    document.addEventListener('mousedown', handleMouseDown)
-
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown)
-    }
   }, [])
 
-  const backendUrl = useCallback(() => `http://localhost:${backendPort}`, [backendPort])
-
-  const getEffectivePrompt = useCallback(() => {
-    return promptOverride || prompt
-  }, [prompt, promptOverride])
-
-  const getEffectiveModel = useCallback(() => {
-    return modelOverride || model
-  }, [model, modelOverride])
-
+  // All AI calls go through the Next.js /api/chat route handler (same origin).
+  // No port discovery or cross-origin requests needed.
   const sendRequest = useCallback((text: string) => {
     setIsLoading(true)
     setResponse('')
     setIsCached(false)
-    fetch(`${backendUrl()}/api/chat`, {
+    fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, prompt: getEffectivePrompt(), model: getEffectiveModel() })
+      body: JSON.stringify({ text, prompt: DEFAULT_PROMPT, model: '' })
     })
       .then(res => res.json())
       .then(data => {
@@ -156,11 +80,11 @@ export default function HomeClient() {
         setIsLoading(false)
       })
       .catch(err => {
-        console.error(`[sendRequest] Failed to reach backend at ${backendUrl()}/api/chat —`, err instanceof Error ? err.message : err)
-        setResponse('Could not reach the backend. Is the server running?')
+        console.error('[sendRequest] Failed to reach /api/chat —', err instanceof Error ? err.message : err)
+        setResponse('Could not reach the server. Please try again.')
         setIsLoading(false)
       })
-  }, [getEffectivePrompt, getEffectiveModel])
+  }, [])
 
   const handleSubmit = () => {
     if (!input.trim()) return
@@ -184,10 +108,10 @@ export default function HomeClient() {
     setIsTranslating(true)
     setTranslationResult('')
     const translatePrompt = 'Give 2 or 3 different natural ways to say the following English sentence in Dutch. Number each option and briefly note any difference in tone or formality if relevant. Reply only with the Dutch options, no extra explanation.'
-    fetch(`${backendUrl()}/api/chat`, {
+    fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: englishInput, prompt: translatePrompt, model: getEffectiveModel() })
+      body: JSON.stringify({ text: englishInput, prompt: translatePrompt, model: '' })
     })
       .then(res => res.json())
       .then(data => {
@@ -195,8 +119,8 @@ export default function HomeClient() {
         setIsTranslating(false)
       })
       .catch(() => {
-        console.error(`[handleTranslate] Failed to reach backend at ${backendUrl()}/api/chat`)
-        setTranslationResult('Could not reach the backend. Is the server running?')
+        console.error('[handleTranslate] Failed to reach /api/chat')
+        setTranslationResult('Could not reach the server. Please try again.')
         setIsTranslating(false)
       })
   }
@@ -214,20 +138,20 @@ export default function HomeClient() {
     setSelectionPopup({ x: e.clientX, y: e.clientY + 12, text: selected, explanation: null, loading: true })
 
     const explainPrompt = 'The user is learning Dutch. They highlighted the following word or phrase and want to know what it means. Give a short, clear explanation in English: what it means, and (if it is Dutch) how it is typically used. Keep it to 2-3 sentences max.'
-    fetch(`${backendUrl()}/api/chat`, {
+    fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: selected, prompt: explainPrompt, model: getEffectiveModel() })
+      body: JSON.stringify({ text: selected, prompt: explainPrompt, model: '' })
     })
       .then(res => res.json())
       .then(data => {
         setSelectionPopup(prev => prev ? { ...prev, explanation: data.response || data.error || 'Geen uitleg gevonden', loading: false } : null)
       })
       .catch(() => {
-        console.error(`[handleTextSelection] Failed to reach backend at ${backendUrl()}/api/chat`)
-        setSelectionPopup(prev => prev ? { ...prev, explanation: 'Could not reach the backend. Is the server running?', loading: false } : null)
+        console.error('[handleTextSelection] Failed to reach /api/chat')
+        setSelectionPopup(prev => prev ? { ...prev, explanation: 'Could not reach the server. Please try again.', loading: false } : null)
       })
-  }, [getEffectiveModel])
+  }, [])
 
   // Fetch the word list from the static JSON file the first time the tab is opened.
   // We check words.length so it only loads once per session.
@@ -261,8 +185,6 @@ export default function HomeClient() {
   // Render nothing until mounted on the client. This matches the server output
   // (null) exactly, preventing any hydration mismatch.
   if (!mounted) return null
-
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
   return (
     <div className="min-h-screen flex">
@@ -300,18 +222,6 @@ export default function HomeClient() {
       <main className="flex-1 p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Nederlandse Herschrijver</h1>
-          {isLocalhost && (
-            <button
-              onClick={() => {
-                fetch(`${backendUrl()}/api/restart`, { method: 'POST' })
-                setBackendConnected(false)
-                setTimeout(() => window.location.reload(), 2000)
-              }}
-              className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
-            >
-              Restart Server
-            </button>
-          )}
         </div>
 
         {/* Tab bar */}
@@ -335,12 +245,6 @@ export default function HomeClient() {
             Woordenlijst
           </button>
         </div>
-
-        {!backendConnected && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            Backend disconnected. Please ensure the server is running.
-          </div>
-        )}
 
         {/* Herschrijver tab */}
         {activeTab === 'herschrijver' && (
@@ -388,57 +292,7 @@ export default function HomeClient() {
               </div>
             </div>
 
-            <div className="mb-4 border rounded p-3">
-              <button
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className="text-sm font-medium text-blue-600 hover:underline"
-              >
-                {settingsOpen ? '▼' : '▶'} Instellingen
-              </button>
 
-              {settingsOpen && (
-                <div className="mt-3">
-                  <div className="mb-4">
-                    <label className="text-sm font-medium block mb-1">Model:</label>
-                    <input
-                      type="text"
-                      value={modelOverride || model}
-                      onChange={(e) => setModelOverride(e.target.value)}
-                      onBlur={() => {
-                        if (modelOverride) localStorage.setItem('modelOverride', modelOverride)
-                      }}
-                      className="w-full p-2 border rounded text-sm"
-                      placeholder="Model name"
-                    />
-                    {modelOverride && (
-                      <button
-                        onClick={() => {
-                          setModelOverride('')
-                          localStorage.removeItem('modelOverride')
-                        }}
-                        className="text-xs text-red-500 mt-1 hover:underline"
-                      >
-                        Reset naar standaard
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="p-3 bg-gray-100 rounded">
-                    <span className="text-sm font-medium block mb-2">System Prompt</span>
-                    <textarea
-                      value={promptOverride || prompt}
-                      onChange={(e) => setPromptOverride(e.target.value)}
-                      onBlur={() => {
-                        if (promptOverride) localStorage.setItem('promptOverride', promptOverride)
-                      }}
-                      className="w-full p-2 border rounded text-sm font-mono"
-                      rows={4}
-                      placeholder="Enter system prompt..."
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
           </>
         )}
 

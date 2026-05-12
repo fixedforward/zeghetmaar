@@ -2,5 +2,5 @@ node_modules
 .next
 .env
 *.env.local
-server/config.json
+*config.json
 .DS_Store

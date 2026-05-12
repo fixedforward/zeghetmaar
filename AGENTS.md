@@ -11,8 +11,11 @@ translate English sentences into Dutch, and browse a vocabulary list.
 ## Architecture
 
 - **Frontend:** Next.js 15+ (App Router), React 19, Tailwind CSS 4.
-- **Backend:** Custom Node.js HTTP server (`server/index.js`) that proxies requests to the OpenRouter API.
+- **Backend:** Next.js API route handlers (`app/api/*`) — no separate server process.
 - **AI Provider:** [OpenRouter](https://openrouter.ai) — default model is `openai/gpt-4o-mini`.
+
+Everything is served from a single Next.js process on a single port. The old Node.js backend
+(`server/index.js`) is retained for reference but is no longer used at runtime.
 
 ## Key Files
 
@@ -20,58 +23,41 @@ translate English sentences into Dutch, and browse a vocabulary list.
 |---|---|
 | `app/page.tsx` | Server component wrapper; delegates to `HomeClient` |
 | `app/HomeClient.tsx` | All client-side logic: tabs, AI calls, selection popup, state |
-| `app/api/port/route.ts` | Next.js API route that exposes the backend port to the frontend |
-| `server/index.js` | Node.js backend: health check, `/api/chat` proxy, port discovery |
-| `server/config.json` | Optional local config for API key and model (not committed) |
-| `server/port.json` | Auto-generated on server start; holds the active port number |
+| `app/api/chat/route.ts` | POST handler: proxies requests to OpenRouter |
+| `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
+| `app/api/config/route.ts` | GET handler: returns the active model name |
+| `app/config.example.json` | Example config file for local development |
+| `server/index.js` | Legacy standalone Node backend (not used in production) |
 | `public/woordenlijst.json` | Static word list data for the Vocabulary tab |
 | `next.config.js` | Next.js config with Turbopack root fix |
 
 ## Running the Project
 
-Run both the Next.js dev server and the Node backend together:
-
 ```bash
-npm run dev:all
+npm run dev    # Next.js on http://localhost:3000 — frontend + API routes
 ```
 
-Or separately:
-
-```bash
-npm run dev        # Next.js frontend on http://localhost:3000
-npm run server:dev # Node backend (nodemon) — dynamic port, prefers 9292
-```
+No separate backend process is needed. In development, `server/index.js` can still be run
+standalone (`npm run server:dev`) for isolated backend testing, but the app does not depend on it.
 
 ## Configuration
 
-The backend resolves its API key and model in this priority order:
+The API route handlers resolve the API key and model in this priority order:
 
-1. Environment variable (`openrouterApiKey`, `model`)
-2. `server/config.json`
+1. Environment variable (`OPENROUTER_API_KEY`, `MODEL`)
+2. `app/config.json`
 3. Hardcoded default model: `openai/gpt-4o-mini`
 
-`server/config.json` is optional and not committed to version control. Example:
-
-```json
-{
-  "openrouterApiKey": "sk-or-...",
-  "model": "openai/gpt-4o-mini"
-}
-```
-
-## Port Discovery
-
-The backend uses `get-port` (ESM-only, imported via dynamic `import()`) to find a free port,
-preferring `9292`. The chosen port is written to `server/port.json`. The frontend reads it via
-`/api/port` on startup so it always knows where the backend is.
+`app/config.json` is optional and not committed to version control. See `app/config.example.json` for the format.
 
 ## Important Design Decisions
 
-- **No WebSockets / streaming:** Removed to keep the architecture simple. All AI calls are
-  standard HTTP POST requests.
+- **Single origin:** All API calls from the frontend use relative paths (`/api/chat`, etc.),
+  so there are no CORS concerns and no port discovery needed.
+- **No WebSockets / streaming:** All AI calls are standard HTTP POST requests.
 - **Hydration guard:** `HomeClient` renders `null` on the server and on the initial client pass,
   then switches to the real UI in `useEffect`. This prevents SSR mismatches caused by
-  `localStorage` access and the dynamic port fetch.
+  `localStorage` access.
 - **Health check is local:** `GET /api/health` returns a hardcoded `{ ok: true }` — it does not
   call OpenRouter, so it never wastes API tokens.
 - **Turbopack root:** `next.config.js` sets `turbopack.root: __dirname` to prevent Turbopack from
