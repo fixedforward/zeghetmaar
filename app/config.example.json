@@ -1,4 +1,5 @@
 {
   "openrouterApiKey": "sk-or-...",
-  "model": "openai/gpt-4o-mini"
+  "model": "openai/gpt-4o-mini",
+  "mongodbUri": "mongodb+srv://:<pass>@<cluster>.mongodb.net/zeghetmaar"
 }

@@ -10,9 +10,8 @@ const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 // Tab type for the main sections
 type Tab = 'herschrijver' | 'vertaler' | 'fraselijst'
 
-// Shape of each entry in public/woordenlijst.json
 interface WordEntry {
-  id: number
+  id: string
   word: string
   translation: string
   examples: string[]
@@ -51,7 +50,7 @@ export default function HomeClient() {
   const [wordsError, setWordsError] = useState<string | null>(null)
   const [wordsLoaded, setWordsLoaded] = useState(false)
   // Tracks which word IDs have their examples expanded
-  const [expandedWords, setExpandedWords] = useState<Set<number>>(new Set())
+  const [expandedWords, setExpandedWords] = useState<Set<string>>(new Set())
 
   // Add-word form state
   const [newWord, setNewWord] = useState('')
@@ -62,11 +61,11 @@ export default function HomeClient() {
   const [showAddForm, setShowAddForm] = useState(false)
 
   // Delete confirmation state
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Edit state
-  const [editId, setEditId] = useState<number | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
   const [editWord, setEditWord] = useState('')
   const [editTranslation, setEditTranslation] = useState('')
   const [editExamples, setEditExamples] = useState<string[]>([])
@@ -219,7 +218,7 @@ export default function HomeClient() {
       .finally(() => setAddLoading(false))
   }
 
-  const handleDeleteWord = (id: number) => {
+  const handleDeleteWord = (id: string) => {
     setDeleteLoading(true)
     fetch('/api/words', {
       method: 'DELETE',
@@ -275,7 +274,7 @@ export default function HomeClient() {
   }
 
   const handleEditWord = () => {
-    if (editId == null || !editWord.trim() || !editTranslation.trim()) return
+    if (!editId || !editWord.trim() || !editTranslation.trim()) return
     setEditLoading(true)
     fetch('/api/words', {
       method: 'PUT',
@@ -291,7 +290,7 @@ export default function HomeClient() {
       .finally(() => setEditLoading(false))
   }
 
-  const toggleExamples = (id: number) => {
+  const toggleExamples = (id: string) => {
     setExpandedWords(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)

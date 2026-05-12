@@ -1,6 +1,12 @@
 {
   "version": 1,
   "hooks": {
+    "permissionRequest": [
+      {
+        "type": "command",
+        "bash": "osascript -e 'display dialog \"Cek rider ato vscode\" with title \"AI agent stopped\"'"
+      }
+    ],
     "agentStop": [
       {
         "type": "command",
