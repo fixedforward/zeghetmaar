@@ -8,7 +8,7 @@ const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 3. Suggest an alternative Dutch sentence, if applicable`
 
 // Tab type for the main sections
-type Tab = 'herschrijver' | 'vertaler' | 'woordenlijst'
+type Tab = 'herschrijver' | 'vertaler' | 'fraselijst'
 
 // Shape of each entry in public/woordenlijst.json
 interface WordEntry {
@@ -32,7 +32,7 @@ export default function HomeClient() {
   // to true via useEffect. This ensures the server and client produce identical
   // output on first render (null), avoiding hydration mismatches.
   const [mounted, setMounted] = useState(false)
-  const [activeTab, setActiveTab] = useState<Tab>('herschrijver')
+  const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
 
   // Herschrijver state
   const [input, setInput] = useState('')
@@ -49,8 +49,31 @@ export default function HomeClient() {
   const [words, setWords] = useState<WordEntry[]>([])
   const [wordsLoading, setWordsLoading] = useState(false)
   const [wordsError, setWordsError] = useState<string | null>(null)
+  const [wordsLoaded, setWordsLoaded] = useState(false)
   // Tracks which word IDs have their examples expanded
   const [expandedWords, setExpandedWords] = useState<Set<number>>(new Set())
+
+  // Add-word form state
+  const [newWord, setNewWord] = useState('')
+  const [newTranslation, setNewTranslation] = useState('')
+  const [newExamples, setNewExamples] = useState<string[]>([])
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+
+  // Delete confirmation state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // Edit state
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editWord, setEditWord] = useState('')
+  const [editTranslation, setEditTranslation] = useState('')
+  const [editExamples, setEditExamples] = useState<string[]>([])
+  const [editLoading, setEditLoading] = useState(false)
+
+  // AI example generation
+  const [aiExamplesLoading, setAiExamplesLoading] = useState(false)
 
   // Shared state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
@@ -60,6 +83,7 @@ export default function HomeClient() {
 
   useEffect(() => {
     setMounted(true)
+    loadWords()
   }, [])
 
   // All AI calls go through the Next.js /api/chat route handler (same origin).
@@ -153,26 +177,119 @@ export default function HomeClient() {
       })
   }, [])
 
-  // Fetch the word list from the static JSON file the first time the tab is opened.
-  // We check words.length so it only loads once per session.
-  const loadWords = useCallback(() => {
-    if (words.length > 0 || wordsLoading) return
+  // Fetch the word list from the API route.
+  const loadWords = useCallback((force = false) => {
+    if ((!force && wordsLoaded) || wordsLoading) return
     setWordsLoading(true)
     setWordsError(null)
-    fetch('/woordenlijst.json')
+    fetch('/api/words')
       .then(res => {
-        if (!res.ok) throw new Error('Kon de woordenlijst niet laden')
+        if (!res.ok) throw new Error('Kon de fraselijst niet laden')
         return res.json()
       })
       .then((data: WordEntry[]) => {
         setWords(data)
+        setWordsLoaded(true)
         setWordsLoading(false)
       })
       .catch((err: Error) => {
         setWordsError(err.message)
         setWordsLoading(false)
       })
-  }, [words.length, wordsLoading])
+  }, [wordsLoaded, wordsLoading])
+
+  const handleAddWord = () => {
+    if (!newWord.trim() || !newTranslation.trim()) return
+    setAddLoading(true)
+    setAddError(null)
+    fetch('/api/words', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word: newWord, translation: newTranslation, examples: newExamples.filter(e => e.trim()) }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon woord niet toevoegen')
+        setNewWord('')
+        setNewTranslation('')
+        setNewExamples([])
+        setShowAddForm(false)
+        loadWords(true)
+      })
+      .catch((err: Error) => setAddError(err.message))
+      .finally(() => setAddLoading(false))
+  }
+
+  const handleDeleteWord = (id: number) => {
+    setDeleteLoading(true)
+    fetch('/api/words', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon woord niet verwijderen')
+        setDeleteConfirmId(null)
+        loadWords(true)
+      })
+      .catch((err: Error) => {
+        console.error('[handleDeleteWord]', err.message)
+        setDeleteConfirmId(null)
+      })
+      .finally(() => setDeleteLoading(false))
+  }
+
+  const startEdit = (entry: WordEntry) => {
+    setEditId(entry.id)
+    setEditWord(entry.word)
+    setEditTranslation(entry.translation)
+    setEditExamples([...entry.examples])
+  }
+
+  const cancelEdit = () => {
+    setEditId(null)
+    setEditWord('')
+    setEditTranslation('')
+    setEditExamples([])
+  }
+
+  const generateAiExamples = (word: string, target: 'add' | 'edit') => {
+    if (!word.trim()) return
+    setAiExamplesLoading(true)
+    const prompt = `Generate 3 natural Dutch example sentences using the word or phrase "${word}". For each sentence, provide the Dutch sentence followed by " — " (space em-dash space) and the English translation. Return ONLY the sentences, one per line, no numbering, no extra text.`
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: word, prompt, model: '' }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        const lines = (data.response || '').split('\n').map((l: string) => l.trim()).filter(Boolean)
+        if (target === 'add') {
+          setNewExamples(prev => [...prev, ...lines])
+        } else {
+          setEditExamples(prev => [...prev, ...lines])
+        }
+      })
+      .catch(err => console.error('[generateAiExamples]', err))
+      .finally(() => setAiExamplesLoading(false))
+  }
+
+  const handleEditWord = () => {
+    if (editId == null || !editWord.trim() || !editTranslation.trim()) return
+    setEditLoading(true)
+    fetch('/api/words', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editId, word: editWord, translation: editTranslation, examples: editExamples.filter(e => e.trim()) }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon woord niet bijwerken')
+        cancelEdit()
+        loadWords(true)
+      })
+      .catch((err: Error) => console.error('[handleEditWord]', err.message))
+      .finally(() => setEditLoading(false))
+  }
 
   const toggleExamples = (id: number) => {
     setExpandedWords(prev => {
@@ -198,6 +315,12 @@ export default function HomeClient() {
         {!sidebarCollapsed && (
           <nav className="space-y-2">
             <button
+              onClick={() => { setActiveTab('fraselijst'); loadWords() }}
+              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'fraselijst' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
+            >
+              Fraselijst
+            </button>
+            <button
               onClick={() => setActiveTab('herschrijver')}
               className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'herschrijver' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
             >
@@ -208,12 +331,6 @@ export default function HomeClient() {
               className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'vertaler' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
             >
               Vertaler
-            </button>
-            <button
-              onClick={() => { setActiveTab('woordenlijst'); loadWords() }}
-              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'woordenlijst' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
-            >
-              Woordenlijst
             </button>
           </nav>
         )}
@@ -227,6 +344,12 @@ export default function HomeClient() {
         {/* Tab bar */}
         <div className="flex border-b mb-4">
           <button
+            onClick={() => { setActiveTab('fraselijst'); loadWords() }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'fraselijst' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Fraselijst
+          </button>
+          <button
             onClick={() => setActiveTab('herschrijver')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'herschrijver' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
@@ -238,13 +361,246 @@ export default function HomeClient() {
           >
             Engels → Nederlands
           </button>
-          <button
-            onClick={() => { setActiveTab('woordenlijst'); loadWords() }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'woordenlijst' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Woordenlijst
-          </button>
         </div>
+
+        {/* Fraselijst tab */}
+        {activeTab === 'fraselijst' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">
+                Opgeslagen woorden en zinnen met vertaling en voorbeeldgebruik.
+              </p>
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
+              >
+                {showAddForm ? '✕ Sluiten' : '+ Woord toevoegen'}
+              </button>
+            </div>
+
+            {/* Add word form */}
+            {showAddForm && (
+              <div className="border rounded p-4 bg-gray-50 mb-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Woord</label>
+                  <input
+                    type="text"
+                    value={newWord}
+                    onChange={(e) => setNewWord(e.target.value)}
+                    placeholder="bijv. gezellig"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
+                  <input
+                    type="text"
+                    value={newTranslation}
+                    onChange={(e) => setNewTranslation(e.target.value)}
+                    placeholder="bijv. cozy, pleasant"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
+                  {newExamples.map((ex, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={ex}
+                        onChange={(e) => {
+                          const updated = [...newExamples]
+                          updated[i] = e.target.value
+                          setNewExamples(updated)
+                        }}
+                        placeholder="Dutch sentence — English translation"
+                        className="flex-1 p-2 border rounded text-sm"
+                      />
+                      <button
+                        onClick={() => setNewExamples(newExamples.filter((_, j) => j !== i))}
+                        className="text-red-500 hover:text-red-700 text-sm px-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => setNewExamples([...newExamples, ''])}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    + Voorbeeld toevoegen
+                  </button>
+                  <button
+                    onClick={() => generateAiExamples(newWord, 'add')}
+                    disabled={aiExamplesLoading || !newWord.trim()}
+                    className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
+                  >
+                    {aiExamplesLoading ? '✨ Genereren...' : '✨ AI voorbeelden'}
+                  </button>
+                </div>
+                {addError && <p className="text-sm text-red-600">{addError}</p>}
+                <button
+                  onClick={handleAddWord}
+                  disabled={addLoading || !newWord.trim() || !newTranslation.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {addLoading ? 'Opslaan...' : 'Opslaan'}
+                </button>
+              </div>
+            )}
+
+            {wordsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
+            {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
+            {!wordsLoading && !wordsError && words.length === 0 && (
+              <p className="text-sm text-gray-400">Geen woorden gevonden.</p>
+            )}
+
+            <ul className="space-y-2">
+              {words.map(entry => (
+                <li key={entry.id} className="border rounded p-3 bg-white">
+                  {editId === entry.id ? (
+                    /* Edit mode */
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Woord</label>
+                        <input
+                          type="text"
+                          value={editWord}
+                          onChange={(e) => setEditWord(e.target.value)}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
+                        <input
+                          type="text"
+                          value={editTranslation}
+                          onChange={(e) => setEditTranslation(e.target.value)}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
+                        {editExamples.map((ex, i) => (
+                          <div key={i} className="flex gap-2 mb-2">
+                            <input
+                              type="text"
+                              value={ex}
+                              onChange={(e) => {
+                                const updated = [...editExamples]
+                                updated[i] = e.target.value
+                                setEditExamples(updated)
+                              }}
+                              placeholder="Dutch sentence — English translation"
+                              className="flex-1 p-2 border rounded text-sm"
+                            />
+                            <button
+                              onClick={() => setEditExamples(editExamples.filter((_, j) => j !== i))}
+                              className="text-red-500 hover:text-red-700 text-sm px-2"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => setEditExamples([...editExamples, ''])}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          + Voorbeeld toevoegen
+                        </button>
+                        <button
+                          onClick={() => generateAiExamples(editWord, 'edit')}
+                          disabled={aiExamplesLoading || !editWord.trim()}
+                          className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
+                        >
+                          {aiExamplesLoading ? '✨ Genereren...' : '✨ AI voorbeelden'}
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleEditWord}
+                          disabled={editLoading || !editWord.trim() || !editTranslation.trim()}
+                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+                        >
+                          {editLoading ? 'Opslaan...' : 'Opslaan'}
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+                        >
+                          Annuleren
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* View mode */
+                    <>
+                      <div className="flex justify-between items-start gap-4">
+                        <div>
+                          <span className="font-semibold text-gray-900">{entry.word}</span>
+                          <span className="text-gray-500 text-sm ml-3">{entry.translation}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {entry.examples.length > 0 && (
+                            <button
+                              onClick={() => toggleExamples(entry.id)}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              {expandedWords.has(entry.id) ? '▼ Voorbeelden' : '▶ Voorbeelden'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => startEdit(entry)}
+                            className="text-gray-400 hover:text-blue-600 text-sm"
+                            title="Bewerken"
+                          >
+                            ✎
+                          </button>
+                          {deleteConfirmId === entry.id ? (
+                            <span className="flex items-center gap-1 text-xs">
+                              <span className="text-gray-600">Verwijderen?</span>
+                              <button
+                                onClick={() => handleDeleteWord(entry.id)}
+                                disabled={deleteLoading}
+                                className="text-red-600 hover:underline font-medium"
+                              >
+                                Ja
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="text-gray-500 hover:underline"
+                              >
+                                Nee
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirmId(entry.id)}
+                              className="text-red-400 hover:text-red-600 text-sm"
+                              title="Verwijderen"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {expandedWords.has(entry.id) && (
+                        <ul className="mt-2 space-y-1 border-t pt-2">
+                          {entry.examples.map((ex, i) => (
+                            <li key={i} className="text-sm text-gray-700 pl-2 border-l-2 border-blue-200">
+                              {ex}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Herschrijver tab */}
         {activeTab === 'herschrijver' && (
@@ -322,53 +678,6 @@ export default function HomeClient() {
                 {translationResult}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Woordenlijst tab — data is loaded from public/woordenlijst.json */}
-        {activeTab === 'woordenlijst' && (
-          <div>
-            <p className="text-sm text-gray-500 mb-4">
-              Opgeslagen woorden en zinnen met vertaling en voorbeeldgebruik.
-              Pas <code className="bg-gray-100 px-1 rounded">public/woordenlijst.json</code> aan om woorden toe te voegen.
-            </p>
-
-            {wordsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
-            {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
-            {!wordsLoading && !wordsError && words.length === 0 && (
-              <p className="text-sm text-gray-400">Geen woorden gevonden in woordenlijst.json.</p>
-            )}
-
-            <ul className="space-y-2">
-              {words.map(entry => (
-                <li key={entry.id} className="border rounded p-3 bg-white">
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <span className="font-semibold text-gray-900">{entry.word}</span>
-                      <span className="text-gray-500 text-sm ml-3">{entry.translation}</span>
-                    </div>
-                    {entry.examples.length > 0 && (
-                      <button
-                        onClick={() => toggleExamples(entry.id)}
-                        className="text-xs text-blue-600 hover:underline shrink-0"
-                      >
-                        {expandedWords.has(entry.id) ? '▼ Voorbeelden' : '▶ Voorbeelden'}
-                      </button>
-                    )}
-                  </div>
-
-                  {expandedWords.has(entry.id) && (
-                    <ul className="mt-2 space-y-1 border-t pt-2">
-                      {entry.examples.map((ex, i) => (
-                        <li key={i} className="text-sm text-gray-700 pl-2 border-l-2 border-blue-200">
-                          {ex}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
           </div>
         )}
       </main>
