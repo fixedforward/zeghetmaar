@@ -1,50 +1,65 @@
 [
   {
-    "id": 1,
+    "id": "1",
     "word": "gezellig",
+    "normalizedWord": "gezellig",
     "translation": "cozy, convivial, pleasant (a uniquely Dutch concept of warmth and togetherness)",
     "examples": [
       "Het is zo gezellig hier bij jou thuis. — It's so cozy here at your place.",
       "We hadden een gezellige avond met vrienden. — We had a pleasant evening with friends.",
       "Kom erbij zitten, dan is het gezeliger! — Come join us, it'll be more fun!"
-    ]
+    ],
+    "createdAt": "2026-05-12T15:13:54.494Z",
+    "updatedAt": "2026-05-12T15:13:54.494Z"
   },
   {
-    "id": 2,
+    "id": "2",
     "word": "ik begrijp het niet",
+    "normalizedWord": "ik begrijp het niet",
     "translation": "I don't understand it",
     "examples": [
       "Kun je dat herhalen? Ik begrijp het niet. — Can you repeat that? I don't understand it.",
       "Ik begrijp het niet helemaal, maar ik probeer het. — I don't fully understand it, but I'm trying."
-    ]
+    ],
+    "createdAt": "2026-05-12T15:13:54.494Z",
+    "updatedAt": "2026-05-12T15:13:54.494Z"
   },
   {
-    "id": 3,
+    "id": "3",
     "word": "toch",
+    "normalizedWord": "toch",
     "translation": "yet, still, though, right? (a versatile filler word)",
     "examples": [
       "Je komt toch? — You are coming, right?",
       "Het is toch niet zo moeilijk. — It's not that difficult after all.",
       "Ik dacht het toch al. — I thought so all along."
-    ]
+    ],
+    "createdAt": "2026-05-12T15:13:54.494Z",
+    "updatedAt": "2026-05-12T15:13:54.494Z"
   },
   {
-    "id": 4,
+    "id": "4",
     "word": "herschrijven",
+    "normalizedWord": "herschrijven",
     "translation": "to rewrite",
     "examples": [
       "Kun je deze zin herschrijven? — Can you rewrite this sentence?",
       "Ik moet mijn brief herschrijven. — I need to rewrite my letter."
-    ]
+    ],
+    "createdAt": "2026-05-12T15:13:54.494Z",
+    "updatedAt": "2026-05-12T15:13:54.494Z"
   },
   {
-    "id": 5,
+    "id": "5",
     "word": "eigenlijk",
+    "normalizedWord": "eigenlijk",
     "translation": "actually, really, in fact",
     "examples": [
       "Eigenlijk heb je gelijk. — Actually, you're right.",
       "Wat bedoel je eigenlijk? — What do you actually mean?",
       "Ik wil eigenlijk liever thuis blijven. — I'd actually rather stay home."
-    ]
+    ],
+    "createdAt": "2026-05-12T15:13:54.494Z",
+    "updatedAt": "2026-05-12T15:13:54.494Z"
   }
 ]
