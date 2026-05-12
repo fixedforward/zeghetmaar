@@ -94,8 +94,8 @@ export default function HomeClient() {
         console.log(`Checking backend connection at ${url}`)
         try {
           const [healthRes, configRes] = await Promise.all([
-            fetch(`${url}/api/health`),
-            fetch(`${url}/api/config`)
+            fetch(`/api/health`),
+            fetch(`/api/config`)
           ])
           if (!healthRes.ok) {
             console.warn(`[backend] Health check failed: HTTP ${healthRes.status} from ${url}/api/health`)
