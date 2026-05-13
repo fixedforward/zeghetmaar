@@ -278,7 +278,7 @@ export default function HomeClient() {
       let videoId: string | null = null
       if (u.hostname === 'youtu.be') {
         videoId = u.pathname.slice(1)
-      } else if (u.hostname.includes('youtube.com')) {
+      } else if (u.hostname === 'youtube.com' || u.hostname === 'www.youtube.com') {
         videoId = u.searchParams.get('v')
       }
       return videoId ? `https://www.youtube.com/embed/${videoId}` : null
