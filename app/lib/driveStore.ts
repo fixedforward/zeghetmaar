@@ -10,12 +10,10 @@
  *  3. Set GOOGLE_APPLICATION_CREDENTIALS to the path of the key file,
  *     OR set googleKeyFile in app/config.json.
  *  4. Set GOOGLE_DRIVE_FILE_ID (or googleDriveFileId in app/config.json) to the Drive file ID.
- *
- * Falls back to public/woordenlijst.json when Drive credentials are not set.
  */
 import path from 'path'
 import process from 'process'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync } from 'fs'
 import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
@@ -38,9 +36,11 @@ const KEY_FILE =
 const FILE_ID =
   process.env.GOOGLE_DRIVE_FILE_ID ?? configFile.googleDriveFileId ?? ''
 
-const USE_DRIVE = Boolean(KEY_FILE && FILE_ID)
-
-const LOCAL_FILE = path.join(process.cwd(), 'public', 'woordenlijst.json')
+if (!KEY_FILE || !FILE_ID) {
+  throw new Error(
+    'Google Drive credentials are not configured. Set GOOGLE_APPLICATION_CREDENTIALS and GOOGLE_DRIVE_FILE_ID (or googleKeyFile / googleDriveFileId in app/config.json).'
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Auth — GoogleAuth with service account keyFile (from the README)
@@ -125,28 +125,14 @@ async function driveWriteAll(docs: FraselijstDoc[]): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Local read / write (fallback)
-// ---------------------------------------------------------------------------
-function localReadAll(): FraselijstDoc[] {
-  if (!existsSync(LOCAL_FILE)) return []
-  const raw = readFileSync(LOCAL_FILE, 'utf-8')
-  return migrate(JSON.parse(raw) as Record<string, unknown>[])
-}
-
-function localWriteAll(docs: FraselijstDoc[]): void {
-  writeFileSync(LOCAL_FILE, JSON.stringify(docs, null, 2) + '\n', 'utf-8')
-}
-
-// ---------------------------------------------------------------------------
 // Unified read / write
 // ---------------------------------------------------------------------------
 async function readAll(): Promise<FraselijstDoc[]> {
-  return USE_DRIVE ? driveReadAll() : localReadAll()
+  return driveReadAll()
 }
 
 async function writeAll(docs: FraselijstDoc[]): Promise<void> {
-  if (USE_DRIVE) await driveWriteAll(docs)
-  else localWriteAll(docs)
+  await driveWriteAll(docs)
 }
 
 // ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import {
   toApiEntry,
   normalizeWord,
   isValidObjectId,
-} from '@/app/lib/mongodb'
+} from '@/app/lib/driveStore'
 
 export async function GET() {
   try {
