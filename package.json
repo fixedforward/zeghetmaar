@@ -13,9 +13,11 @@
     "start:all": "npm run start"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^2.1.0",
     "@tailwindcss/postcss": "^4.2.4",
     "axios": "^1.16.0",
     "get-port": "^7.2.0",
+    "googleapis": "^105.0.0",
     "mongodb": "^7.2.0",
     "mongoose": "^9.6.2",
     "next": "^16.2.4",

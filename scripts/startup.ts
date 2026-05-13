@@ -12,8 +12,6 @@ if (mode !== 'dev' && mode !== 'start') {
 }
 
 async function main() {
-  console.log('[startup] Using local JSON file store. Starting Next.js...')
-
   const child = spawn('npx', ['next', mode], {
     stdio: 'inherit',
     shell: false,

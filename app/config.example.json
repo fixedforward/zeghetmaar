@@ -1,5 +1,7 @@
 {
   "openrouterApiKey": "sk-or-...",
   "model": "openai/gpt-4o-mini",
-  "mongodbUri": "mongodb+srv://:<pass>@<cluster>.mongodb.net/zeghetmaar"
+  "googleClientEmail": "your-service-account@your-project.iam.gserviceaccount.com",
+  "googlePrivateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "googleDriveFileId": "1aBcDeFgHiJkLmNoPqRsTuVwXyZ"
 }

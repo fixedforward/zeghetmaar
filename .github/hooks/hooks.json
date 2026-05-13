@@ -7,6 +7,12 @@
         "bash": "osascript -e 'display notification \"Cek rider ato vscode\" with title \"AI agent stopped\"'"
       }
     ],
+    "notification": [
+      {
+        "type": "command",
+        "bash": "osascript -e 'display notification \"Cek rider ato vscode\" with title \"AI agent stopped\"'"
+      }
+    ],
     "agentStop": [
       {
         "type": "command",
