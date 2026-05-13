@@ -611,17 +611,14 @@ export default function HomeClient() {
                       <div className="flex justify-between items-start gap-4">
                         <div>
                           <span className="font-semibold text-gray-900">{entry.word}</span>
-                          <span className="text-gray-500 text-sm ml-3">{entry.translation}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          {entry.examples.length > 0 && (
-                            <button
-                              onClick={() => toggleExamples(entry.id)}
-                              className="text-xs text-blue-600 hover:underline"
-                            >
-                              {expandedWords.has(entry.id) ? '▼ Voorbeelden' : '▶ Voorbeelden'}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => toggleExamples(entry.id)}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            {expandedWords.has(entry.id) ? '▼ Details' : '▶ Details'}
+                          </button>
                           <button
                             onClick={() => startEdit(entry)}
                             className="text-gray-400 hover:text-blue-600 text-sm"
@@ -659,13 +656,18 @@ export default function HomeClient() {
                       </div>
 
                       {expandedWords.has(entry.id) && (
-                        <ul className="mt-2 space-y-1 border-t pt-2">
-                          {entry.examples.map((ex, i) => (
-                            <li key={i} className="text-sm text-gray-700 pl-2 border-l-2 border-blue-200">
-                              {ex}
-                            </li>
-                          ))}
-                        </ul>
+                        <div className="mt-2 space-y-1 border-t pt-2">
+                          <p className="text-sm text-gray-600 font-medium">{entry.translation}</p>
+                          {entry.examples.length > 0 && (
+                            <ul className="space-y-1 mt-1">
+                              {entry.examples.map((ex, i) => (
+                                <li key={i} className="text-sm text-gray-700 pl-2 border-l-2 border-blue-200">
+                                  {ex}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       )}
                     </>
                   )}

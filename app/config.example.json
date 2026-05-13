@@ -1,7 +1,6 @@
 {
   "openrouterApiKey": "sk-or-...",
   "model": "openai/gpt-4o-mini",
-  "googleClientEmail": "your-service-account@your-project.iam.gserviceaccount.com",
-  "googlePrivateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-  "googleDriveFileId": "1aBcDeFgHiJkLmNoPqRsTuVwXyZ"
+  "googleKeyFile": "oauth2.cred.json",
+  "googleDriveFileId": ""
 }
