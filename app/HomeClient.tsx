@@ -8,7 +8,7 @@ const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 3. Suggest an alternative Dutch sentence, if applicable`
 
 // Tab type for the main sections
-type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen'
+type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'liedjes'
 
 interface WordEntry {
   id: string
@@ -21,6 +21,14 @@ interface Exercise {
   id: string
   name: string
   url: string
+}
+
+interface SongEntry {
+  id: string
+  title: string
+  artist: string
+  youtubeUrl: string
+  lyrics: string
 }
 
 const DEFAULT_EXERCISES: Exercise[] = [
@@ -98,6 +106,28 @@ export default function HomeClient() {
   const [editExerciseUrl, setEditExerciseUrl] = useState('')
   const [deleteExerciseConfirmId, setDeleteExerciseConfirmId] = useState<string | null>(null)
 
+  // Liedjes state
+  const [songs, setSongs] = useState<SongEntry[]>([])
+  const [songsLoading, setSongsLoading] = useState(false)
+  const [songsLoaded, setSongsLoaded] = useState(false)
+  const [songsError, setSongsError] = useState<string | null>(null)
+  const [activeSongId, setActiveSongId] = useState<string | null>(null)
+  const [showAddSong, setShowAddSong] = useState(false)
+  const [newSongTitle, setNewSongTitle] = useState('')
+  const [newSongArtist, setNewSongArtist] = useState('')
+  const [newSongUrl, setNewSongUrl] = useState('')
+  const [newSongLyrics, setNewSongLyrics] = useState('')
+  const [addSongLoading, setAddSongLoading] = useState(false)
+  const [addSongError, setAddSongError] = useState<string | null>(null)
+  const [editSongId, setEditSongId] = useState<string | null>(null)
+  const [editSongTitle, setEditSongTitle] = useState('')
+  const [editSongArtist, setEditSongArtist] = useState('')
+  const [editSongUrl, setEditSongUrl] = useState('')
+  const [editSongLyrics, setEditSongLyrics] = useState('')
+  const [editSongLoading, setEditSongLoading] = useState(false)
+  const [deleteSongConfirmId, setDeleteSongConfirmId] = useState<string | null>(null)
+  const [deleteSongLoading, setDeleteSongLoading] = useState(false)
+
   // Shared state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
@@ -147,7 +177,115 @@ export default function HomeClient() {
     setEditExerciseUrl(exercise.url)
   }
 
-  // All AI calls go through the Next.js /api/chat route handler (same origin).
+  const loadSongs = useCallback((force = false) => {
+    if ((!force && songsLoaded) || songsLoading) return
+    setSongsLoading(true)
+    setSongsError(null)
+    fetch('/api/songs')
+      .then(res => {
+        if (!res.ok) throw new Error('Kon de liedjeslijst niet laden')
+        return res.json()
+      })
+      .then((data: SongEntry[]) => {
+        setSongs(data)
+        setSongsLoaded(true)
+        setSongsLoading(false)
+      })
+      .catch((err: Error) => {
+        setSongsError(err.message)
+        setSongsLoading(false)
+      })
+  }, [songsLoaded, songsLoading])
+
+  const handleAddSong = () => {
+    if (!newSongTitle.trim() || !newSongUrl.trim()) return
+    setAddSongLoading(true)
+    setAddSongError(null)
+    fetch('/api/songs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newSongTitle, artist: newSongArtist, youtubeUrl: newSongUrl, lyrics: newSongLyrics }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon liedje niet toevoegen')
+        setNewSongTitle('')
+        setNewSongArtist('')
+        setNewSongUrl('')
+        setNewSongLyrics('')
+        setShowAddSong(false)
+        loadSongs(true)
+      })
+      .catch((err: Error) => setAddSongError(err.message))
+      .finally(() => setAddSongLoading(false))
+  }
+
+  const startEditSong = (song: SongEntry) => {
+    setEditSongId(song.id)
+    setEditSongTitle(song.title)
+    setEditSongArtist(song.artist)
+    setEditSongUrl(song.youtubeUrl)
+    setEditSongLyrics(song.lyrics)
+  }
+
+  const cancelEditSong = () => {
+    setEditSongId(null)
+    setEditSongTitle('')
+    setEditSongArtist('')
+    setEditSongUrl('')
+    setEditSongLyrics('')
+  }
+
+  const handleEditSong = () => {
+    if (!editSongId || !editSongTitle.trim() || !editSongUrl.trim()) return
+    setEditSongLoading(true)
+    fetch('/api/songs', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editSongId, title: editSongTitle, artist: editSongArtist, youtubeUrl: editSongUrl, lyrics: editSongLyrics }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon liedje niet bijwerken')
+        cancelEditSong()
+        loadSongs(true)
+      })
+      .catch((err: Error) => console.error('[handleEditSong]', err.message))
+      .finally(() => setEditSongLoading(false))
+  }
+
+  const handleDeleteSong = (id: string) => {
+    setDeleteSongLoading(true)
+    fetch('/api/songs', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon liedje niet verwijderen')
+        if (activeSongId === id) setActiveSongId(null)
+        setDeleteSongConfirmId(null)
+        loadSongs(true)
+      })
+      .catch((err: Error) => {
+        console.error('[handleDeleteSong]', err.message)
+        setDeleteSongConfirmId(null)
+      })
+      .finally(() => setDeleteSongLoading(false))
+  }
+
+  function getYoutubeEmbedUrl(url: string): string | null {
+    try {
+      const u = new URL(url)
+      let videoId: string | null = null
+      if (u.hostname === 'youtu.be') {
+        videoId = u.pathname.slice(1)
+      } else if (u.hostname.includes('youtube.com')) {
+        videoId = u.searchParams.get('v')
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null
+    } catch {
+      return null
+    }
+  }
   // No port discovery or cross-origin requests needed.
   const sendRequest = useCallback((text: string) => {
     setIsLoading(true)
@@ -399,6 +537,12 @@ export default function HomeClient() {
             >
               Extra Oefeningen
             </button>
+            <button
+              onClick={() => { setActiveTab('liedjes'); loadSongs() }}
+              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'liedjes' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
+            >
+              Liedjes
+            </button>
           </nav>
         )}
       </aside>
@@ -433,6 +577,12 @@ export default function HomeClient() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefeningen' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Extra Oefeningen
+          </button>
+          <button
+            onClick={() => { setActiveTab('liedjes'); loadSongs() }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'liedjes' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Liedjes
           </button>
         </div>
 
@@ -874,6 +1024,225 @@ export default function HomeClient() {
                         )}
                       </div>
                     </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Liedjes tab */}
+        {activeTab === 'liedjes' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">Nederlandse liedjes met YouTube-video en songtekst.</p>
+              <button
+                onClick={() => setShowAddSong(!showAddSong)}
+                className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
+              >
+                {showAddSong ? 'Annuleren' : '+ Liedje toevoegen'}
+              </button>
+            </div>
+
+            {showAddSong && (
+              <div className="mb-4 p-4 border rounded bg-gray-50 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+                  <input
+                    type="text"
+                    value={newSongTitle}
+                    onChange={(e) => setNewSongTitle(e.target.value)}
+                    placeholder="bijv. Geef Mij Maar Amsterdam"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Artiest</label>
+                  <input
+                    type="text"
+                    value={newSongArtist}
+                    onChange={(e) => setNewSongArtist(e.target.value)}
+                    placeholder="bijv. Wim Sonneveld"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">YouTube-link</label>
+                  <input
+                    type="url"
+                    value={newSongUrl}
+                    onChange={(e) => setNewSongUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Songtekst</label>
+                  <textarea
+                    value={newSongLyrics}
+                    onChange={(e) => setNewSongLyrics(e.target.value)}
+                    placeholder="Plak hier de songtekst..."
+                    rows={6}
+                    className="w-full p-2 border rounded text-sm font-mono"
+                  />
+                </div>
+                {addSongError && <p className="text-sm text-red-600">{addSongError}</p>}
+                <button
+                  onClick={handleAddSong}
+                  disabled={addSongLoading || !newSongTitle.trim() || !newSongUrl.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+                >
+                  {addSongLoading ? 'Opslaan...' : 'Opslaan'}
+                </button>
+              </div>
+            )}
+
+            {songsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
+            {songsError && <p className="text-sm text-red-600">{songsError}</p>}
+            {!songsLoading && !songsError && songs.length === 0 && (
+              <p className="text-sm text-gray-400">Geen liedjes gevonden. Voeg er een toe!</p>
+            )}
+
+            <ul className="space-y-3">
+              {songs.map(song => (
+                <li key={song.id} className="border rounded bg-white overflow-hidden">
+                  {editSongId === song.id ? (
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+                        <input
+                          type="text"
+                          value={editSongTitle}
+                          onChange={(e) => setEditSongTitle(e.target.value)}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Artiest</label>
+                        <input
+                          type="text"
+                          value={editSongArtist}
+                          onChange={(e) => setEditSongArtist(e.target.value)}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">YouTube-link</label>
+                        <input
+                          type="url"
+                          value={editSongUrl}
+                          onChange={(e) => setEditSongUrl(e.target.value)}
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Songtekst</label>
+                        <textarea
+                          value={editSongLyrics}
+                          onChange={(e) => setEditSongLyrics(e.target.value)}
+                          rows={6}
+                          className="w-full p-2 border rounded text-sm font-mono"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleEditSong}
+                          disabled={editSongLoading || !editSongTitle.trim() || !editSongUrl.trim()}
+                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+                        >
+                          {editSongLoading ? 'Opslaan...' : 'Opslaan'}
+                        </button>
+                        <button
+                          onClick={cancelEditSong}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+                        >
+                          Annuleren
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center p-3">
+                        <button
+                          onClick={() => setActiveSongId(activeSongId === song.id ? null : song.id)}
+                          className="text-left flex-1 min-w-0"
+                        >
+                          <span className="font-semibold text-gray-900">{song.title}</span>
+                          {song.artist && (
+                            <span className="text-sm text-gray-500 ml-2">— {song.artist}</span>
+                          )}
+                        </button>
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <span className="text-xs text-gray-400">{activeSongId === song.id ? '▲' : '▼'}</span>
+                          <button
+                            onClick={() => startEditSong(song)}
+                            className="text-gray-400 hover:text-blue-600 text-sm"
+                            title="Bewerken"
+                          >
+                            ✎
+                          </button>
+                          {deleteSongConfirmId === song.id ? (
+                            <span className="flex items-center gap-1 text-xs">
+                              <span className="text-gray-600">Verwijderen?</span>
+                              <button
+                                onClick={() => handleDeleteSong(song.id)}
+                                disabled={deleteSongLoading}
+                                className="text-red-600 hover:underline font-medium"
+                              >
+                                Ja
+                              </button>
+                              <button
+                                onClick={() => setDeleteSongConfirmId(null)}
+                                className="text-gray-500 hover:underline"
+                              >
+                                Nee
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteSongConfirmId(song.id)}
+                              className="text-red-400 hover:text-red-600 text-sm"
+                              title="Verwijderen"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {activeSongId === song.id && (
+                        <div className="border-t">
+                          {getYoutubeEmbedUrl(song.youtubeUrl) ? (
+                            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                              <iframe
+                                src={getYoutubeEmbedUrl(song.youtubeUrl)!}
+                                title={song.title}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="absolute inset-0 w-full h-full"
+                              />
+                            </div>
+                          ) : (
+                            <div className="p-3">
+                              <a
+                                href={song.youtubeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-sm"
+                              >
+                                ▶ Bekijk op YouTube
+                              </a>
+                            </div>
+                          )}
+                          {song.lyrics && (
+                            <div className="p-4 bg-gray-50 border-t">
+                              <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Songtekst</p>
+                              <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">{song.lyrics}</pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </li>
               ))}

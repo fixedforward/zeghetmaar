@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "title": "Geef Mij Maar Amsterdam",
+    "artist": "Wim Sonneveld",
+    "youtubeUrl": "https://www.youtube.com/watch?v=5j3sblvAfpU",
+    "lyrics": "Geef mij maar Amsterdam,\nmet z'n grachtjes en z'n geveltoppen,\nwaar een mens niet hoeft te stoppen,\nbij een rood of groen signaal.\n\nGeef mij maar Amsterdam,\nmet z'n straatjes en z'n kroegen,\nwaar de mensen lekker schuiven,\nop een regen zondagsmorgen,\ntot de zon weer doorbreekt.\n\nIk zeg, geef mij maar Amsterdam,\ndat is voor mij het mooiste oord,\nwaar je alles kunt bekoren,\nwaar je nimmer wordt gestoord.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "2",
+    "title": "Tulpen Uit Amsterdam",
+    "artist": "Rudi Carrell",
+    "youtubeUrl": "https://www.youtube.com/watch?v=3ylLHEDSPnE",
+    "lyrics": "In de stad waar de bloemen bloeien,\nwaar de molens draaien in de wind,\ndaar heb ik jou leren kennen,\njij mijn allerliefste vriendin.\n\nTulpen uit Amsterdam,\ntulpen, rood en geel en wit,\nbrengen mijn gedachten mee,\nnaar de stad die ik zo mis.\n\nElke dag denk ik aan jou,\nen aan het water in de gracht,\naan de straten, aan de bruggen,\ndie ik zie als ik aan jou denk.",
+    "createdAt": "2024-01-02T00:00:00.000Z",
+    "updatedAt": "2024-01-02T00:00:00.000Z"
+  },
+  {
+    "id": "3",
+    "title": "Het Is Een Nacht",
+    "artist": "Guus Meeuwis & Vagant",
+    "youtubeUrl": "https://www.youtube.com/watch?v=OovP1XfVHMc",
+    "lyrics": "Het is een nacht die je normaal alleen in dromen meemaakt,\neen nacht, zo groot, zo mooi, zo zacht dat hij je hart raakt.\nHet is een nacht die ik niet snel zal vergeten,\nik heb jou lief, maar dat heb je altijd geweten.\n\nEn de sterren staan, hoog aan de hemel,\nze kijken naar ons neer.\nWat een heerlijke nacht is dit,\nzo'n nacht komt nooit meer.",
+    "createdAt": "2024-01-03T00:00:00.000Z",
+    "updatedAt": "2024-01-03T00:00:00.000Z"
+  }
+]
