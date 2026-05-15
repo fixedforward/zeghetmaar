@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { Tab, WordEntry, Exercise, SelectionPopup } from './types'
+import { MODELS, DEFAULT_MODEL, MODEL_STORAGE_KEY } from './config/models'
 
 const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 1. Try to guess what it is trying to say in English and respond with: "Seems you are trying to say: [translation]"
@@ -15,40 +16,6 @@ const DEFAULT_EXERCISES: Exercise[] = [
 ]
 
 const EXERCISES_STORAGE_KEY = 'extra-oefeningen'
-const MODEL_STORAGE_KEY = 'selected-model'
-const DEFAULT_MODEL = 'minimax/minimax-m2.5:free'
-const MODELS = [
-  'minimax/minimax-m2.5:free',
-  'openai/gpt-oss-120b:free',
-  'openai/gpt-oss-20b:free',
-  'openrouter/owl-alpha',
-  'google/lyria-3-pro-preview',
-  'google/lyria-3-clip-preview',
-  'inclusionai/ring-2.6-1t:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'google/gemma-4-31b-it:free',
-  'arcee-ai/trinity-large-thinking:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-  'qwen/qwen3-next-80b-a3b-instruct:free',
-  'qwen/qwen3-coder:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'deepseek/deepseek-v4-flash:free',
-  'nvidia/nemotron-3-nano-30b-a3b:free',
-  'openrouter/free',
-  'baidu/cobuddy:free',
-  'poolside/laguna-xs.2:free',
-  'poolside/laguna-m.1:free',
-  'z-ai/glm-4.5-air:free',
-  'meta-llama/llama-3.2-3b-instruct:free',
-  'nousresearch/hermes-3-llama-3.1-405b:free',
-  'nvidia/nemotron-nano-12b-v2-vl:free',
-  'nvidia/nemotron-nano-9b-v2:free',
-  'baidu/qianfan-ocr-fast:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'liquid/lfm-2.5-1.2b-thinking:free',
-  'liquid/lfm-2.5-1.2b-instruct:free',
-  'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
-]
 
 export default function HomeClient() {
   // mounted is false on the server and on the initial client render, then flips
