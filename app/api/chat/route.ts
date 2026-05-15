@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     if (!openRouterRes.ok) {
       const detail = await openRouterRes.text()
       console.error(`[/api/chat] OpenRouter returned HTTP ${openRouterRes.status}: ${detail}`)
-      return NextResponse.json({ error: 'AI request failed.' }, { status: 502 })
+      return NextResponse.json({ error: `AI request niet gelukt. Controleer logs voor details. Meest voorkomende oorzaak: je hebt geen geld voor deze model :)` }, { status: 502 })
     }
 
     const data = await openRouterRes.json()

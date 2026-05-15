@@ -30,6 +30,40 @@ const DEFAULT_EXERCISES: Exercise[] = [
 ]
 
 const EXERCISES_STORAGE_KEY = 'extra-oefeningen'
+const MODEL_STORAGE_KEY = 'selected-model'
+const DEFAULT_MODEL = 'minimax/minimax-m2.5:free'
+const MODELS = [
+  'minimax/minimax-m2.5:free',
+  'openai/gpt-oss-120b:free',
+  'openai/gpt-oss-20b:free',
+  'openrouter/owl-alpha',
+  'google/lyria-3-pro-preview',
+  'google/lyria-3-clip-preview',
+  'inclusionai/ring-2.6-1t:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'google/gemma-4-31b-it:free',
+  'arcee-ai/trinity-large-thinking:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'qwen/qwen3-coder:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'deepseek/deepseek-v4-flash:free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'openrouter/free',
+  'baidu/cobuddy:free',
+  'poolside/laguna-xs.2:free',
+  'poolside/laguna-m.1:free',
+  'z-ai/glm-4.5-air:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'nousresearch/hermes-3-llama-3.1-405b:free',
+  'nvidia/nemotron-nano-12b-v2-vl:free',
+  'nvidia/nemotron-nano-9b-v2:free',
+  'baidu/qianfan-ocr-fast:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'liquid/lfm-2.5-1.2b-thinking:free',
+  'liquid/lfm-2.5-1.2b-instruct:free',
+  'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
+]
 
 // Position and content for the selection popup
 interface SelectionPopup {
@@ -100,6 +134,7 @@ export default function HomeClient() {
 
   // Shared state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL)
 
   // Popup shown when the user highlights text in the response area
   const [selectionPopup, setSelectionPopup] = useState<SelectionPopup | null>(null)
@@ -113,6 +148,13 @@ export default function HomeClient() {
       setExercises(stored ? JSON.parse(stored) : DEFAULT_EXERCISES)
     } catch {
       setExercises(DEFAULT_EXERCISES)
+    }
+    // Restore selected model from localStorage
+    try {
+      const storedModel = localStorage.getItem(MODEL_STORAGE_KEY)
+      if (storedModel && MODELS.includes(storedModel)) setSelectedModel(storedModel)
+    } catch {
+      // ignore
     }
   }, [])
 
@@ -156,7 +198,7 @@ export default function HomeClient() {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, prompt: DEFAULT_PROMPT, model: '' })
+      body: JSON.stringify({ text, prompt: DEFAULT_PROMPT, model: selectedModel })
     })
       .then(res => res.json())
       .then(data => {
@@ -169,7 +211,7 @@ export default function HomeClient() {
         setResponse('Could not reach the server. Please try again.')
         setIsLoading(false)
       })
-  }, [])
+  }, [selectedModel])
 
   const handleSubmit = () => {
     if (!input.trim()) return
@@ -196,7 +238,7 @@ export default function HomeClient() {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: englishInput, prompt: translatePrompt, model: '' })
+      body: JSON.stringify({ text: englishInput, prompt: translatePrompt, model: selectedModel })
     })
       .then(res => res.json())
       .then(data => {
@@ -226,7 +268,7 @@ export default function HomeClient() {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: selected, prompt: explainPrompt, model: '' })
+      body: JSON.stringify({ text: selected, prompt: explainPrompt, model: selectedModel })
     })
       .then(res => res.json())
       .then(data => {
@@ -236,7 +278,7 @@ export default function HomeClient() {
         console.error('[handleTextSelection] Failed to reach /api/chat')
         setSelectionPopup(prev => prev ? { ...prev, explanation: 'Could not reach the server. Please try again.', loading: false } : null)
       })
-  }, [])
+  }, [selectedModel])
 
   // Fetch the word list from the API route.
   const loadWords = useCallback((force = false) => {
@@ -320,7 +362,7 @@ export default function HomeClient() {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: word, prompt, model: '' }),
+      body: JSON.stringify({ text: word, prompt, model: selectedModel }),
     })
       .then(res => res.json())
       .then(data => {
@@ -406,6 +448,13 @@ export default function HomeClient() {
       <main className="flex-1 p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Nederlandse Herschrijver</h1>
+          <select
+            value={selectedModel}
+            onChange={e => { setSelectedModel(e.target.value); localStorage.setItem(MODEL_STORAGE_KEY, e.target.value) }}
+            className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
+          >
+            {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
 
         {/* Tab bar */}
