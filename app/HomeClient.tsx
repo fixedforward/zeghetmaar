@@ -1,27 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import type { Tab, WordEntry, Exercise, SelectionPopup } from './types'
 
 const DEFAULT_PROMPT = `When the user types a Dutch sentence or sentences:
 1. Try to guess what it is trying to say in English and respond with: "Seems you are trying to say: [translation]"
 2. Explain what was wrong or not optimal (if anything), max 2 short sentences
 3. Suggest an alternative Dutch sentence, if applicable`
-
-// Tab type for the main sections
-type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen'
-
-interface WordEntry {
-  id: string
-  word: string
-  translation: string
-  examples: string[]
-}
-
-interface Exercise {
-  id: string
-  name: string
-  url: string
-}
 
 const DEFAULT_EXERCISES: Exercise[] = [
   { id: '1', name: 'NT2 Taalmenu', url: 'https://www.nt2taalmenu.nl/' },
@@ -64,15 +49,6 @@ const MODELS = [
   'liquid/lfm-2.5-1.2b-instruct:free',
   'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
 ]
-
-// Position and content for the selection popup
-interface SelectionPopup {
-  x: number
-  y: number
-  text: string
-  explanation: string | null
-  loading: boolean
-}
 
 export default function HomeClient() {
   // mounted is false on the server and on the initial client render, then flips
@@ -447,7 +423,7 @@ export default function HomeClient() {
 
       <main className="flex-1 p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Nederlandse Herschrijver</h1>
+          <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
           <select
             value={selectedModel}
             onChange={e => { setSelectedModel(e.target.value); localStorage.setItem(MODEL_STORAGE_KEY, e.target.value) }}

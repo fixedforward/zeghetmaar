@@ -5,33 +5,21 @@
   "scripts": {
     "dev": "tsx scripts/startup.ts dev",
     "build": "next build",
-    "start": "tsx scripts/startup.ts start",
-    "server": "node server/index.js",
-    "server:dev": "nodemon server/index.js",
-    "dev:all": "npm run dev & npm run server:dev",
-    "build:all": "npm run build && node server/index.js",
-    "start:all": "npm run start"
+    "start": "tsx scripts/startup.ts start"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "@tailwindcss/postcss": "^4.2.4",
-    "axios": "^1.16.0",
-    "get-port": "^7.2.0",
     "googleapis": "^105.0.0",
-    "mongodb": "^7.2.0",
-    "mongoose": "^9.6.2",
     "next": "^16.2.4",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "ws": "^8.20.0"
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/ws": "^8.18.1",
     "autoprefixer": "^10.5.0",
-    "nodemon": "^3.1.14",
     "postcss": "^8.5.13",
     "tailwindcss": "^4.2.4",
     "tsx": "^4.21.0",

@@ -17,6 +17,7 @@ import { readFileSync } from 'fs'
 import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
+import type { Phrase, WordEntry } from '../types'
 
 // ---------------------------------------------------------------------------
 // Config
@@ -54,26 +55,11 @@ function getDriveClient() {
 }
 
 // ---------------------------------------------------------------------------
-// Document shape
+// Document shape — imported from ../types
 // ---------------------------------------------------------------------------
-export interface FraselijstDoc {
-  id: string
-  word: string
-  normalizedWord: string
-  translation: string
-  examples: string[]
-  createdAt: string
-  updatedAt: string
-}
+export type { Phrase as FraselijstDoc, WordEntry }
 
-export interface WordEntry {
-  id: string
-  word: string
-  translation: string
-  examples: string[]
-}
-
-export function toApiEntry(doc: FraselijstDoc): WordEntry {
+export function toApiEntry(doc: Phrase): WordEntry {
   return {
     id: doc.id,
     word: doc.word,
@@ -89,7 +75,7 @@ export function normalizeWord(word: string): string {
 // ---------------------------------------------------------------------------
 // Migrate legacy / partial entries
 // ---------------------------------------------------------------------------
-function migrate(parsed: Record<string, unknown>[]): FraselijstDoc[] {
+function migrate(parsed: Record<string, unknown>[]): Phrase[] {
   return parsed.map((entry) => ({
     id: String(entry.id ?? randomUUID()),
     word: String(entry.word ?? ''),
@@ -106,7 +92,7 @@ function migrate(parsed: Record<string, unknown>[]): FraselijstDoc[] {
 // ---------------------------------------------------------------------------
 // Drive read / write
 // ---------------------------------------------------------------------------
-async function driveReadAll(): Promise<FraselijstDoc[]> {
+async function driveReadAll(): Promise<Phrase[]> {
   const drive = getDriveClient()
   const res = await drive.files.get(
     { fileId: FILE_ID, alt: 'media' },
@@ -115,7 +101,7 @@ async function driveReadAll(): Promise<FraselijstDoc[]> {
   return migrate(JSON.parse(res.data as string) as Record<string, unknown>[])
 }
 
-async function driveWriteAll(docs: FraselijstDoc[]): Promise<void> {
+async function driveWriteAll(docs: Phrase[]): Promise<void> {
   const drive = getDriveClient()
   const body = JSON.stringify(docs, null, 2) + '\n'
   await drive.files.update({
@@ -127,42 +113,42 @@ async function driveWriteAll(docs: FraselijstDoc[]): Promise<void> {
 // ---------------------------------------------------------------------------
 // Unified read / write
 // ---------------------------------------------------------------------------
-async function readAll(): Promise<FraselijstDoc[]> {
+async function readAll(): Promise<Phrase[]> {
   return driveReadAll()
 }
 
-async function writeAll(docs: FraselijstDoc[]): Promise<void> {
+async function writeAll(docs: Phrase[]): Promise<void> {
   await driveWriteAll(docs)
 }
 
 // ---------------------------------------------------------------------------
 // CRUD
 // ---------------------------------------------------------------------------
-export async function getAllWords(): Promise<FraselijstDoc[]> {
+export async function getAllWords(): Promise<Phrase[]> {
   const all = await readAll()
   return all.sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )
 }
 
-export async function findById(id: string): Promise<FraselijstDoc | null> {
+export async function findById(id: string): Promise<Phrase | null> {
   return (await readAll()).find((d) => d.id === id) ?? null
 }
 
 export async function findByNormalizedWord(
   nw: string,
   excludeId?: string
-): Promise<FraselijstDoc | null> {
+): Promise<Phrase | null> {
   return (await readAll()).find(
     (d) => d.normalizedWord === nw && d.id !== excludeId
   ) ?? null
 }
 
 export async function insertWord(
-  doc: Omit<FraselijstDoc, 'id'>
-): Promise<FraselijstDoc> {
+  doc: Omit<Phrase, 'id'>
+): Promise<Phrase> {
   const all = await readAll()
-  const newDoc: FraselijstDoc = { id: randomUUID(), ...doc }
+  const newDoc: Phrase = { id: randomUUID(), ...doc }
   all.push(newDoc)
   await writeAll(all)
   return newDoc
@@ -170,8 +156,8 @@ export async function insertWord(
 
 export async function updateWord(
   id: string,
-  update: Partial<Omit<FraselijstDoc, 'id'>>
-): Promise<FraselijstDoc | null> {
+  update: Partial<Omit<Phrase, 'id'>>
+): Promise<Phrase | null> {
   const all = await readAll()
   const idx = all.findIndex((d) => d.id === id)
   if (idx === -1) return null
@@ -180,20 +166,13 @@ export async function updateWord(
   return all[idx]
 }
 
-export async function deleteWord(id: string): Promise<FraselijstDoc | null> {
+export async function deleteWord(id: string): Promise<Phrase | null> {
   const all = await readAll()
   const idx = all.findIndex((d) => d.id === id)
   if (idx === -1) return null
   const [removed] = all.splice(idx, 1)
   await writeAll(all)
   return removed
-}
-
-// ---------------------------------------------------------------------------
-// initializeMongo — kept for backward compat (no-op)
-// ---------------------------------------------------------------------------
-export async function initializeMongo(): Promise<void> {
-  // no-op
 }
 
 export function isValidObjectId(id: string): boolean {
