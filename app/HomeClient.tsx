@@ -12,6 +12,7 @@ import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
 import { OefeningenTab } from './components/OefeningenTab'
 import { SelectionPopup } from './components/SelectionPopup'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
@@ -70,10 +71,10 @@ export default function HomeClient() {
           </button>
         </div>
 
-        {activeTab === 'fraselijst' && <FraselijstTab {...words} />}
-        {activeTab === 'herschrijver' && <HerschrijverTab {...chat} />}
-        {activeTab === 'vertaler' && <VertalerTab {...chat} />}
-        {activeTab === 'oefeningen' && <OefeningenTab {...exercises} />}
+        {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} /></ErrorBoundary>}
+        {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
+        {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
+        {activeTab === 'oefeningen' && <ErrorBoundary><OefeningenTab {...exercises} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (
