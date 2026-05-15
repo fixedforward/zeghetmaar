@@ -12,7 +12,7 @@ npm run dev   # http://localhost:3000
 
 ## Google Drive word list
 
-The word list is stored in a JSON file on Google Drive.
+The word list is stored in a JSON file on Google Drive. This is to make things easy (no need to maintain separate databases, migrations, etc.), though I realize it's obviously not scalable :).
 
 ### How it works
 
@@ -35,7 +35,7 @@ In the same Cloud project, go to **APIs & Services** → **Enabled APIs** → **
 
 ### Step 3 — Prepare the Drive file
 
-1. Upload (or create) a JSON file in your Google Drive — it must be a valid JSON array, e.g. `[]` for an empty list, or a copy of your current `public/woordenlijst.json`.
+1. Upload (or create) a JSON file in your Google Drive — it must be a valid JSON array.
 2. Open the file in Drive. The file ID is the long string in the URL:  
    `https://drive.google.com/file/d/`**`THIS_IS_THE_FILE_ID`**`/view`
 3. Click **Share** → paste the service account email (looks like `name@project.iam.gserviceaccount.com`) → set role to **Editor** → click **Send**.
