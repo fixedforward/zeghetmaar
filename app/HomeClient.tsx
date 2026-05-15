@@ -16,7 +16,6 @@ import { SelectionPopup } from './components/SelectionPopup'
 export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   const { selectedModel, setModel } = useModelSelection()
   const exercises = useExercises()
@@ -31,45 +30,8 @@ export default function HomeClient() {
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen flex">
-      <aside className={`bg-gray-100 border-r transition-all duration-200 ${sidebarCollapsed ? 'w-12' : 'w-48'} p-2`}>
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="w-full text-left px-2 py-1 mb-2 text-sm hover:bg-gray-200 rounded"
-        >
-          {sidebarCollapsed ? '→' : '←'}
-        </button>
-        {!sidebarCollapsed && (
-          <nav className="space-y-2">
-            <button
-              onClick={() => { setActiveTab('fraselijst'); words.loadWords() }}
-              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'fraselijst' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
-            >
-              Fraselijst
-            </button>
-            <button
-              onClick={() => setActiveTab('herschrijver')}
-              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'herschrijver' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
-            >
-              Herschrijver
-            </button>
-            <button
-              onClick={() => setActiveTab('vertaler')}
-              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'vertaler' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
-            >
-              Vertaler
-            </button>
-            <button
-              onClick={() => setActiveTab('oefeningen')}
-              className={`w-full text-left block px-3 py-2 rounded ${activeTab === 'oefeningen' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
-            >
-              Extra Oefeningen
-            </button>
-          </nav>
-        )}
-      </aside>
-
-      <main className="flex-1 p-4 max-w-2xl mx-auto">
+    <div className="min-h-screen">
+      <main className="p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
           <select
