@@ -22,7 +22,7 @@ const DEFAULT_MODEL = process.env.MODEL || config.model
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
   if (!OPENROUTER_API_KEY) {
     console.error('[/api/chat] No OpenRouter API key found. Set OPENROUTER_API_KEY env var or add it to app/config.json.')

@@ -57,6 +57,7 @@ export function useWords(selectedModel: string) {
       body: JSON.stringify({ word: newWord, translation: newTranslation, examples: newExamples.filter(e => e.trim()) }),
     })
       .then(res => {
+        if (res.status === 401) throw new Error('Login om woord toe te voegen')
         if (!res.ok) throw new Error('Kon woord niet toevoegen')
         setNewWord('')
         setNewTranslation('')

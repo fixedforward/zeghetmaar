@@ -1,6 +1,6 @@
 import type { useWords } from '../hooks/useWords'
 
-type Props = ReturnType<typeof useWords>
+type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
 
 export function FraselijstTab(words: Props) {
   return (
@@ -9,12 +9,14 @@ export function FraselijstTab(words: Props) {
         <p className="text-sm text-gray-500">
           Opgeslagen woorden en zinnen met vertaling en voorbeeldgebruik.
         </p>
-        <button
-          onClick={() => words.setShowAddForm(!words.showAddForm)}
-          className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
-        >
-          {words.showAddForm ? '✕ Sluiten' : '+ Woord toevoegen'}
-        </button>
+        {words.isLoggedIn && (
+          <button
+            onClick={() => words.setShowAddForm(!words.showAddForm)}
+            className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
+          >
+            {words.showAddForm ? '✕ Sluiten' : '+ Woord toevoegen'}
+          </button>
+        )}
       </div>
 
       {words.showAddForm && (
@@ -180,14 +182,16 @@ export function FraselijstTab(words: Props) {
                     >
                       {words.expandedWords.has(entry.id) ? '▼ Details' : '▶ Details'}
                     </button>
-                    <button
-                      onClick={() => words.startEdit(entry)}
-                      className="text-gray-400 hover:text-blue-600 text-sm"
-                      title="Bewerken"
-                    >
-                      ✎
-                    </button>
-                    {words.deleteConfirmId === entry.id ? (
+                    {words.isLoggedIn && (
+                      <button
+                        onClick={() => words.startEdit(entry)}
+                        className="text-gray-400 hover:text-blue-600 text-sm"
+                        title="Bewerken"
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {words.isLoggedIn && words.deleteConfirmId === entry.id ? (
                       <span className="flex items-center gap-1 text-xs">
                         <span className="text-gray-600">Verwijderen?</span>
                         <button
@@ -204,7 +208,7 @@ export function FraselijstTab(words: Props) {
                           Nee
                         </button>
                       </span>
-                    ) : (
+                    ) : words.isLoggedIn ? (
                       <button
                         onClick={() => words.setDeleteConfirmId(entry.id)}
                         className="text-red-400 hover:text-red-600 text-sm"
@@ -212,7 +216,7 @@ export function FraselijstTab(words: Props) {
                       >
                         ✕
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 {words.expandedWords.has(entry.id) && (

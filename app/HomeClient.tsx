@@ -96,7 +96,7 @@ export default function HomeClient() {
           </button>
         </div>
 
-        {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} /></ErrorBoundary>}
+        {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} isLoggedIn={!!session} /></ErrorBoundary>}
         {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
         {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
         {activeTab === 'oefeningen' && <ErrorBoundary><OefeningenTab {...exercises} /></ErrorBoundary>}

@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
   let body: { word?: unknown; translation?: unknown; examples?: unknown }
   try {
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
   let body: { id?: unknown; word?: unknown; translation?: unknown; examples?: unknown }
   try {
@@ -145,7 +145,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
   let body: { id?: unknown }
   try {
