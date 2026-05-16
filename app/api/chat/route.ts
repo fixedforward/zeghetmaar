@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { auth } from '@/auth'
 
 // Resolve config from app/config.json as a fallback for local development.
 // In production, set the OPENROUTER_API_KEY and MODEL environment variables instead.
@@ -20,6 +21,9 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || config.openrouterAp
 const DEFAULT_MODEL = process.env.MODEL || config.model
 
 export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+
   if (!OPENROUTER_API_KEY) {
     console.error('[/api/chat] No OpenRouter API key found. Set OPENROUTER_API_KEY env var or add it to app/config.json.')
     return NextResponse.json({ error: 'Server misconfiguration: API key missing.' }, { status: 500 })
