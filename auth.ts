@@ -64,6 +64,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: creds.googleClientId,
       clientSecret: creds.googleClientSecret,
+      authorization: {
+        params: { scope: 'openid email profile' },
+      },
     }),
   ],
   callbacks: {

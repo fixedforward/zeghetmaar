@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import type { Tab } from './types'
 import { MODELS } from './config/models'
 import { useModelSelection } from './hooks/useModelSelection'
@@ -17,6 +18,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
+  const { data: session } = useSession()
 
   const { selectedModel, setModel } = useModelSelection()
   const exercises = useExercises()
@@ -35,13 +37,36 @@ export default function HomeClient() {
       <main className="p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
-          <select
-            value={selectedModel}
-            onChange={e => setModel(e.target.value)}
-            className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
-          >
-            {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedModel}
+              onChange={e => setModel(e.target.value)}
+              className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
+            >
+              {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            {session ? (
+              <div className="flex items-center gap-2">
+                {session.user?.image && (
+                  <img src={session.user.image} alt="avatar" className="w-7 h-7 rounded-full" />
+                )}
+                <span className="text-sm text-gray-700">{session.user?.name}</span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
+                >
+                  Uitloggen
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => signIn('google')}
+                className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
+              >
+                Log in met Google
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex border-b mb-4">
