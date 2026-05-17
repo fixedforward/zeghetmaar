@@ -6,3 +6,4 @@ node_modules
 *cred.json
 *worktree
 .DS_Store
+.idea
