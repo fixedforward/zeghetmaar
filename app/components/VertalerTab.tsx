@@ -8,16 +8,28 @@ type Props = Pick<
 export function VertalerTab({ englishInput, translationResult, isTranslating, setEnglishInput, handleTranslate }: Props) {
   return (
     <div>
-      <p className="text-sm text-gray-500 mb-4">Typ een Engelse zin en krijg 2 of 3 manieren om het in het Nederlands te zeggen.</p>
+      <p className="text-sm text-gray-500 mb-2">Typ een Engelse zin en krijg 2 of 3 manieren om het in het Nederlands te zeggen.</p>
+      <p className="text-xs text-gray-400 italic mb-4">AI genereert antwoorden die fouten kunnen bevatten en het genereren kan langzaam zijn omdat gratis modellen worden gebruikt; ik ben goedkoop</p>
       <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={englishInput}
-          onChange={(e) => setEnglishInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleTranslate()}
-          placeholder="Type an English sentence..."
-          className="flex-1 p-2 border rounded"
-        />
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={englishInput}
+            onChange={(e) => setEnglishInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleTranslate()}
+            placeholder="Type an English sentence..."
+            className="w-full p-2 border rounded pr-7"
+          />
+          {englishInput && (
+            <button
+              onClick={() => setEnglishInput('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+              title="Wissen"
+            >
+              ✕
+            </button>
+          )}
+        </div>
         <button
           onClick={handleTranslate}
           disabled={isTranslating || !englishInput.trim()}

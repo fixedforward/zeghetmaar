@@ -2,5 +2,8 @@
   "openrouterApiKey": "sk-or-...",
   "model": "openai/gpt-4o-mini",
   "googleKeyFile": "oauth2.cred.json",
-  "googleDriveFileId": ""
+  "googleDriveFileId": "",
+  "userCreds": {
+    "authFile": "userauth.cred.json"
+  }
 }

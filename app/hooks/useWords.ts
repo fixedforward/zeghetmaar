@@ -26,6 +26,7 @@ export function useWords(selectedModel: string) {
   const [editLoading, setEditLoading] = useState(false)
 
   const [aiExamplesLoading, setAiExamplesLoading] = useState(false)
+  const [aiTranslationLoading, setAiTranslationLoading] = useState(false)
 
   const loadWords = useCallback((force = false) => {
     if ((!force && wordsLoaded) || wordsLoading) return
@@ -57,6 +58,7 @@ export function useWords(selectedModel: string) {
       body: JSON.stringify({ word: newWord, translation: newTranslation, examples: newExamples.filter(e => e.trim()) }),
     })
       .then(res => {
+        if (res.status === 401) throw new Error('Login om woord toe te voegen')
         if (!res.ok) throw new Error('Kon woord niet toevoegen')
         setNewWord('')
         setNewTranslation('')
@@ -118,6 +120,25 @@ export function useWords(selectedModel: string) {
       .finally(() => setEditLoading(false))
   }
 
+  const generateAiTranslation = (word: string, target: 'add' | 'edit') => {
+    if (!word.trim()) return
+    setAiTranslationLoading(true)
+    const prompt = `Translate the following Dutch word or phrase into English. Return ONLY the English translation, nothing else: "${word}"`
+    chatRequest(word, prompt, selectedModel)
+      .then(data => {
+        const translation = (data.response || '').trim()
+        if (translation) {
+          if (target === 'add') {
+            setNewTranslation(translation)
+          } else {
+            setEditTranslation(translation)
+          }
+        }
+      })
+      .catch(err => console.error('[generateAiTranslation]', err))
+      .finally(() => setAiTranslationLoading(false))
+  }
+
   const generateAiExamples = (word: string, target: 'add' | 'edit') => {
     if (!word.trim()) return
     setAiExamplesLoading(true)
@@ -160,6 +181,7 @@ export function useWords(selectedModel: string) {
     editExamples, setEditExamples,
     editLoading,
     aiExamplesLoading,
+    aiTranslationLoading,
     loadWords,
     handleAddWord,
     handleDeleteWord,
@@ -167,6 +189,7 @@ export function useWords(selectedModel: string) {
     cancelEdit,
     handleEditWord,
     generateAiExamples,
+    generateAiTranslation,
     toggleExamples,
   }
 }
