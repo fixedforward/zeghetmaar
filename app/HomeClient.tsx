@@ -35,38 +35,38 @@ export default function HomeClient() {
   return (
     <div className="min-h-screen">
       <main className="p-4 max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-1">
           <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedModel}
-              onChange={e => setModel(e.target.value)}
-              className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
-            >
-              {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-            {session ? (
-              <div className="flex items-center gap-2">
-                {session.user?.image && (
-                  <img src={session.user.image} alt="avatar" className="w-7 h-7 rounded-full" />
-                )}
-                <span className="text-sm text-gray-700">{session.user?.name}</span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
-                >
-                  Uitloggen
-                </button>
-              </div>
-            ) : (
+          <select
+            value={selectedModel}
+            onChange={e => setModel(e.target.value)}
+            className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
+          >
+            {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div className="flex justify-end items-center gap-2 mb-4">
+          {session ? (
+            <>
+              {session.user?.image && (
+                <img src={session.user.image} alt="avatar" className="w-7 h-7 rounded-full" />
+              )}
+              <span className="text-sm text-gray-700">{session.user?.name}</span>
               <button
-                onClick={() => signIn('google')}
+                onClick={() => signOut()}
                 className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
               >
-                Log in met Google
+                Uitloggen
               </button>
-            )}
-          </div>
+            </>
+          ) : (
+            <button
+              onClick={() => signIn('google')}
+              className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
+            >
+              Log in met Google
+            </button>
+          )}
         </div>
 
         <div className="flex border-b mb-4">

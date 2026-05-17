@@ -14,7 +14,7 @@ export function FraselijstTab(words: Props) {
             onClick={() => words.setShowAddForm(!words.showAddForm)}
             className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 shrink-0"
           >
-            {words.showAddForm ? '✕ Sluiten' : '+ Woord toevoegen'}
+            {words.showAddForm ? '✕ Sluiten' : '+ Frase toevoegen'}
           </button>
         )}
       </div>
@@ -22,24 +22,53 @@ export function FraselijstTab(words: Props) {
       {words.showAddForm && (
         <div className="border rounded p-4 bg-gray-50 mb-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Woord</label>
-            <input
-              type="text"
-              value={words.newWord}
-              onChange={(e) => words.setNewWord(e.target.value)}
-              placeholder="bijv. gezellig"
-              className="w-full p-2 border rounded"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Frase</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={words.newWord}
+                onChange={(e) => words.setNewWord(e.target.value)}
+                placeholder="bijv. gele koorts komt niet voor in Amerika"
+                className="flex-1 p-2 border rounded"
+              />
+              {words.newWord && (
+                <button
+                  onClick={() => words.setNewWord('')}
+                  className="text-gray-400 hover:text-gray-600 text-sm shrink-0"
+                  title="Wissen"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
-            <input
-              type="text"
-              value={words.newTranslation}
-              onChange={(e) => words.setNewTranslation(e.target.value)}
-              placeholder="bijv. cozy, pleasant"
-              className="w-full p-2 border rounded"
-            />
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={words.newTranslation}
+                onChange={(e) => words.setNewTranslation(e.target.value)}
+                placeholder="bijv. yellow fever does not occur in America"
+                className="flex-1 p-2 border rounded"
+              />
+              {words.newTranslation && (
+                <button
+                  onClick={() => words.setNewTranslation('')}
+                  className="text-gray-400 hover:text-gray-600 text-sm shrink-0"
+                  title="Wissen"
+                >
+                  ✕
+                </button>
+              )}
+              <button
+                onClick={() => words.generateAiTranslation(words.newWord, 'add')}
+                disabled={words.aiTranslationLoading || !words.newWord.trim()}
+                className="text-sm text-purple-600 hover:underline disabled:opacity-50 shrink-0"
+              >
+                {words.aiTranslationLoading ? 'Vertalen...' : 'AI vertaling'}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
@@ -75,9 +104,10 @@ export function FraselijstTab(words: Props) {
               disabled={words.aiExamplesLoading || !words.newWord.trim()}
               className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
             >
-              {words.aiExamplesLoading ? '✨ Genereren...' : '✨ AI voorbeelden'}
+              {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
             </button>
           </div>
+          <p className="text-xs text-gray-400 italic">AI genereert antwoorden die fouten kunnen bevatten en het genereren kan langzaam zijn omdat gratis modellen worden gebruikt; ik ben goedkoop</p>
           {words.addError && <p className="text-sm text-red-600">{words.addError}</p>}
           <button
             onClick={words.handleAddWord}
@@ -92,7 +122,7 @@ export function FraselijstTab(words: Props) {
       {words.wordsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
       {words.wordsError && <p className="text-sm text-red-600">{words.wordsError}</p>}
       {!words.wordsLoading && !words.wordsError && words.words.length === 0 && (
-        <p className="text-sm text-gray-400">Geen woorden gevonden.</p>
+        <p className="text-sm text-gray-400">Geen frasen gevonden.</p>
       )}
 
       <ul className="space-y-2">
@@ -101,7 +131,7 @@ export function FraselijstTab(words: Props) {
             {words.editId === entry.id ? (
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Woord</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Frase</label>
                   <input
                     type="text"
                     value={words.editWord}
@@ -111,12 +141,21 @@ export function FraselijstTab(words: Props) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
-                  <input
-                    type="text"
-                    value={words.editTranslation}
-                    onChange={(e) => words.setEditTranslation(e.target.value)}
-                    className="w-full p-2 border rounded"
-                  />
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={words.editTranslation}
+                      onChange={(e) => words.setEditTranslation(e.target.value)}
+                      className="flex-1 p-2 border rounded"
+                    />
+                    <button
+                      onClick={() => words.generateAiTranslation(words.editWord, 'edit')}
+                      disabled={words.aiTranslationLoading || !words.editWord.trim()}
+                      className="text-sm text-purple-600 hover:underline disabled:opacity-50 shrink-0"
+                    >
+                      {words.aiTranslationLoading ? 'Vertalen...' : 'AI vertaling'}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
@@ -152,7 +191,7 @@ export function FraselijstTab(words: Props) {
                     disabled={words.aiExamplesLoading || !words.editWord.trim()}
                     className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
                   >
-                    {words.aiExamplesLoading ? '✨ Genereren...' : '✨ AI voorbeelden'}
+                    {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
                   </button>
                 </div>
                 <div className="flex gap-2">
