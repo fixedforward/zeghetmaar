@@ -78,3 +78,56 @@ All word list reads and writes will go to your Drive file.
 | `invalid_grant` / `401` | The key file is an OAuth2 client credential (not a service account). Re-download from the **Service Accounts** section. |
 | `403 The caller does not have permission` | The Drive file has not been shared with the service account email. Repeat Step 3. |
 | `404 File not found` | `googleDriveFileId` is wrong, or the file was not shared with the service account. |
+
+---
+
+## Authentication (Google OAuth via NextAuth)
+
+The app uses NextAuth v5 with Google OAuth to restrict access to a single allowed email.
+
+### Required credentials file
+
+Create a JSON file (e.g. `~/secrets/userauth.cred.json`) with:
+
+```json
+{
+  "googleClientId": "...",
+  "googleClientSecret": "...",
+  "nextAuthSecret": "...",
+  "allowedEmail": "you@example.com"
+}
+```
+
+Then point the app to it via env var or config:
+
+| Env var              | Equivalent config key       |
+|---------------------|-----------------------------|
+| `USERCREDS_AUTHFILE` | `userCreds.authFile` in `app/config.json` |
+
+- `googleClientId` / `googleClientSecret` — from Google Cloud Console → **APIs & Services** → **Credentials** → OAuth 2.0 Client.
+- `nextAuthSecret` — any random string (e.g. `openssl rand -base64 32`).
+- `allowedEmail` — the only Google account that will be allowed to log in.
+
+### Production setup
+
+**1. Add the production redirect URI in Google Cloud Console**
+
+Go to **APIs & Services** → **Credentials** → your OAuth 2.0 Client → **Authorized redirect URIs** and add:
+
+```
+https://your-production-domain.com/api/auth/callback/google
+```
+
+NextAuth always uses `<base-url>/api/auth/callback/google` as the redirect URI. If this doesn't match exactly, Google will reject the login with a `redirect_uri_mismatch` error.
+
+**2. Set `AUTH_TRUST_HOST=true`**
+
+In production, NextAuth requires you to declare trusted hosts to prevent host header injection attacks. Set this env var:
+
+```
+AUTH_TRUST_HOST=true
+```
+
+This is safe when you deploy behind a platform like Render or Railway, because their edge proxy rewrites the `Host` header to the real hostname before your app sees it — so an attacker-supplied `Host: evil.com` never reaches your Next.js process.
+
+> **What is a host header injection attack?** An attacker sends a request with a spoofed `Host: evil.com` header. If the app trusts that header to build the OAuth redirect URI, it sends the user to Google with `redirect_uri=https://evil.com/api/auth/callback/google`. Google then sends the auth code to the attacker's domain, letting them log in as the victim. Setting `AUTH_TRUST_HOST=true` on a platform with a trusted proxy neutralises this because the proxy (Render for example) always overwrites the `Host` header with the real one.

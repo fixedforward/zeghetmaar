@@ -1,4 +1,5 @@
 import type { useWords } from '../hooks/useWords'
+import { AI_DISCLAIMER } from '../config/texts'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
 
@@ -107,7 +108,7 @@ export function FraselijstTab(words: Props) {
               {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
             </button>
           </div>
-          <p className="text-xs text-gray-400 italic">AI genereert antwoorden die fouten kunnen bevatten en het genereren kan langzaam zijn omdat gratis modellen worden gebruikt; ik ben goedkoop</p>
+          <p className="text-xs text-gray-400 italic">{AI_DISCLAIMER}</p>
           {words.addError && <p className="text-sm text-red-600">{words.addError}</p>}
           <button
             onClick={words.handleAddWord}
