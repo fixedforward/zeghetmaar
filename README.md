@@ -10,7 +10,7 @@ npm run dev   # http://localhost:3000
 
 ---
 
-## Google Drive word list
+## Google Drive as database for word list
 
 The word list is stored in a JSON file on Google Drive. This is to make things easy (no need to maintain separate databases, migrations, etc.), though I realize it's obviously not scalable :).
 
