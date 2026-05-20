@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { auth } from '@/auth'
+import { DEFAULT_MODEL } from '@/app/config/models'
 
 // Resolve config from app/config.json as a fallback for local development.
-// In production, set the OPENROUTER_API_KEY and MODEL environment variables instead.
+// In production, set the OPENROUTER_API_KEY environment variable instead.
 function loadConfig(): { openrouterApiKey?: string; model?: string } {
   try {
     const configPath = path.join(process.cwd(), 'app', 'config.json')
@@ -18,7 +19,7 @@ function loadConfig(): { openrouterApiKey?: string; model?: string } {
 const config = loadConfig()
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || config.openrouterApiKey
-const DEFAULT_MODEL = process.env.MODEL || config.model
+const resolvedModel = config.model || DEFAULT_MODEL
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -27,11 +28,6 @@ export async function POST(req: NextRequest) {
   if (!OPENROUTER_API_KEY) {
     console.error('[/api/chat] No OpenRouter API key found. Set OPENROUTER_API_KEY env var or add it to app/config.json.')
     return NextResponse.json({ error: 'Server misconfiguration: API key missing.' }, { status: 500 })
-  }
-
-  if (!DEFAULT_MODEL) {
-    console.error('[/api/chat] No model configured. Set MODEL env var or add it to app/config.json.')
-    return NextResponse.json({ error: 'Server misconfiguration: model missing.' }, { status: 500 })
   }
 
   let body: { text?: string; prompt?: string; model?: string }
@@ -56,7 +52,7 @@ export async function POST(req: NextRequest) {
         'X-Title': 'Dutch Rewriter',
       },
       body: JSON.stringify({
-        model: model || DEFAULT_MODEL,
+        model: model || resolvedModel,
         messages: [
           { role: 'system', content: prompt },
           { role: 'user', content: text ?? '' },
