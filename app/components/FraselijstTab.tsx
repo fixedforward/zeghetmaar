@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { useWords } from '../hooks/useWords'
+import type { WordEntry } from '../types'
 
-type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
+type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
 
 const PAGE_SIZE = 10
 
@@ -230,6 +231,14 @@ export function FraselijstTab(words: Props) {
                     >
                       {words.expandedWords.has(entry.id) ? '▼ Details' : '▶ Details'}
                     </button>
+                    {words.isLoggedIn && (
+                      <button
+                        onClick={() => words.onPractice(entry)}
+                        className="text-xs text-purple-600 hover:underline"
+                      >
+                        Oefenen
+                      </button>
+                    )}
                     {words.isLoggedIn && (
                       <button
                         onClick={() => words.startEdit(entry)}

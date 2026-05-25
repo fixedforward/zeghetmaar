@@ -7,11 +7,13 @@ import { DEFAULT_MODEL } from './config/models'
 import { useExercises } from './hooks/useExercises'
 import { useWords } from './hooks/useWords'
 import { useAiChat } from './hooks/useAiChat'
+import { usePhrasePractice } from './hooks/usePhrasePractice'
 import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
 import { OefeningenTab } from './components/OefeningenTab'
 import { SelectionPopup } from './components/SelectionPopup'
+import { PracticeModal } from './components/PracticeModal'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 export default function HomeClient() {
@@ -22,6 +24,7 @@ export default function HomeClient() {
   const exercises = useExercises()
   const words = useWords(DEFAULT_MODEL)
   const chat = useAiChat(DEFAULT_MODEL)
+  const practice = usePhrasePractice(DEFAULT_MODEL)
 
   useEffect(() => {
     setMounted(true)
@@ -87,7 +90,7 @@ export default function HomeClient() {
           </button>
         </div>
 
-        {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} isLoggedIn={!!session} /></ErrorBoundary>}
+        {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} isLoggedIn={!!session} onPractice={practice.open} /></ErrorBoundary>}
         {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
         {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
         {activeTab === 'oefeningen' && <ErrorBoundary><OefeningenTab {...exercises} /></ErrorBoundary>}
@@ -96,6 +99,7 @@ export default function HomeClient() {
       {chat.selectionPopup && (
         <SelectionPopup popup={chat.selectionPopup} onClose={() => chat.setSelectionPopup(null)} />
       )}
+      <PracticeModal {...practice} />
     </div>
   )
 }
