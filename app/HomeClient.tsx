@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import type { Tab } from './types'
-import { MODELS } from './config/models'
-import { useModelSelection } from './hooks/useModelSelection'
+import { DEFAULT_MODEL } from './config/models'
 import { useExercises } from './hooks/useExercises'
 import { useWords } from './hooks/useWords'
 import { useAiChat } from './hooks/useAiChat'
@@ -20,10 +19,9 @@ export default function HomeClient() {
   const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
   const { data: session } = useSession()
 
-  const { selectedModel, setModel } = useModelSelection()
   const exercises = useExercises()
-  const words = useWords(selectedModel)
-  const chat = useAiChat(selectedModel)
+  const words = useWords(DEFAULT_MODEL)
+  const chat = useAiChat(DEFAULT_MODEL)
 
   useEffect(() => {
     setMounted(true)
@@ -37,13 +35,6 @@ export default function HomeClient() {
       <main className="p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-1">
           <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
-          <select
-            value={selectedModel}
-            onChange={e => setModel(e.target.value)}
-            className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
-          >
-            {MODELS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
         </div>
         <div className="flex justify-end items-center gap-2 mb-4">
           {session ? (

@@ -1,5 +1,4 @@
 import type { useAiChat } from '../hooks/useAiChat'
-import { AI_DISCLAIMER } from '../config/texts'
 
 type Props = Pick<
   ReturnType<typeof useAiChat>,
@@ -10,7 +9,7 @@ export function VertalerTab({ englishInput, translationResult, isTranslating, se
   return (
     <div>
       <p className="text-sm text-gray-500 mb-2">Typ een Engelse zin en krijg 2 of 3 manieren om het in het Nederlands te zeggen.</p>
-      <p className="text-xs text-gray-400 italic mb-4">{AI_DISCLAIMER}</p>
+
       <div className="flex gap-2 mb-4">
         <div className="flex-1 relative">
           <input

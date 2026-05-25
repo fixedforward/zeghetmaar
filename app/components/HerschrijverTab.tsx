@@ -1,5 +1,4 @@
 import type { useAiChat } from '../hooks/useAiChat'
-import { AI_DISCLAIMER } from '../config/texts'
 
 type Props = Pick<
   ReturnType<typeof useAiChat>,
@@ -29,7 +28,7 @@ export function HerschrijverTab({ input, response, isLoading, handleInputChange,
       </div>
 
       <div className="text-xs text-gray-500 mb-4">Druk op Enter om te verzenden, Shift+Enter voor een nieuwe regel</div>
-      <div className="text-xs text-gray-400 italic mb-4">{AI_DISCLAIMER}</div>
+
 
       <div className="border rounded p-3 bg-white mb-4 min-h-[100px]" onMouseUp={handleTextSelection}>
         <div className="flex justify-between items-center mb-1">
