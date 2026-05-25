@@ -1,8 +1,17 @@
+import { useState } from 'react'
 import type { useWords } from '../hooks/useWords'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
 
+const PAGE_SIZE = 10
+
 export function FraselijstTab(words: Props) {
+  const [page, setPage] = useState(1)
+
+  const totalPages = Math.max(1, Math.ceil(words.words.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageWords = words.words.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -126,7 +135,7 @@ export function FraselijstTab(words: Props) {
       )}
 
       <ul className="space-y-2">
-        {words.words.map(entry => (
+        {pageWords.map(entry => (
           <li key={entry.id} className="border rounded p-3 bg-white">
             {words.editId === entry.id ? (
               <div className="space-y-3">
@@ -277,6 +286,34 @@ export function FraselijstTab(words: Props) {
           </li>
         ))}
       </ul>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            className="px-3 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+          >
+            ‹
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`px-3 py-1 text-sm border rounded ${p === safePage ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            className="px-3 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+          >
+            ›
+          </button>
+        </div>
+      )}
     </div>
   )
 }
