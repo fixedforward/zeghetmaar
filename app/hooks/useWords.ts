@@ -142,7 +142,7 @@ export function useWords(selectedModel: string) {
   const generateAiExamples = (word: string, target: 'add' | 'edit') => {
     if (!word.trim()) return
     setAiExamplesLoading(true)
-    const prompt = `Generate 3 natural Dutch example sentences using the word or phrase "${word}". For each sentence, provide the Dutch sentence followed by " — " (space em-dash space) and the English translation. Return ONLY the sentences, one per line, no numbering, no extra text.`
+    const prompt = `Generate a natural Dutch example sentence using the phrase "${word}". Provide the Dutch sentence followed by " — " and the English translation.`
     chatRequest(word, prompt, selectedModel)
       .then(data => {
         const lines = (data.response || '').split('\n').map((l: string) => l.trim()).filter(Boolean)

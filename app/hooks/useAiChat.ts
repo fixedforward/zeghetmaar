@@ -11,7 +11,6 @@ export function useAiChat(selectedModel: string) {
   const [input, setInput] = useState('')
   const [response, setResponse] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isCached, setIsCached] = useState(false)
 
   const [englishInput, setEnglishInput] = useState('')
   const [translationResult, setTranslationResult] = useState('')
@@ -22,11 +21,9 @@ export function useAiChat(selectedModel: string) {
   const sendRequest = useCallback((text: string) => {
     setIsLoading(true)
     setResponse('')
-    setIsCached(false)
     chatRequest(text, DEFAULT_PROMPT, selectedModel)
       .then(data => {
         setResponse(data.response || data.error || 'Error occurred')
-        setIsCached(data.cached || false)
         setIsLoading(false)
       })
       .catch(err => {
@@ -92,7 +89,6 @@ export function useAiChat(selectedModel: string) {
     input, setInput,
     response,
     isLoading,
-    isCached,
     englishInput, setEnglishInput,
     translationResult,
     isTranslating,

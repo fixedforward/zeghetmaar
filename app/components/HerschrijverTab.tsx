@@ -3,11 +3,11 @@ import { AI_DISCLAIMER } from '../config/texts'
 
 type Props = Pick<
   ReturnType<typeof useAiChat>,
-  | 'input' | 'response' | 'isLoading' | 'isCached'
+  | 'input' | 'response' | 'isLoading'
   | 'handleInputChange' | 'handleSubmit' | 'handleRefresh' | 'handleTextSelection'
 >
 
-export function HerschrijverTab({ input, response, isLoading, isCached, handleInputChange, handleSubmit, handleRefresh, handleTextSelection }: Props) {
+export function HerschrijverTab({ input, response, isLoading, handleInputChange, handleSubmit, handleRefresh, handleTextSelection }: Props) {
   return (
     <>
       <div className="flex gap-2 mb-4">
@@ -36,9 +36,6 @@ export function HerschrijverTab({ input, response, isLoading, isCached, handleIn
           <div className="text-sm text-gray-500">Engels: <span className="text-xs text-gray-400 italic">(selecteer woorden of zinnen voor meer uitleg)</span></div>
           {response && (
             <div className="flex items-center gap-2">
-              {isCached && (
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Cached</span>
-              )}
               <button
                 onClick={handleRefresh}
                 disabled={isLoading}

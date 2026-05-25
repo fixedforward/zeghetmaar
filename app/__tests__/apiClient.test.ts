@@ -24,12 +24,11 @@ describe('chatRequest', () => {
 
   it('returns the parsed JSON response', async () => {
     global.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ response: 'Test antwoord', cached: true }),
+      json: () => Promise.resolve({ response: 'Test antwoord' }),
     } as Response)
 
     const result = await chatRequest('test', 'prompt', 'model')
 
     expect(result.response).toBe('Test antwoord')
-    expect(result.cached).toBe(true)
   })
 })

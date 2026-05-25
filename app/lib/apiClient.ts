@@ -1,7 +1,6 @@
 export interface ChatResponse {
   response?: string
   error?: string
-  cached?: boolean
 }
 
 export async function chatRequest(
