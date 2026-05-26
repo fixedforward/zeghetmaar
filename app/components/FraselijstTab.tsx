@@ -204,14 +204,18 @@ export function FraselijstTab(words: Props) {
                     {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
                   </button>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={words.handleEditWord}
-                    disabled={words.editLoading || !words.editWord.trim() || !words.editTranslation.trim()}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
-                  >
-                    {words.editLoading ? 'Opslaan...' : 'Opslaan'}
-                  </button>
+                <div className="flex gap-2 items-center">
+                  {words.isLoggedIn ? (
+                    <button
+                      onClick={words.handleEditWord}
+                      disabled={words.editLoading || !words.editWord.trim() || !words.editTranslation.trim()}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+                    >
+                      {words.editLoading ? 'Opslaan...' : 'Opslaan'}
+                    </button>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Log in om wijzigingen op te slaan.</p>
+                  )}
                   <button
                     onClick={words.cancelEdit}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
@@ -231,23 +235,19 @@ export function FraselijstTab(words: Props) {
                     >
                       {words.expandedWords.has(entry.id) ? '▼ Details' : '▶ Details'}
                     </button>
-                    {words.isLoggedIn && (
-                      <button
-                        onClick={() => words.onPractice(entry)}
-                        className="text-xs text-purple-600 hover:underline"
-                      >
-                        Oefenen
-                      </button>
-                    )}
-                    {words.isLoggedIn && (
-                      <button
-                        onClick={() => words.startEdit(entry)}
-                        className="text-gray-400 hover:text-blue-600 text-sm"
-                        title="Bewerken"
-                      >
-                        ✎
-                      </button>
-                    )}
+                    <button
+                      onClick={() => words.onPractice(entry)}
+                      className="text-xs text-purple-600 hover:underline"
+                    >
+                      Oefenen
+                    </button>
+                    <button
+                      onClick={() => words.startEdit(entry)}
+                      className="text-gray-400 hover:text-blue-600 text-sm"
+                      title="Bewerken"
+                    >
+                      ✎
+                    </button>
                     {words.isLoggedIn && words.deleteConfirmId === entry.id ? (
                       <span className="flex items-center gap-1 text-xs">
                         <span className="text-gray-600">Verwijderen?</span>
