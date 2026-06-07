@@ -1,54 +1,26 @@
-/**
- * Google Drive-backed store for the fraselijst feature.
- *
- * Uses service account credentials via googleapis GoogleAuth + keyFile,
- * as described in https://github.com/googleapis/google-api-nodejs-client#service-account-credentials
- *
- * Setup:
- *  1. Create a service account in Google Cloud Console → download JSON key file.
- *  2. Share your Drive JSON file with the service account email (Editor access).
- *  3. Set GOOGLE_APPLICATION_CREDENTIALS to the path of the key file,
- *     OR set googleKeyFile in app/config.json.
- *  4. Set GOOGLE_DRIVE_FILE_ID (or googleDriveFileId in app/config.json) to the Drive file ID.
- */
 import path from 'path'
-import process from 'process'
-import { readFileSync } from 'fs'
+import { writeFileSync } from 'fs'
 import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
+import { config } from './config'
 import type { Phrase, WordEntry } from '../types'
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-let configFile: Record<string, string> = {}
-try {
-  configFile = JSON.parse(
-    readFileSync(path.join(process.cwd(), 'app', 'config.json'), 'utf-8')
-  ) as Record<string, string>
-} catch {
-  // config.json is optional
-}
+const FILE_ID = config.database.googleJsonFile.googleDriveFileId
 
-const KEY_FILE =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS ?? configFile.googleKeyFile ?? ''
-
-const FILE_ID =
-  process.env.GOOGLE_DRIVE_FILE_ID ?? configFile.googleDriveFileId ?? ''
-
-if (!KEY_FILE || !FILE_ID) {
-  throw new Error(
-    'Google Drive credentials are not configured. Set GOOGLE_APPLICATION_CREDENTIALS and GOOGLE_DRIVE_FILE_ID (or googleKeyFile / googleDriveFileId in app/config.json).'
-  )
-}
+// Write the embedded service account to a unique tmp file to avoid conflicts with parallel instances.
+const SA_TMP_PATH = path.join('/tmp', `google-sa-${randomUUID()}.json`)
+writeFileSync(SA_TMP_PATH, JSON.stringify(config.database.googleJsonFile.serviceAccount), 'utf-8')
 
 // ---------------------------------------------------------------------------
-// Auth — GoogleAuth with service account keyFile (from the README)
+// Auth
 // ---------------------------------------------------------------------------
 function getDriveClient() {
   const auth = new google.auth.GoogleAuth({
-    keyFile: KEY_FILE,
+    keyFile: SA_TMP_PATH,
     scopes: ['https://www.googleapis.com/auth/drive'],
   })
   return google.drive({ version: 'v3', auth })
