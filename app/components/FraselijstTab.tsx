@@ -3,15 +3,43 @@ import type { useWords } from '../hooks/useWords'
 import type { WordEntry } from '../types'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
+type SortKey = 'updatedAt' | 'lastPracticedAt' | 'isFavorite' | 'beheersing'
 
 const PAGE_SIZE = 10
 
 export function FraselijstTab(words: Props) {
   const [page, setPage] = useState(1)
+  const [sortKey, setSortKey] = useState<SortKey>('updatedAt')
+  const [sortAsc, setSortAsc] = useState(false)
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
 
-  const totalPages = Math.max(1, Math.ceil(words.words.length / PAGE_SIZE))
+  const sortLabels: Record<SortKey, string> = {
+    updatedAt: 'Bijgewerkt',
+    lastPracticedAt: 'Laatst geoefend',
+    isFavorite: 'Favoriet',
+    beheersing: 'Beheersing',
+  }
+
+  const sortedWords = [...words.words].sort((a, b) => {
+    let result: number
+    if (sortKey === 'isFavorite') {
+      result = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0)
+    } else if (sortKey === 'beheersing') {
+      result = (b.beheersing ?? 0) - (a.beheersing ?? 0)
+    } else {
+      const aVal = a[sortKey]
+      const bVal = b[sortKey]
+      if (!aVal && !bVal) return 0
+      if (!aVal) return 1
+      if (!bVal) return -1
+      result = new Date(bVal).getTime() - new Date(aVal).getTime()
+    }
+    return sortAsc ? -result : result
+  })
+
+  const totalPages = Math.max(1, Math.ceil(sortedWords.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
-  const pageWords = words.words.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const pageWords = sortedWords.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
     <div>
@@ -38,6 +66,7 @@ export function FraselijstTab(words: Props) {
                 type="text"
                 value={words.newWord}
                 onChange={(e) => words.setNewWord(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && words.handleAddWord()}
                 placeholder="bijv. gele koorts komt niet voor in Amerika"
                 className="flex-1 p-2 border rounded"
               />
@@ -59,6 +88,7 @@ export function FraselijstTab(words: Props) {
                 type="text"
                 value={words.newTranslation}
                 onChange={(e) => words.setNewTranslation(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && words.handleAddWord()}
                 placeholder="bijv. yellow fever does not occur in America"
                 className="flex-1 p-2 border rounded"
               />
@@ -129,6 +159,40 @@ export function FraselijstTab(words: Props) {
         </div>
       )}
 
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setSortAsc(a => !a)}
+          title={sortAsc ? 'Oplopend' : 'Aflopend'}
+          className="px-2 py-1 text-xs rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
+        >
+          {sortAsc ? '↑' : '↓'}
+        </button>
+      <div className="relative inline-block">
+        <button
+          onClick={() => setSortDropdownOpen(o => !o)}
+          className="px-3 py-1 text-xs rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-100 flex items-center gap-1"
+        >
+          Sorteer op: {sortLabels[sortKey]} ▾
+        </button>
+        {sortDropdownOpen && (
+          <div className="absolute left-0 top-full mt-1 z-10 bg-white border border-gray-200 rounded shadow-md min-w-max">
+            {(Object.keys(sortLabels) as SortKey[]).map(key => (
+              <button
+                key={key}
+                onClick={() => { setSortKey(key); setPage(1); setSortDropdownOpen(false) }}
+                className={[
+                  'block w-full text-left px-4 py-2 text-xs hover:bg-gray-100',
+                  sortKey === key ? 'font-semibold text-blue-600' : 'text-gray-700',
+                ].join(' ')}
+              >
+                {sortLabels[key]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      </div>
+
       {words.wordsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
       {words.wordsError && <p className="text-sm text-red-600">{words.wordsError}</p>}
       {!words.wordsLoading && !words.wordsError && words.words.length === 0 && (
@@ -146,6 +210,7 @@ export function FraselijstTab(words: Props) {
                     type="text"
                     value={words.editWord}
                     onChange={(e) => words.setEditWord(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && words.handleEditWord()}
                     className="w-full p-2 border rounded"
                   />
                 </div>
@@ -156,6 +221,7 @@ export function FraselijstTab(words: Props) {
                       type="text"
                       value={words.editTranslation}
                       onChange={(e) => words.setEditTranslation(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && words.handleEditWord()}
                       className="flex-1 p-2 border rounded"
                     />
                     <button
@@ -227,7 +293,45 @@ export function FraselijstTab(words: Props) {
             ) : (
               <>
                 <div className="flex justify-between items-start gap-4">
-                  <span className="font-semibold text-gray-900">{entry.word}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {words.isLoggedIn && (
+                      <button
+                        onClick={() => words.toggleFavorite(entry.id, !!entry.isFavorite)}
+                        disabled={words.favoriteLoadingId === entry.id}
+                        title={entry.isFavorite ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+                        className={`text-lg leading-none disabled:opacity-50 transition-colors shrink-0 ${entry.isFavorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
+                      >
+                        {entry.isFavorite ? '★' : '☆'}
+                      </button>
+                    )}
+                    {!words.isLoggedIn && entry.isFavorite && (
+                      <span className="text-lg leading-none text-yellow-400 shrink-0" title="Favoriet">★</span>
+                    )}
+                    <span className="font-semibold text-gray-900">{entry.word}</span>
+                    {(words.isLoggedIn || entry.beheersing !== undefined) && (
+                      <span className="flex items-center gap-0.5 shrink-0">
+                        {([1, 2, 3] as const).map(n => (
+                          <button
+                            key={n}
+                            onClick={() => words.isLoggedIn && words.setBeheersing(entry.id, n)}
+                            disabled={words.isLoggedIn && words.beheersingLoadingId === entry.id}
+                            title={`Beheersing ${n}`}
+                            className={[
+                              'w-5 h-5 rounded text-xs font-bold transition-colors',
+                              !words.isLoggedIn ? 'cursor-default' : 'disabled:opacity-50',
+                              entry.beheersing === n
+                                ? n === 1 ? 'bg-red-400 text-white'
+                                  : n === 2 ? 'bg-yellow-400 text-white'
+                                  : 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-400' + (words.isLoggedIn ? ' hover:bg-gray-200' : ''),
+                            ].join(' ')}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => words.toggleExamples(entry.id)}

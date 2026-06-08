@@ -37,6 +37,10 @@ export function toApiEntry(doc: Phrase): WordEntry {
     word: doc.word,
     translation: doc.translation,
     examples: doc.examples,
+    updatedAt: doc.updatedAt,
+    ...(doc.beheersing !== undefined && { beheersing: doc.beheersing }),
+    ...(doc.lastPracticedAt !== undefined && { lastPracticedAt: doc.lastPracticedAt }),
+    ...(doc.isFavorite !== undefined && { isFavorite: doc.isFavorite }),
   }
 }
 
@@ -48,17 +52,29 @@ export function normalizeWord(word: string): string {
 // Migrate legacy / partial entries
 // ---------------------------------------------------------------------------
 function migrate(parsed: Record<string, unknown>[]): Phrase[] {
-  return parsed.map((entry) => ({
-    id: String(entry.id ?? randomUUID()),
-    word: String(entry.word ?? ''),
-    normalizedWord: String(
-      entry.normalizedWord ?? normalizeWord(String(entry.word ?? ''))
-    ),
-    translation: String(entry.translation ?? ''),
-    examples: Array.isArray(entry.examples) ? entry.examples.map(String) : [],
-    createdAt: String(entry.createdAt ?? new Date().toISOString()),
-    updatedAt: String(entry.updatedAt ?? new Date().toISOString()),
-  }))
+  return parsed.map((entry) => {
+    const raw: Phrase = {
+      id: String(entry.id ?? randomUUID()),
+      word: String(entry.word ?? ''),
+      normalizedWord: String(
+        entry.normalizedWord ?? normalizeWord(String(entry.word ?? ''))
+      ),
+      translation: String(entry.translation ?? ''),
+      examples: Array.isArray(entry.examples) ? entry.examples.map(String) : [],
+      createdAt: String(entry.createdAt ?? new Date().toISOString()),
+      updatedAt: String(entry.updatedAt ?? new Date().toISOString()),
+    }
+    if (entry.beheersing === 1 || entry.beheersing === 2 || entry.beheersing === 3) {
+      raw.beheersing = entry.beheersing
+    }
+    if (typeof entry.lastPracticedAt === 'string') {
+      raw.lastPracticedAt = entry.lastPracticedAt
+    }
+    if (typeof entry.isFavorite === 'boolean') {
+      raw.isFavorite = entry.isFavorite
+    }
+    return raw
+  })
 }
 
 // ---------------------------------------------------------------------------

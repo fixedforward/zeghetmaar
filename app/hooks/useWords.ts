@@ -27,6 +27,8 @@ export function useWords(selectedModel: string) {
 
   const [aiExamplesLoading, setAiExamplesLoading] = useState(false)
   const [aiTranslationLoading, setAiTranslationLoading] = useState(false)
+  const [beheersingLoadingId, setBeheersingLoadingId] = useState<string | null>(null)
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState<string | null>(null)
 
   const loadWords = useCallback((force = false) => {
     if ((!force && wordsLoaded) || wordsLoading) return
@@ -156,6 +158,36 @@ export function useWords(selectedModel: string) {
       .finally(() => setAiExamplesLoading(false))
   }
 
+  const setBeheersing = (id: string, value: 1 | 2 | 3) => {
+    setBeheersingLoadingId(id)
+    fetch('/api/words', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, beheersing: value }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon beheersing niet opslaan')
+        setWords(prev => prev.map(w => w.id === id ? { ...w, beheersing: value } : w))
+      })
+      .catch(err => console.error('[setBeheersing]', err))
+      .finally(() => setBeheersingLoadingId(null))
+  }
+
+  const toggleFavorite = (id: string, current: boolean) => {
+    setFavoriteLoadingId(id)
+    fetch('/api/words', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, isFavorite: !current }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon favoriet niet opslaan')
+        setWords(prev => prev.map(w => w.id === id ? { ...w, isFavorite: !current } : w))
+      })
+      .catch(err => console.error('[toggleFavorite]', err))
+      .finally(() => setFavoriteLoadingId(null))
+  }
+
   const toggleExamples = (id: string) => {
     setExpandedWords(prev => {
       const next = new Set(prev)
@@ -191,5 +223,9 @@ export function useWords(selectedModel: string) {
     generateAiExamples,
     generateAiTranslation,
     toggleExamples,
+    setBeheersing,
+    beheersingLoadingId,
+    toggleFavorite,
+    favoriteLoadingId,
   }
 }
