@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
 import { DEFAULT_MODEL } from '@/app/config/models'
 import { raceModels } from '@/app/lib/raceModels'
+import { config } from '@/app/lib/config'
 
-// Resolve config from app/config.json as a fallback for local development.
-// In production, set the OPENROUTER_API_KEY environment variable instead.
-function loadConfig(): { openrouterApiKey?: string; model?: string } {
-  try {
-    const configPath = path.join(process.cwd(), 'app', 'config.json')
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'))
-  } catch {
-    // Config file is optional — environment variables are preferred.
-    return {}
-  }
-}
-
-const config = loadConfig()
-
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || config.openrouterApiKey
-const resolvedModel = config.model || DEFAULT_MODEL
+const OPENROUTER_API_KEY = config.aiProviders.openRouterApiKey
 
 export async function POST(req: NextRequest) {
   if (!OPENROUTER_API_KEY) {
@@ -46,7 +30,7 @@ export async function POST(req: NextRequest) {
   ]
 
   try {
-    const { response, model: winningModel } = await raceModels(model || resolvedModel, messages, OPENROUTER_API_KEY)
+    const { response, model: winningModel } = await raceModels(model || DEFAULT_MODEL, messages, OPENROUTER_API_KEY)
     console.log(`[/api/chat] Responding with winner: ${winningModel}`)
     return NextResponse.json({ response })
   } catch (err) {
