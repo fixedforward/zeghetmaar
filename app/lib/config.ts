@@ -28,12 +28,21 @@ interface AppConfig {
 }
 
 function loadConfig(): AppConfig {
-  const configPath = path.join(process.cwd(), 'app', 'config.json')
-  let raw: Record<string, unknown>
-  try {
-    raw = JSON.parse(readFileSync(configPath, 'utf-8'))
-  } catch {
-    throw new Error(`config.json not found at "${configPath}". This file is required to run the app.`)
+  const candidates = [
+    path.join(process.cwd(), 'config.json'),
+    path.join(process.cwd(), 'app', 'config.json'),
+  ]
+  let raw: Record<string, unknown> | undefined
+  for (const candidate of candidates) {
+    try {
+      raw = JSON.parse(readFileSync(candidate, 'utf-8'))
+      break
+    } catch {
+      // try next
+    }
+  }
+  if (!raw) {
+    throw new Error(`config.json not found. Tried: ${candidates.join(', ')}`)
   }
 
   const missing: string[] = []
