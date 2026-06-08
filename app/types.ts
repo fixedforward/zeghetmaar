@@ -5,6 +5,10 @@ export interface WordEntry {
   word: string
   translation: string
   examples: string[]
+  beheersing?: 1 | 2 | 3
+  lastPracticedAt?: string
+  isFavorite?: boolean
+  updatedAt: string
 }
 
 export interface Exercise {
@@ -27,6 +31,9 @@ export interface Phrase {
   normalizedWord: string
   translation: string
   examples: string[]
+  beheersing?: 1 | 2 | 3
+  lastPracticedAt?: string
+  isFavorite?: boolean
   createdAt: string
   updatedAt: string
 }

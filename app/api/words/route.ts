@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       normalizedWord: nw,
       translation,
       examples,
+      beheersing: 1,
       createdAt: now,
       updatedAt: now,
     })
@@ -80,7 +81,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
-  let body: { id?: unknown; word?: unknown; translation?: unknown; examples?: unknown }
+  let body: { id?: unknown; word?: unknown; translation?: unknown; examples?: unknown; beheersing?: unknown; lastPracticedAt?: unknown; isFavorite?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -118,6 +119,27 @@ export async function PUT(req: NextRequest) {
         .map(e => e.trim())
         .filter(Boolean)
     )]
+  }
+
+  if (body.beheersing !== undefined) {
+    if (body.beheersing !== 1 && body.beheersing !== 2 && body.beheersing !== 3) {
+      return NextResponse.json({ error: 'beheersing must be 1, 2, or 3.' }, { status: 400 })
+    }
+    update.beheersing = body.beheersing
+  }
+
+  if (body.lastPracticedAt !== undefined) {
+    if (typeof body.lastPracticedAt !== 'string') {
+      return NextResponse.json({ error: 'lastPracticedAt must be a string.' }, { status: 400 })
+    }
+    update.lastPracticedAt = body.lastPracticedAt
+  }
+
+  if (body.isFavorite !== undefined) {
+    if (typeof body.isFavorite !== 'boolean') {
+      return NextResponse.json({ error: 'isFavorite must be a boolean.' }, { status: 400 })
+    }
+    update.isFavorite = body.isFavorite
   }
 
   try {
