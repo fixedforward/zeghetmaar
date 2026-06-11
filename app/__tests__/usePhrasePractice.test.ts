@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react'
 import { usePhrasePractice } from '../hooks/usePhrasePractice'
 import type { WordEntry } from '../types'
 
-const mockPhrase: WordEntry = { id: '1', word: 'iets van maken', translation: 'to make something of it', examples: [] }
+const mockPhrase: WordEntry = { id: '1', word: 'iets van maken', translation: 'to make something of it', examples: [], updatedAt: new Date().toISOString() }
 
 const mockFetch = (response: string) =>
   vi.fn().mockResolvedValue({

@@ -9,8 +9,8 @@ const PAGE_SIZE = 10
 
 export function FraselijstTab(words: Props) {
   const [page, setPage] = useState(1)
-  const [sortKey, setSortKey] = useState<SortKey>('updatedAt')
-  const [sortAsc, setSortAsc] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('beheersing')
+  const [sortAsc, setSortAsc] = useState(true)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
 
   const sortLabels: Record<SortKey, string> = {
@@ -294,43 +294,7 @@ export function FraselijstTab(words: Props) {
               <>
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex items-center gap-2 min-w-0">
-                    {words.isLoggedIn && (
-                      <button
-                        onClick={() => words.toggleFavorite(entry.id, !!entry.isFavorite)}
-                        disabled={words.favoriteLoadingId === entry.id}
-                        title={entry.isFavorite ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
-                        className={`text-lg leading-none disabled:opacity-50 transition-colors shrink-0 ${entry.isFavorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
-                      >
-                        {entry.isFavorite ? '★' : '☆'}
-                      </button>
-                    )}
-                    {!words.isLoggedIn && entry.isFavorite && (
-                      <span className="text-lg leading-none text-yellow-400 shrink-0" title="Favoriet">★</span>
-                    )}
                     <span className="font-semibold text-gray-900">{entry.word}</span>
-                    {(words.isLoggedIn || entry.beheersing !== undefined) && (
-                      <span className="flex items-center gap-0.5 shrink-0">
-                        {([1, 2, 3] as const).map(n => (
-                          <button
-                            key={n}
-                            onClick={() => words.isLoggedIn && words.setBeheersing(entry.id, n)}
-                            disabled={words.isLoggedIn && words.beheersingLoadingId === entry.id}
-                            title={`Beheersing ${n}`}
-                            className={[
-                              'w-5 h-5 rounded text-xs font-bold transition-colors',
-                              !words.isLoggedIn ? 'cursor-default' : 'disabled:opacity-50',
-                              entry.beheersing === n
-                                ? n === 1 ? 'bg-red-400 text-white'
-                                  : n === 2 ? 'bg-yellow-400 text-white'
-                                  : 'bg-green-500 text-white'
-                                : 'bg-gray-100 text-gray-400' + (words.isLoggedIn ? ' hover:bg-gray-200' : ''),
-                            ].join(' ')}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
@@ -381,7 +345,38 @@ export function FraselijstTab(words: Props) {
                   </div>
                 </div>
                 {words.expandedWords.has(entry.id) && (
-                  <div className="mt-2 space-y-1 border-t pt-2">
+                  <div className="mt-2 space-y-2 border-t pt-2">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => words.toggleFavorite(entry.id, !!entry.isFavorite)}
+                        disabled={words.favoriteLoadingId === entry.id}
+                        className={`text-lg leading-none disabled:opacity-50 transition-colors ${entry.isFavorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
+                        title={entry.isFavorite ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
+                      >
+                        {entry.isFavorite ? '★' : '☆'}
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
+                        {([1, 2, 3] as const).map(n => (
+                          <button
+                            key={n}
+                            onClick={() => words.setBeheersing(entry.id, n)}
+                            disabled={words.beheersingLoadingId === entry.id}
+                            title={`Beheersing ${n}`}
+                            className={[
+                              'w-6 h-6 rounded text-xs font-bold transition-colors disabled:opacity-50',
+                              entry.beheersing === n
+                                ? n === 1 ? 'bg-red-400 text-white'
+                                  : n === 2 ? 'bg-yellow-400 text-white'
+                                  : 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+                            ].join(' ')}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <p className="text-sm text-gray-600 font-medium">{entry.translation}</p>
                     {entry.examples.length > 0 && (
                       <ul className="space-y-1 mt-1">
