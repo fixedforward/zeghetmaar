@@ -114,8 +114,7 @@ export function FraselijstTab(words: Props) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
             {words.newExamples.map((ex, i) => (
               <div key={i} className="flex gap-2 mb-2">
-                <input
-                  type="text"
+                <textarea
                   value={ex}
                   onChange={(e) => {
                     const updated = [...words.newExamples]
@@ -123,7 +122,8 @@ export function FraselijstTab(words: Props) {
                     words.setNewExamples(updated)
                   }}
                   placeholder="Dutch sentence — English translation"
-                  className="flex-1 p-2 border rounded text-sm"
+                  rows={2}
+                  className="flex-1 p-2 border rounded text-sm resize-y"
                 />
                 <button
                   onClick={() => words.setNewExamples(words.newExamples.filter((_, j) => j !== i))}
@@ -237,8 +237,7 @@ export function FraselijstTab(words: Props) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
                   {words.editExamples.map((ex, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
+                      <textarea
                         value={ex}
                         onChange={(e) => {
                           const updated = [...words.editExamples]
@@ -246,7 +245,8 @@ export function FraselijstTab(words: Props) {
                           words.setEditExamples(updated)
                         }}
                         placeholder="Dutch sentence — English translation"
-                        className="flex-1 p-2 border rounded text-sm"
+                        rows={2}
+                        className="flex-1 p-2 border rounded text-sm resize-y"
                       />
                       <button
                         onClick={() => words.setEditExamples(words.editExamples.filter((_, j) => j !== i))}

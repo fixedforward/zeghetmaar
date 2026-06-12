@@ -32,3 +32,4 @@ export const MODELS = [
 ]
 
 export const DEFAULT_MODEL = 'minimax/minimax-m2.5:free'
+export const EXPENSIVE_MODEL = 'tencent/hy3-preview'
