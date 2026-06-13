@@ -1,4 +1,4 @@
-import { MODELS } from '../config/models'
+import { GRATIS_MODELS } from '../config/models'
 
 export const RACE_BATCH_SIZE = 5
 export const RACE_TIMEOUT_MS = 5000
@@ -46,7 +46,7 @@ export async function raceModels(
   {
     batchSize = RACE_BATCH_SIZE,
     timeoutMs = RACE_TIMEOUT_MS,
-    models = MODELS,
+    models = GRATIS_MODELS,
   }: { batchSize?: number; timeoutMs?: number; models?: string[] } = {}
 ): Promise<RaceWinner> {
   // Build ordered pool: preferred model first, then the rest (deduplicated)

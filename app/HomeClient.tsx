@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import type { Tab } from './types'
-import { DEFAULT_MODEL, EXPENSIVE_MODEL } from './config/models'
+import { DEFAULT_MODEL, MODEL_OPTIONS } from './config/models'
 import { useExercises } from './hooks/useExercises'
 import { useWords } from './hooks/useWords'
 import { useAiChat } from './hooks/useAiChat'
@@ -19,10 +19,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
-  const [useExpensive, setUseExpensive] = useState(false)
+  const [activeModel, setActiveModel] = useState(DEFAULT_MODEL)
   const { data: session } = useSession()
-
-  const activeModel = useExpensive ? EXPENSIVE_MODEL : DEFAULT_MODEL
 
   const exercises = useExercises()
   const words = useWords(activeModel)
@@ -43,15 +41,15 @@ export default function HomeClient() {
           <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
         </div>
         <div className="flex justify-end items-center gap-3 mb-2">
-          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600">
-            <span>{useExpensive ? 'Duur model' : 'Gratis model'}</span>
-            <div
-              onClick={() => setUseExpensive(v => !v)}
-              className={`relative w-10 h-5 rounded-full transition-colors ${useExpensive ? 'bg-blue-500' : 'bg-gray-300'}`}
-            >
-              <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${useExpensive ? 'translate-x-5' : 'translate-x-0'}`} />
-            </div>
-          </label>
+          <select
+            value={activeModel}
+            onChange={e => setActiveModel(e.target.value)}
+            className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
+          >
+            {MODEL_OPTIONS.map(({ label, value }) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
         </div>
         <div className="flex justify-end items-center gap-2 mb-4">
           {session ? (

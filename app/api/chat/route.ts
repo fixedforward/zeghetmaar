@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DEFAULT_MODEL } from '@/app/config/models'
-import { raceModels } from '@/app/lib/raceModels'
+import { DEFAULT_MODEL, GRATIS_MODELS } from '@/app/config/models'
+import { raceModels, fetchModel } from '@/app/lib/raceModels'
 import { config } from '@/app/lib/config'
 
 const OPENROUTER_API_KEY = config.aiProviders.openRouterApiKey
@@ -30,7 +30,12 @@ export async function POST(req: NextRequest) {
   ]
 
   try {
-    const { response, model: winningModel } = await raceModels(model || DEFAULT_MODEL, messages, OPENROUTER_API_KEY)
+    const selectedModel = model || DEFAULT_MODEL
+    const isGratis = GRATIS_MODELS.includes(selectedModel)
+    const controller = new AbortController()
+    const { response, model: winningModel } = isGratis
+      ? await raceModels(selectedModel, messages, OPENROUTER_API_KEY)
+      : await fetchModel(selectedModel, messages, OPENROUTER_API_KEY, controller.signal)
     console.log(`[/api/chat] Responding with winner: ${winningModel}`)
     return NextResponse.json({ response })
   } catch (err) {

@@ -1,4 +1,4 @@
-export const MODELS = [
+export const GRATIS_MODELS = [
   'minimax/minimax-m2.5:free',
   'openai/gpt-oss-120b:free',
   'openai/gpt-oss-20b:free',
@@ -31,5 +31,10 @@ export const MODELS = [
   'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
 ]
 
-export const DEFAULT_MODEL = 'minimax/minimax-m2.5:free'
-export const EXPENSIVE_MODEL = 'tencent/hy3-preview'
+export const MODEL_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Gratis model',      value: 'minimax/minimax-m2.5:free' },
+  { label: 'DeepSeek v4 Flash', value: 'deepseek/deepseek-v4-flash' },
+  { label: 'hy3 preview',       value: 'tencent/hy3-preview' },
+]
+
+export const DEFAULT_MODEL = MODEL_OPTIONS[0].value
