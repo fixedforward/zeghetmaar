@@ -54,7 +54,7 @@ export function useAiChat(selectedModel: string) {
     if (!englishInput.trim() || isTranslating) return
     setIsTranslating(true)
     setTranslationResult('')
-    const translatePrompt = 'Give 2 or 3 different natural ways to say the following English sentence in Dutch. Number each option and briefly note any difference in tone or formality if relevant. Reply only with the Dutch options, no extra explanation.'
+    const translatePrompt = 'Give 2 or 3 different natural ways to say the following English sentence in Dutch. Number each option and briefly note any difference in tone or formality if relevant.'
     chatRequest(englishInput, translatePrompt, selectedModel)
       .then(data => {
         setTranslationResult(data.response || data.error || 'Er is een fout opgetreden')
