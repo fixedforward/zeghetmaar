@@ -70,7 +70,7 @@ export default function HomeClient() {
               onClick={() => signIn('google')}
               className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
             >
-              Log in met Google
+              Log in om frases te beheren
             </button>
           )}
         </div>
