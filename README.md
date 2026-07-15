@@ -2,7 +2,7 @@
 
 A personal Dutch language learning app powered by AI. Built to scratch my own itch: a single place to save Dutch phrases, get AI translations and example sentences, and actively practice what I've learned.
 
-See live [here](zeghetmaar.onrender.com)
+See live at zeghetmaar.onrender.com
 ---
 
 ## What it does (up to 25 June 2026)
