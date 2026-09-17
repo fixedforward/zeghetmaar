@@ -26,7 +26,8 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/config.json` | Optional local config for API key and model (not committed) |
 | `app/config.example.json` | Example config file — copy to `app/config.json` to use |
-| `public/woordenlijst.json` | Static word list data for the Vocabulary tab |
+| `app/api/words/route.ts` | CRUD handler for word entries (list/add/edit/delete/favorite) |
+| `app/lib/driveStore.ts` | Reads/writes the word list to a Google Drive-synced JSON file |
 | `next.config.js` | Next.js config with Turbopack root fix |
 
 ## Running the Project
@@ -65,7 +66,7 @@ The API route handlers resolve the API key and model in this priority order:
 |---|---|
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
-| **Woordenlijst** | Browse `public/woordenlijst.json`; examples are collapsible per entry |
+| **Fraselijst** | Browse, add, edit, delete, and favorite saved words/phrases (stored via `app/api/words`); examples are collapsible per entry; each entry has a "ChatGPT" button that opens `chatgpt.com` in a new tab with a prompt to explain that word |
 
 ## Selection Popup
 
