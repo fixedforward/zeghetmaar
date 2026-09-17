@@ -13,6 +13,9 @@ interface AppConfig {
   }
   database: {
     googleJsonFile: GoogleJsonFile
+    googleQuizFolder?: {
+      folderId: string
+    }
   }
   auth: {
     nextAuthSecret: string

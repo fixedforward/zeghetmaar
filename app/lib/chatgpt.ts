@@ -1,4 +1,4 @@
 export function buildChatGptExplainUrl(phrase: string): string {
-  const prompt = `Explain this Dutch word or phrase and how it's used: "${phrase}"`
+  const prompt = `Leg dit Nederlandse woord of deze zin uit en hoe het wordt gebruikt: "${phrase}"`
   return `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`
 }

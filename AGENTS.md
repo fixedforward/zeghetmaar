@@ -34,16 +34,22 @@ Everything is served from a single Next.js process on a single port.
 | `app/hooks/useAiChat.ts` | Herschrijver + Vertaler state, selection popup, calls to `/api/chat` |
 | `app/hooks/usePhrasePractice.ts` | Practice modal state: generates a prompt, evaluates the user's answer |
 | `app/hooks/useExercises.ts` | Extra Oefeningen state, persisted to `localStorage` |
-| `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `OefeningenTab`) |
+| `app/hooks/useQuiz.ts` | Quiz tab state: file list, pairs, current question, derived score, `jumpTo` |
+| `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `OefeningenTab`, `QuizTab`) |
 | `app/components/PracticeModal.tsx` | Modal for the phrase-practice flow |
-| `app/components/SelectionPopup.tsx` | Floating explain-this-text popup |
+| `app/components/SelectionPopup.tsx` | Floating explain-this-text popup (Herschrijver) |
 | `app/components/ErrorBoundary.tsx` | Wraps each tab so one tab crashing doesn't take down the app |
 | `app/api/chat/route.ts` | POST handler: proxies to OpenRouter, races free models |
 | `app/api/words/route.ts` | GET/POST/PUT/DELETE for the phrase list; writes require an authenticated session |
+| `app/api/quiz/files/route.ts` | GET handler: lists quiz files in the configured Drive folder; login required |
+| `app/api/quiz/files/[id]/route.ts` | GET handler: reads and parses one quiz file into sentence pairs; login required |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
 | `auth.ts` | NextAuth config: Google provider, allowed-email check |
 | `app/lib/driveStore.ts` | Reads/writes the phrase list JSON on Google Drive |
+| `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs |
+| `app/lib/chatgpt.ts` | Builds a ChatGPT explain-this-phrase URL for the "Open in ChatGPT" links |
+| `app/lib/shuffle.ts` | Generic Fisher–Yates `shuffleArray` helper |
 | `app/lib/raceModels.ts` | Races free OpenRouter models against each other with a timeout |
 | `app/lib/apiClient.ts` | Shared `chatRequest` helper for calling `/api/chat` |
 | `app/lib/config.ts` | Loads and validates `app/config.json` |
@@ -74,6 +80,12 @@ fallback for these — `config.json` is required. It must provide:
 - `auth.nextAuthSecret`, `auth.oauth2Providers.google.clientId` / `.clientSecret` /
   `.allowedEmails` — Google OAuth app credentials and the emails allowed to log in.
 
+Optional:
+
+- `database.googleQuizFolder.folderId` — Drive folder holding quiz text files, readable
+  by the same service account as above. Enables the Quiz tab; if unset, the app still
+  starts normally and the Quiz tab's file-list endpoint returns a "not configured" error.
+
 See `app/config.example.json` for the full shape. The default selectable model is set in
 `app/config/models.ts` (`DEFAULT_MODEL`), not via config.
 
@@ -102,6 +114,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
+| **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 
 ## Phrase Practice
 
@@ -113,6 +126,22 @@ evaluates the answer and suggests an improvement. Driven by `usePhrasePractice.t
 
 Highlighting any text inside the Herschrijver response area triggers a floating popup that calls
 `/api/chat` with an explanation prompt. The popup closes on any click outside it.
+
+## Quiz
+
+The Quiz tab lists `.txt` files from a Drive folder (`database.googleQuizFolder.folderId`),
+each expected to hold a numbered list of Dutch sentences followed by a numbered list of
+matching English sentences (`app/lib/driveQuizStore.ts`'s `parseQuizFile`). Picking a file
+loads its sentence pairs in random order (`shuffleArray`) and shows them as flashcards:
+the Dutch sentence is the question, "Toon antwoord" reveals the English translation, then
+the user self-marks Goed/Fout. An "Overzicht" list below the card shows every question with
+its answered/unanswered status; clicking one jumps straight to it (`useQuiz.ts`'s `jumpTo`).
+Score is derived from the per-question answers array rather than tracked separately, so
+jumping back and re-marking a question updates the score correctly instead of double-counting.
+Highlighting a word or sentence in either the question or the answer shows a floating
+"Open in ChatGPT" link (`app/lib/chatgpt.ts`), same mechanism as the Selection Popup above
+but linking out instead of calling `/api/chat`. The whole tab requires login, unlike
+Herschrijver/Vertaler.
 
 ## Logging
 

@@ -1,4 +1,14 @@
-export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen'
+export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz'
+
+export interface QuizFile {
+  id: string
+  name: string
+}
+
+export interface QuizPair {
+  dutch: string
+  english: string
+}
 
 export interface WordEntry {
   id: string
