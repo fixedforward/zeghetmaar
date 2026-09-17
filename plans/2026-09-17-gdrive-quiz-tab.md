@@ -205,3 +205,15 @@
 - Manual test: ran `npm test` (22/22 passed, including the 4 new tests) and
   `npx tsc --noEmit` (clean).
 - Result: confirmed working by user.
+
+### Step 3 — API routes — 2026-09-17
+
+- Commit: `9abe781`
+- Summary: added `app/api/quiz/files/route.ts` (`GET`, login-gated, 501 if the quiz
+  folder isn't configured) and `app/api/quiz/files/[id]/route.ts` (`GET`, login-gated,
+  returns parsed `QuizPair[]`).
+- Manual test: ran `npx tsc --noEmit` and `npm run build` (both clean, both new routes
+  listed in the build output); user verified `curl -i http://localhost:3000/api/quiz/files`
+  returns 401 when logged out, and returns the Drive folder's file list when logged in
+  with `database.googleQuizFolder.folderId` configured.
+- Result: confirmed working by user.
