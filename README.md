@@ -13,6 +13,7 @@ See live at zeghetmaar.onrender.com
 | **Herschrijver** | Paste any Dutch text; the AI rewrites it at your chosen register. |
 | **Engels → Nederlands** | AI translation with context-aware explanations. |
 | **Extra Oefeningen** | Curated links to external Dutch practice resources. |
+| **Quiz** | Flashcard self-check on sentences pulled from a Google Drive folder (login required). |
 
 Additional UX touches: a text-selection popup that sends highlighted text straight to the AI, a practice/quiz modal for active recall, and a model switcher so you can compare outputs across providers.
 
