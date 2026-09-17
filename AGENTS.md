@@ -98,7 +98,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 
 | Tab | Description |
 |---|---|
-| **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete (login required), collapsible examples, launches phrase practice |
+| **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete/favorite (login required), collapsible examples, launches phrase practice, and a "ChatGPT" button per entry that opens `chatgpt.com` in a new tab with a prompt to explain that word |
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
