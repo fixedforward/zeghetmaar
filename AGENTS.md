@@ -50,8 +50,6 @@ Everything is served from a single Next.js process on a single port.
 | `app/config/models.ts` | Selectable models (`MODEL_OPTIONS`), free-model list (`GRATIS_MODELS`), default model |
 | `app/config.json` | Optional local config for API key, Drive file ID/service account, and auth secrets (not committed) |
 | `app/config.example.json` | Example config file — copy to `app/config.json` to use |
-| `app/api/words/route.ts` | CRUD handler for word entries (list/add/edit/delete/favorite) |
-| `app/lib/driveStore.ts` | Reads/writes the word list to a Google Drive-synced JSON file |
 | `next.config.js` | Next.js config with Turbopack root fix |
 
 `public/woordenlijst.json` is no longer used — the phrase list now lives on Google Drive.
@@ -100,10 +98,16 @@ See `app/config.example.json` for the full shape. The default selectable model i
 
 | Tab | Description |
 |---|---|
-| **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete (login required), collapsible examples, launches phrase practice |
+| **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete/favorite (login required), collapsible examples, launches phrase practice, and a "ChatGPT" button per entry that opens `chatgpt.com` in a new tab with a prompt to explain that word |
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
-| **Fraselijst** | Browse, add, edit, delete, and favorite saved words/phrases (stored via `app/api/words`); examples are collapsible per entry; each entry has a "ChatGPT" button that opens `chatgpt.com` in a new tab with a prompt to explain that word |
+| **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
+
+## Phrase Practice
+
+Clicking "practice" on a phrase in Fraselijst opens `PracticeModal`: the AI generates a short
+Dutch scenario meant to prompt that phrase in a natural answer, the user answers, and the AI
+evaluates the answer and suggests an improvement. Driven by `usePhrasePractice.ts`.
 
 ## Selection Popup
 
