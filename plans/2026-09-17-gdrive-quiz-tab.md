@@ -182,3 +182,16 @@
   without this change. Covered by Step 6 (last step).
 
 ## Log
+
+### Step 1 — Types and optional config field — 2026-09-17
+
+- Commit: `f13ac8e`
+- Summary: added `'quiz'` to the `Tab` union and `QuizFile`/`QuizPair` types in
+  `app/types.ts`; added optional `database.googleQuizFolder.folderId` to `AppConfig` in
+  `app/lib/config.ts` (not required, so missing config won't crash the app); documented
+  the field in `app/config.example.json`; exported `getDriveClient()` from
+  `app/lib/driveStore.ts` for reuse. Field name changed from `quizFolder` to
+  `googleQuizFolder` per user request.
+- Manual test: ran `npm test` (18/18 passed) and `npx tsc --noEmit` (clean); user ran
+  `npm run dev` and confirmed the app works exactly as before.
+- Result: confirmed working by user.
