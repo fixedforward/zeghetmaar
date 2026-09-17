@@ -7,3 +7,4 @@ node_modules
 *worktree
 .DS_Store
 .idea
+.vscode/launch.json
