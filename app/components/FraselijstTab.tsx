@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { useWords } from '../hooks/useWords'
 import type { WordEntry } from '../types'
+import { buildChatGptExplainUrl } from '../lib/chatgpt'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
 type SortKey = 'updatedAt' | 'lastPracticedAt' | 'isFavorite' | 'beheersing'
@@ -308,6 +309,12 @@ export function FraselijstTab(words: Props) {
                       className="text-xs text-purple-600 hover:underline"
                     >
                       Oefenen
+                    </button>
+                    <button
+                      onClick={() => window.open(buildChatGptExplainUrl(entry.word), '_blank', 'noopener,noreferrer')}
+                      className="text-xs text-green-600 hover:underline"
+                    >
+                      ChatGPT
                     </button>
                     <button
                       onClick={() => words.startEdit(entry)}
