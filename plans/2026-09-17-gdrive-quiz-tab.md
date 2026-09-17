@@ -195,3 +195,13 @@
 - Manual test: ran `npm test` (18/18 passed) and `npx tsc --noEmit` (clean); user ran
   `npm run dev` and confirmed the app works exactly as before.
 - Result: confirmed working by user.
+
+### Step 2 — Drive quiz file reading and parsing — 2026-09-17
+
+- Commit: `43ebd28`
+- Summary: added `app/lib/driveQuizStore.ts` with `isQuizConfigured`, `parseQuizFile`,
+  `listQuizFilesAsync`, `getQuizPairsAsync`; added `app/__tests__/driveQuizStore.test.ts`
+  covering pairing, blank/non-numbered lines, and the two length-mismatch error cases.
+- Manual test: ran `npm test` (22/22 passed, including the 4 new tests) and
+  `npx tsc --noEmit` (clean).
+- Result: confirmed working by user.
