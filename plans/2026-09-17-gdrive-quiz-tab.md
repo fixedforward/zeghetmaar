@@ -217,3 +217,15 @@
   returns 401 when logged out, and returns the Drive folder's file list when logged in
   with `database.googleQuizFolder.folderId` configured.
 - Result: confirmed working by user.
+
+### Step 4 — `useQuiz` hook — 2026-09-17
+
+- Commit: `ef94580`
+- Summary: added `app/hooks/useQuiz.ts` (file list + pairs state, `loadFiles`,
+  `selectFile`, `backToFiles`, `reveal`, `markAndNext`, `restart`), following the
+  `.then()`-chain style of `useWords.ts`; added `app/__tests__/useQuiz.test.ts` covering
+  file loading, the error path, answering/scoring through a set of pairs, and
+  `backToFiles()`.
+- Manual test: ran `npm test` (26/26 passed, including the 4 new tests) and
+  `npx tsc --noEmit` (clean).
+- Result: confirmed working by user.
