@@ -34,11 +34,11 @@ Everything is served from a single Next.js process on a single port.
 | `app/hooks/useAiChat.ts` | Herschrijver + Vertaler state, selection popup, calls to `/api/chat` |
 | `app/hooks/usePhrasePractice.ts` | Practice modal state: generates a prompt, evaluates the user's answer |
 | `app/hooks/useExercises.ts` | Extra Oefeningen state, persisted to `localStorage` |
+| `app/hooks/useQuiz.ts` | Quiz tab state: file list, pairs, current question, derived score, `jumpTo` |
 | `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `OefeningenTab`, `QuizTab`) |
 | `app/components/PracticeModal.tsx` | Modal for the phrase-practice flow |
 | `app/components/SelectionPopup.tsx` | Floating explain-this-text popup (Herschrijver) |
 | `app/components/ErrorBoundary.tsx` | Wraps each tab so one tab crashing doesn't take down the app |
-| `app/hooks/useQuiz.ts` | Quiz tab state: file list, pairs, current question, derived score, `jumpTo` |
 | `app/api/chat/route.ts` | POST handler: proxies to OpenRouter, races free models |
 | `app/api/words/route.ts` | GET/POST/PUT/DELETE for the phrase list; writes require an authenticated session |
 | `app/api/quiz/files/route.ts` | GET handler: lists quiz files in the configured Drive folder; login required |
@@ -110,7 +110,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 
 | Tab | Description |
 |---|---|
-| **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete (login required), collapsible examples, launches phrase practice |
+| **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete/favorite (login required), collapsible examples, launches phrase practice, and a "ChatGPT" button per entry that opens `chatgpt.com` in a new tab with a prompt to explain that word |
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
