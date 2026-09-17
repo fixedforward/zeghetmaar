@@ -8,10 +8,12 @@ import { useExercises } from './hooks/useExercises'
 import { useWords } from './hooks/useWords'
 import { useAiChat } from './hooks/useAiChat'
 import { usePhrasePractice } from './hooks/usePhrasePractice'
+import { useQuiz } from './hooks/useQuiz'
 import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
 import { OefeningenTab } from './components/OefeningenTab'
+import { QuizTab } from './components/QuizTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -26,6 +28,7 @@ export default function HomeClient() {
   const words = useWords(activeModel)
   const chat = useAiChat(activeModel)
   const practice = usePhrasePractice(activeModel)
+  const quiz = useQuiz()
 
   useEffect(() => {
     setMounted(true)
@@ -83,6 +86,12 @@ export default function HomeClient() {
             Fraselijst
           </button>
           <button
+            onClick={() => { setActiveTab('quiz'); quiz.loadFiles() }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'quiz' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Quiz
+          </button>
+          <button
             onClick={() => setActiveTab('herschrijver')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'herschrijver' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
@@ -106,6 +115,7 @@ export default function HomeClient() {
         {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
         {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
         {activeTab === 'oefeningen' && <ErrorBoundary><OefeningenTab {...exercises} /></ErrorBoundary>}
+        {activeTab === 'quiz' && <ErrorBoundary><QuizTab {...quiz} isLoggedIn={!!session} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (

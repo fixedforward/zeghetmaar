@@ -54,18 +54,32 @@ export async function listQuizFilesAsync(): Promise<QuizFile[]> {
     q: `'${folderId}' in parents and trashed = false`,
     fields: 'files(id, name)',
     orderBy: 'name',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    corpora: 'allDrives',
   })
 
   return (res.data.files ?? [])
     .filter((f): f is { id: string; name: string } => !!f.id && !!f.name)
+    .filter((f) => f.name.toLowerCase().endsWith('.txt'))
     .map((f) => ({ id: f.id, name: f.name }))
 }
 
+const GOOGLE_NATIVE_MIME_PREFIX = 'application/vnd.google-apps.'
+
 export async function getQuizPairsAsync(fileId: string): Promise<QuizPair[]> {
   const drive = getDriveClient()
-  const res = await drive.files.get(
-    { fileId, alt: 'media' },
-    { responseType: 'text' }
-  )
+
+  const meta = await drive.files.get({
+    fileId,
+    fields: 'mimeType',
+    supportsAllDrives: true,
+  })
+  const mimeType = meta.data.mimeType ?? ''
+
+  const res = mimeType.startsWith(GOOGLE_NATIVE_MIME_PREFIX)
+    ? await drive.files.export({ fileId, mimeType: 'text/plain' }, { responseType: 'text' })
+    : await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'text' })
+
   return parseQuizFile(res.data as string)
 }

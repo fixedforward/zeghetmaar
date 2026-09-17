@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { QuizFile, QuizPair } from '../types'
+import { shuffleArray } from '../lib/shuffle'
 
 export function useQuiz() {
   const [files, setFiles] = useState<QuizFile[]>([])
@@ -14,7 +15,15 @@ export function useQuiz() {
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
-  const [score, setScore] = useState({ correct: 0, incorrect: 0 })
+  const [answers, setAnswers] = useState<(boolean | null)[]>([])
+
+  // Derived from answers, not tracked separately — this way jumping back to an
+  // already-answered question and re-marking it updates the score correctly
+  // instead of double-counting.
+  const score = {
+    correct: answers.filter((a) => a === true).length,
+    incorrect: answers.filter((a) => a === false).length,
+  }
 
   const loadFiles = useCallback((force = false) => {
     if ((!force && filesLoaded) || filesLoading) return
@@ -43,13 +52,16 @@ export function useQuiz() {
     setPairsError(null)
     setCurrentIndex(0)
     setRevealed(false)
-    setScore({ correct: 0, incorrect: 0 })
+    setAnswers([])
     fetch(`/api/quiz/files/${file.id}`)
       .then(res => {
         if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Kon quizbestand niet laden.') })
         return res.json()
       })
-      .then((data: QuizPair[]) => setPairs(data))
+      .then((data: QuizPair[]) => {
+        setPairs(shuffleArray(data))
+        setAnswers(new Array(data.length).fill(null))
+      })
       .catch((err: Error) => {
         console.error('[useQuiz]', err.message)
         setPairsError(err.message)
@@ -61,29 +73,34 @@ export function useQuiz() {
     setSelectedFile(null)
     setPairs([])
     setPairsError(null)
+    setAnswers([])
   }
 
   const reveal = () => setRevealed(true)
 
   const markAndNext = (correct: boolean) => {
-    setScore(prev => correct
-      ? { ...prev, correct: prev.correct + 1 }
-      : { ...prev, incorrect: prev.incorrect + 1 })
+    setAnswers(prev => prev.map((a, i) => i === currentIndex ? correct : a))
     setRevealed(false)
     setCurrentIndex(prev => prev + 1)
+  }
+
+  const jumpTo = (index: number) => {
+    if (index < 0 || index >= pairs.length) return
+    setCurrentIndex(index)
+    setRevealed(false)
   }
 
   const restart = () => {
     setCurrentIndex(0)
     setRevealed(false)
-    setScore({ correct: 0, incorrect: 0 })
+    setAnswers(prev => prev.map(() => null))
   }
 
   return {
     files, filesLoading, filesError,
     selectedFile, pairs, pairsLoading, pairsError,
-    currentIndex, revealed, score,
+    currentIndex, revealed, score, answers,
     loadFiles, selectFile, backToFiles,
-    reveal, markAndNext, restart,
+    reveal, markAndNext, jumpTo, restart,
   }
 }
