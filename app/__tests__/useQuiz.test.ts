@@ -11,7 +11,7 @@ describe('useQuiz', () => {
     const mockFiles = [{ id: 'f1', name: 'les1.txt' }]
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockFiles),
+      json: () => Promise.resolve({ files: mockFiles }),
     } as Response)
 
     const { result } = renderHook(() => useQuiz())
@@ -23,6 +23,35 @@ describe('useQuiz', () => {
     expect(result.current.files).toEqual(mockFiles)
     expect(result.current.filesLoading).toBe(false)
     expect(result.current.filesError).toBeNull()
+    expect(result.current.hasNextPage).toBe(false)
+    expect(result.current.hasPrevPage).toBe(false)
+  })
+
+  it('paginates through file pages with nextFilesPage() and prevFilesPage()', async () => {
+    const page1 = { files: [{ id: 'f1', name: 'les2.txt' }], nextPageToken: 'tok2' }
+    const page2 = { files: [{ id: 'f2', name: 'les1.txt' }] }
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(page1) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(page2) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(page1) } as Response)
+
+    const { result } = renderHook(() => useQuiz())
+
+    await act(async () => { result.current.loadFiles() })
+    expect(result.current.files).toEqual(page1.files)
+    expect(result.current.hasNextPage).toBe(true)
+    expect(result.current.hasPrevPage).toBe(false)
+
+    await act(async () => { result.current.nextFilesPage() })
+    expect(fetch).toHaveBeenLastCalledWith('/api/quiz/files?pageToken=tok2')
+    expect(result.current.files).toEqual(page2.files)
+    expect(result.current.hasNextPage).toBe(false)
+    expect(result.current.hasPrevPage).toBe(true)
+
+    await act(async () => { result.current.prevFilesPage() })
+    expect(fetch).toHaveBeenLastCalledWith('/api/quiz/files')
+    expect(result.current.files).toEqual(page1.files)
+    expect(result.current.hasPrevPage).toBe(false)
   })
 
   it('sets filesError when the file list request fails', async () => {

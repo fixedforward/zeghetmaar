@@ -1,5 +1,16 @@
-import { describe, it, expect } from 'vitest'
-import { parseQuizFile } from '../lib/driveQuizStore'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+const filesListMock = vi.fn()
+
+vi.mock('../lib/driveStore', () => ({
+  getDriveClient: () => ({ files: { list: filesListMock } }),
+}))
+
+vi.mock('../lib/config', () => ({
+  config: { database: { googleQuizFolder: { folderId: 'folder123' } } },
+}))
+
+import { parseQuizFile, listQuizFilesAsync, QUIZ_FILES_PAGE_SIZE } from '../lib/driveQuizStore'
 
 describe('parseQuizFile', () => {
   it('pairs a Dutch list with a matching English list by sentence number', () => {
@@ -30,5 +41,47 @@ describe('parseQuizFile', () => {
   it('throws when there is only one numbered list', () => {
     const text = '1. Een.\n2. Twee.'
     expect(() => parseQuizFile(text)).toThrow()
+  })
+})
+
+describe('listQuizFilesAsync', () => {
+  beforeEach(() => {
+    filesListMock.mockReset()
+  })
+
+  it('sorts by name descending and filters out non-.txt files', async () => {
+    filesListMock.mockResolvedValue({
+      data: {
+        files: [
+          { id: '1', name: 'les1.txt' },
+          { id: '2', name: 'notes.pdf' },
+          { id: '3', name: 'les2.TXT' },
+        ],
+      },
+    })
+
+    const page = await listQuizFilesAsync()
+
+    expect(filesListMock).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: 'name desc', pageSize: QUIZ_FILES_PAGE_SIZE, pageToken: undefined })
+    )
+    expect(page.files).toEqual([
+      { id: '1', name: 'les1.txt' },
+      { id: '3', name: 'les2.TXT' },
+    ])
+    expect(page.nextPageToken).toBeUndefined()
+  })
+
+  it('passes pageToken and pageSize through to the Drive request and returns nextPageToken', async () => {
+    filesListMock.mockResolvedValue({
+      data: { files: [{ id: '4', name: 'les3.txt' }], nextPageToken: 'tok2' },
+    })
+
+    const page = await listQuizFilesAsync('tok1', 5)
+
+    expect(filesListMock).toHaveBeenCalledWith(
+      expect.objectContaining({ pageToken: 'tok1', pageSize: 5 })
+    )
+    expect(page.nextPageToken).toBe('tok2')
   })
 })

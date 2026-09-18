@@ -59,6 +59,25 @@ export function QuizTab(quiz: Props) {
             </li>
           ))}
         </ul>
+
+        {(quiz.hasPrevPage || quiz.hasNextPage) && (
+          <div className="flex justify-between items-center mt-4">
+            <button
+              onClick={quiz.prevFilesPage}
+              disabled={!quiz.hasPrevPage || quiz.filesLoading}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              ← Vorige
+            </button>
+            <button
+              onClick={quiz.nextFilesPage}
+              disabled={!quiz.hasNextPage || quiz.filesLoading}
+              className="px-3 py-1 text-sm border rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Volgende →
+            </button>
+          </div>
+        )}
       </div>
     )
   }

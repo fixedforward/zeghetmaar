@@ -7,6 +7,9 @@ export function useQuiz() {
   const [filesLoading, setFilesLoading] = useState(false)
   const [filesError, setFilesError] = useState<string | null>(null)
   const [filesLoaded, setFilesLoaded] = useState(false)
+  const [pageToken, setPageToken] = useState<string | undefined>(undefined)
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined)
+  const [pageTokenStack, setPageTokenStack] = useState<(string | undefined)[]>([])
 
   const [selectedFile, setSelectedFile] = useState<QuizFile | null>(null)
   const [pairs, setPairs] = useState<QuizPair[]>([])
@@ -25,17 +28,19 @@ export function useQuiz() {
     incorrect: answers.filter((a) => a === false).length,
   }
 
-  const loadFiles = useCallback((force = false) => {
-    if ((!force && filesLoaded) || filesLoading) return
+  const fetchFilesPage = useCallback((token: string | undefined) => {
     setFilesLoading(true)
     setFilesError(null)
-    fetch('/api/quiz/files')
+    const url = token ? `/api/quiz/files?pageToken=${encodeURIComponent(token)}` : '/api/quiz/files'
+    fetch(url)
       .then(res => {
         if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Kon bestandenlijst niet laden.') })
         return res.json()
       })
-      .then((data: QuizFile[]) => {
-        setFiles(data)
+      .then((data: { files: QuizFile[]; nextPageToken?: string }) => {
+        setFiles(data.files)
+        setNextPageToken(data.nextPageToken)
+        setPageToken(token)
         setFilesLoaded(true)
       })
       .catch((err: Error) => {
@@ -43,7 +48,27 @@ export function useQuiz() {
         setFilesError(err.message)
       })
       .finally(() => setFilesLoading(false))
-  }, [filesLoaded, filesLoading])
+  }, [])
+
+  const loadFiles = useCallback((force = false) => {
+    if ((!force && filesLoaded) || filesLoading) return
+    setPageTokenStack([])
+    fetchFilesPage(undefined)
+  }, [filesLoaded, filesLoading, fetchFilesPage])
+
+  const nextFilesPage = useCallback(() => {
+    if (!nextPageToken || filesLoading) return
+    setPageTokenStack(prev => [...prev, pageToken])
+    fetchFilesPage(nextPageToken)
+  }, [nextPageToken, pageToken, filesLoading, fetchFilesPage])
+
+  const prevFilesPage = useCallback(() => {
+    if (pageTokenStack.length === 0 || filesLoading) return
+    const stack = [...pageTokenStack]
+    const prevToken = stack.pop()
+    setPageTokenStack(stack)
+    fetchFilesPage(prevToken)
+  }, [pageTokenStack, filesLoading, fetchFilesPage])
 
   const selectFile = (file: QuizFile) => {
     setSelectedFile(file)
@@ -98,9 +123,11 @@ export function useQuiz() {
 
   return {
     files, filesLoading, filesError,
+    hasNextPage: !!nextPageToken, hasPrevPage: pageTokenStack.length > 0,
     selectedFile, pairs, pairsLoading, pairsError,
     currentIndex, revealed, score, answers,
     loadFiles, selectFile, backToFiles,
+    nextFilesPage, prevFilesPage,
     reveal, markAndNext, jumpTo, restart,
   }
 }
