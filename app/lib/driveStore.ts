@@ -18,7 +18,7 @@ writeFileSync(SA_TMP_PATH, JSON.stringify(config.database.googleJsonFile.service
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
-function getDriveClient() {
+export function getDriveClient() {
   const auth = new google.auth.GoogleAuth({
     keyFile: SA_TMP_PATH,
     scopes: ['https://www.googleapis.com/auth/drive'],
