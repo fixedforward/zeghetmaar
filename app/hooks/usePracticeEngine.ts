@@ -38,13 +38,9 @@ Geef alleen de vraag of opmerking terug, zonder uitleg of aanhalingstekens.`
     setEvaluationLoading(true)
     setEvaluation('')
     const systemPrompt = `Je evalueert een Nederlands antwoord van een taalstudent.
-
 Het scenario was: "${prompt}"
 De frase die de student moest gebruiken: "${phrase.word}"
-
-Beoordeel of de student de frase correct en natuurlijk heeft gebruikt in de context van het scenario (1-2 zinnen).
-Geef daarna een concrete verbetering of een voorbeeldzin die laat zien hoe de frase beter ingezet kon worden.
-Gebruik dit exacte formaat:
+Evalueer en corrigeer mijn antwoord met dit exacte formaat:
 Evaluatie: ...
 Suggestie: ...`
     chatRequest(userAnswer, systemPrompt, selectedModel)

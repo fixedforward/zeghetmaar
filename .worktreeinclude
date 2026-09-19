@@ -1,2 +1,3 @@
 # files git ignores but every worktree needs
 app/config.json
+.vscode/launch.json

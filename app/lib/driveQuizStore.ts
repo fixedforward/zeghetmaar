@@ -45,24 +45,35 @@ export function parseQuizFile(text: string): QuizPair[] {
   return dutch.map((entry, i) => ({ dutch: entry.text, english: english[i].text }))
 }
 
-export async function listQuizFilesAsync(): Promise<QuizFile[]> {
+export const QUIZ_FILES_PAGE_SIZE = 10
+
+export interface QuizFilesPage {
+  files: QuizFile[]
+  nextPageToken?: string
+}
+
+export async function listQuizFilesAsync(pageToken?: string, pageSize = QUIZ_FILES_PAGE_SIZE): Promise<QuizFilesPage> {
   const folderId = config.database.googleQuizFolder?.folderId
   if (!folderId) throw new Error('Quiz folder is not configured.')
 
   const drive = getDriveClient()
   const res = await drive.files.list({
     q: `'${folderId}' in parents and trashed = false`,
-    fields: 'files(id, name)',
-    orderBy: 'name',
+    fields: 'files(id, name), nextPageToken',
+    orderBy: 'name desc',
+    pageSize,
+    pageToken,
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
     corpora: 'allDrives',
   })
 
-  return (res.data.files ?? [])
+  const files = (res.data.files ?? [])
     .filter((f): f is { id: string; name: string } => !!f.id && !!f.name)
     .filter((f) => f.name.toLowerCase().endsWith('.txt'))
     .map((f) => ({ id: f.id, name: f.name }))
+
+  return { files, nextPageToken: res.data.nextPageToken ?? undefined }
 }
 
 const GOOGLE_NATIVE_MIME_PREFIX = 'application/vnd.google-apps.'
