@@ -104,9 +104,27 @@ export function useQuiz() {
   const reveal = () => setRevealed(true)
 
   const markAndNext = (correct: boolean) => {
-    setAnswers(prev => prev.map((a, i) => i === currentIndex ? correct : a))
+    const answeredIndex = currentIndex
     setRevealed(false)
     setCurrentIndex(prev => prev + 1)
+
+    if (correct) {
+      setAnswers(prev => prev.map((a, i) => i === answeredIndex ? true : a))
+      return
+    }
+
+    // Wrong answer: don't just mark it — requeue the same exercise a few
+    // questions later (2-5 others in between) instead of a separate retry round.
+    const gap = 2 + Math.floor(Math.random() * 4)
+    setPairs(prev => {
+      const insertAt = Math.min(answeredIndex + 1 + gap, prev.length)
+      return [...prev.slice(0, insertAt), prev[answeredIndex], ...prev.slice(insertAt)]
+    })
+    setAnswers(prev => {
+      const marked = prev.map((a, i) => i === answeredIndex ? false : a)
+      const insertAt = Math.min(answeredIndex + 1 + gap, marked.length)
+      return [...marked.slice(0, insertAt), null, ...marked.slice(insertAt)]
+    })
   }
 
   const jumpTo = (index: number) => {
