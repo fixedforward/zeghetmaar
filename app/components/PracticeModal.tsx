@@ -1,13 +1,8 @@
 import { useEffect } from 'react'
 import type { usePhrasePractice } from '../hooks/usePhrasePractice'
+import { parseEvaluation } from '../lib/parseEvaluation'
 
 type Props = ReturnType<typeof usePhrasePractice>
-
-function parseEvaluation(text: string): { evaluatie: string; suggestie: string } | null {
-  const match = text.match(/Evaluatie:\s*([\s\S]*?)\nSuggestie:\s*([\s\S]*)/)
-  if (!match) return null
-  return { evaluatie: match[1].trim(), suggestie: match[2].trim() }
-}
 
 export function PracticeModal(props: Props) {
   const { isOpen, currentPhrase, prompt, promptLoading, userAnswer, setUserAnswer, evaluation, evaluationLoading, close, regeneratePrompt, submitAnswer } = props
