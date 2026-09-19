@@ -6,7 +6,7 @@ import { chatRequest } from '../lib/apiClient'
  * Shared prompt-generation + answer-evaluation logic for a single phrase,
  * used by both the one-off practice modal and the multi-phrase oefensessie.
  */
-export function usePracticeEngine(selectedModel: string, logTag: string) {
+export function usePracticeEngine(selectedModel: string, logTag: string, onPractice?: () => void) {
   const [prompt, setPrompt] = useState('')
   const [promptLoading, setPromptLoading] = useState(false)
   const [userAnswer, setUserAnswer] = useState('')
@@ -35,6 +35,7 @@ Geef alleen de vraag of opmerking terug, zonder uitleg of aanhalingstekens.`
 
   const submitAnswer = useCallback((phrase: WordEntry) => {
     if (!userAnswer.trim() || !prompt) return
+    onPractice?.()
     setEvaluationLoading(true)
     setEvaluation('')
     const systemPrompt = `Je evalueert een Nederlands antwoord van een taalstudent.
@@ -53,7 +54,7 @@ Suggestie: ...`
         setEvaluation('Kon het antwoord niet evalueren. Probeer opnieuw.')
         setEvaluationLoading(false)
       })
-  }, [userAnswer, prompt, selectedModel, logTag])
+  }, [userAnswer, prompt, selectedModel, logTag, onPractice])
 
   const reset = useCallback(() => {
     setPrompt('')

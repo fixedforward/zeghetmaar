@@ -2,8 +2,9 @@ import { useState, useCallback } from 'react'
 import type { QuizFile, QuizPair } from '../types'
 import { shuffleArray } from '../lib/shuffle'
 
-export function useQuiz() {
+export function useQuiz(onPractice?: () => void) {
   const [files, setFiles] = useState<QuizFile[]>([])
+  const [folderName, setFolderName] = useState<string | undefined>(undefined)
   const [filesLoading, setFilesLoading] = useState(false)
   const [filesError, setFilesError] = useState<string | null>(null)
   const [filesLoaded, setFilesLoaded] = useState(false)
@@ -19,6 +20,25 @@ export function useQuiz() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const [answers, setAnswers] = useState<(boolean | null)[]>([])
+
+  // Stored on the Drive file itself (appProperties), not localStorage, so it's the
+  // same on every browser/device instead of being tied to one browser's storage.
+  const toggleFileCompleted = useCallback((file: QuizFile) => {
+    const next = !file.completed
+    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, completed: next } : f))
+    fetch(`/api/quiz/files/${file.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: next }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Kon voltooiingsstatus niet opslaan.')
+      })
+      .catch(err => {
+        console.error('[useQuiz]', err instanceof Error ? err.message : err)
+        setFiles(prev => prev.map(f => f.id === file.id ? { ...f, completed: !next } : f))
+      })
+  }, [])
 
   // Derived from answers, not tracked separately — this way jumping back to an
   // already-answered question and re-marking it updates the score correctly
@@ -37,11 +57,12 @@ export function useQuiz() {
         if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Kon bestandenlijst niet laden.') })
         return res.json()
       })
-      .then((data: { files: QuizFile[]; nextPageToken?: string }) => {
+      .then((data: { files: QuizFile[]; nextPageToken?: string; folderName?: string }) => {
         setFiles(data.files)
         setNextPageToken(data.nextPageToken)
         setPageToken(token)
         setFilesLoaded(true)
+        if (data.folderName) setFolderName(data.folderName)
       })
       .catch((err: Error) => {
         console.error('[useQuiz]', err.message)
@@ -104,6 +125,7 @@ export function useQuiz() {
   const reveal = () => setRevealed(true)
 
   const markAndNext = (correct: boolean) => {
+    onPractice?.()
     const answeredIndex = currentIndex
     setRevealed(false)
     setCurrentIndex(prev => prev + 1)
@@ -140,7 +162,8 @@ export function useQuiz() {
   }
 
   return {
-    files, filesLoading, filesError,
+    files, folderName, filesLoading, filesError,
+    toggleFileCompleted,
     hasNextPage: !!nextPageToken, hasPrevPage: pageTokenStack.length > 0,
     selectedFile, pairs, pairsLoading, pairsError,
     currentIndex, revealed, score, answers,

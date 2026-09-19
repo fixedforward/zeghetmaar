@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { useQuiz } from '../hooks/useQuiz'
-import { buildChatGptExplainUrl } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { PracticeCounter } from './PracticeCounter'
 
-type Props = ReturnType<typeof useQuiz> & { isLoggedIn: boolean }
+type Props = ReturnType<typeof useQuiz> & {
+  isLoggedIn: boolean
+  practicedDates: Set<string>
+  onCheckIn: () => void
+  onCancelCheckIn: () => void
+}
 
 interface ChatGptLink {
   x: number
@@ -38,7 +44,10 @@ export function QuizTab(quiz: Props) {
   if (!quiz.selectedFile) {
     return (
       <div>
-        <p className="text-sm text-gray-500 mb-4">Kies een bestand uit de geconfigureerde map om jezelf te overhoren.</p>
+        <PracticeCounter practicedDates={quiz.practicedDates} onCheckIn={quiz.onCheckIn} onCancelCheckIn={quiz.onCancelCheckIn} />
+        <p className="text-sm text-gray-500 mb-4">
+          Kies een bestand uit {quiz.folderName ? <>de map <span className="font-medium">{quiz.folderName}</span></> : 'de geconfigureerde map'} om jezelf te overhoren.
+        </p>
 
         {quiz.filesLoading && <p className="text-sm text-gray-400">Bestanden laden...</p>}
         {quiz.filesError && <p className="text-sm text-red-500">{quiz.filesError}</p>}
@@ -48,11 +57,21 @@ export function QuizTab(quiz: Props) {
 
         <ul className="space-y-2">
           {quiz.files.map((file) => (
-            <li key={file.id} className="border rounded p-3 bg-white flex justify-between items-center">
-              <span className="font-medium">{file.name}</span>
+            <li key={file.id} className="border rounded p-3 bg-white flex justify-between items-center gap-3">
+              <label className="flex items-center gap-2 min-w-0">
+                <input
+                  type="checkbox"
+                  checked={!!file.completed}
+                  onChange={() => quiz.toggleFileCompleted(file)}
+                  title="Markeer als afgerond"
+                />
+                <span className={`font-medium truncate ${file.completed ? 'text-gray-400 line-through' : ''}`}>
+                  {file.name}
+                </span>
+              </label>
               <button
                 onClick={() => quiz.selectFile(file)}
-                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
               >
                 Start
               </button>
@@ -117,6 +136,7 @@ export function QuizTab(quiz: Props) {
 
       {done ? (
         <div className="border rounded p-4 bg-white text-center space-y-3">
+          <div className="flex justify-center"><PracticeCounter practicedDates={quiz.practicedDates} onCheckIn={quiz.onCheckIn} onCancelCheckIn={quiz.onCancelCheckIn} /></div>
           <p className="font-semibold">
             Klaar! {quiz.score.correct} goed, {quiz.score.incorrect} fout van {total}.
           </p>
@@ -188,17 +208,15 @@ export function QuizTab(quiz: Props) {
       </div>
 
       {chatGptLink && (
-        <a
+        <button
+          type="button"
           data-chatgpt-link
-          href={chatGptLink.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => setChatGptLink(null)}
+          onClick={() => { openChatGptInBackground(chatGptLink.url); setChatGptLink(null) }}
           className="fixed z-50 bg-white border border-gray-200 rounded shadow-lg px-3 py-1.5 text-sm text-blue-600 hover:bg-gray-50"
           style={{ left: Math.min(chatGptLink.x, window.innerWidth - 180), top: chatGptLink.y }}
         >
           Open in ChatGPT
-        </a>
+        </button>
       )}
     </div>
   )

@@ -5,22 +5,27 @@ import { usePracticeEngine } from './usePracticeEngine'
 
 export const OEFENSESSIE_SIZE = 5
 
-export function useOefenSessie(selectedModel: string) {
+export function useOefenSessie(selectedModel: string, onPractice?: () => void) {
+  const [previewPhrases, setPreviewPhrases] = useState<WordEntry[]>([])
   const [sessionPhrases, setSessionPhrases] = useState<WordEntry[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const engine = usePracticeEngine(selectedModel, 'useOefenSessie')
+  const engine = usePracticeEngine(selectedModel, 'useOefenSessie', onPractice)
 
   const currentPhrase = sessionPhrases[currentIndex] ?? null
   const isActive = sessionPhrases.length > 0
   const isFinished = isActive && currentIndex >= sessionPhrases.length
 
-  const startSession = useCallback((words: WordEntry[]) => {
-    const selected = shuffleArray(words).slice(0, OEFENSESSIE_SIZE)
-    setSessionPhrases(selected)
-    setCurrentIndex(0)
+  const refreshPreview = useCallback((words: WordEntry[]) => {
+    setPreviewPhrases(shuffleArray(words).slice(0, OEFENSESSIE_SIZE))
+  }, [])
+
+  const startSession = useCallback((startIndex = 0) => {
+    if (previewPhrases.length === 0) return
+    setSessionPhrases(previewPhrases)
+    setCurrentIndex(startIndex)
     engine.resetAnswer()
-    if (selected.length > 0) engine.generatePrompt(selected[0])
-  }, [engine])
+    engine.generatePrompt(previewPhrases[startIndex])
+  }, [previewPhrases, engine])
 
   const stopSession = useCallback(() => {
     setSessionPhrases([])
@@ -41,12 +46,22 @@ export function useOefenSessie(selectedModel: string) {
     if (next < sessionPhrases.length) engine.generatePrompt(sessionPhrases[next])
   }, [currentIndex, sessionPhrases, engine])
 
+  const previousPhrase = useCallback(() => {
+    if (currentIndex === 0) return
+    const previous = currentIndex - 1
+    setCurrentIndex(previous)
+    engine.resetAnswer()
+    engine.generatePrompt(sessionPhrases[previous])
+  }, [currentIndex, sessionPhrases, engine])
+
   const submitAnswer = useCallback(() => {
     if (!currentPhrase) return
     engine.submitAnswer(currentPhrase)
   }, [currentPhrase, engine])
 
   return {
+    previewPhrases,
+    refreshPreview,
     sessionPhrases,
     currentIndex,
     currentPhrase,
@@ -61,6 +76,7 @@ export function useOefenSessie(selectedModel: string) {
     startSession,
     stopSession,
     regeneratePrompt,
+    previousPhrase,
     nextPhrase,
     submitAnswer,
   }

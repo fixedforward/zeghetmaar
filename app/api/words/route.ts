@@ -9,6 +9,7 @@ import {
   findById,
   toApiEntry,
   normalizeWord,
+  normalizeTags,
   isValidObjectId,
 } from '@/app/lib/driveStore'
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
-  let body: { word?: unknown; translation?: unknown; examples?: unknown }
+  let body: { word?: unknown; translation?: unknown; examples?: unknown; tags?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -52,6 +53,13 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
   )]
 
+  if (body.tags !== undefined && !Array.isArray(body.tags)) {
+    return NextResponse.json({ error: 'tags must be an array.' }, { status: 400 })
+  }
+  const tags = normalizeTags(
+    (Array.isArray(body.tags) ? body.tags : []).filter((t): t is string => typeof t === 'string')
+  )
+
   const nw = normalizeWord(word)
   const now = new Date().toISOString()
 
@@ -66,6 +74,7 @@ export async function POST(req: NextRequest) {
       normalizedWord: nw,
       translation,
       examples,
+      ...(tags.length > 0 && { tags }),
       beheersing: 1,
       createdAt: now,
       updatedAt: now,
@@ -81,7 +90,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
-  let body: { id?: unknown; word?: unknown; translation?: unknown; examples?: unknown; beheersing?: unknown; lastPracticedAt?: unknown; isFavorite?: unknown }
+  let body: { id?: unknown; word?: unknown; translation?: unknown; examples?: unknown; tags?: unknown; beheersing?: unknown; lastPracticedAt?: unknown; isFavorite?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -119,6 +128,15 @@ export async function PUT(req: NextRequest) {
         .map(e => e.trim())
         .filter(Boolean)
     )]
+  }
+
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags)) {
+      return NextResponse.json({ error: 'tags must be an array.' }, { status: 400 })
+    }
+    update.tags = normalizeTags(
+      (body.tags as unknown[]).filter((t): t is string => typeof t === 'string')
+    )
   }
 
   if (body.beheersing !== undefined) {

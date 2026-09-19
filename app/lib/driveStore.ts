@@ -5,6 +5,16 @@ import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
 import type { Phrase, WordEntry } from '../types'
+import {
+  isValidIsoDate,
+  isoDateToYearDay,
+  yearDayToIsoDate,
+  encodeYearBitmap,
+  decodeYearBitmap,
+  propertyKeyForYear,
+  yearFromPropertyKey,
+  type PracticeLogType,
+} from './practiceLog'
 
 // ---------------------------------------------------------------------------
 // Config
@@ -38,6 +48,7 @@ export function toApiEntry(doc: Phrase): WordEntry {
     translation: doc.translation,
     examples: doc.examples,
     updatedAt: doc.updatedAt,
+    ...(doc.tags !== undefined && doc.tags.length > 0 && { tags: doc.tags }),
     ...(doc.beheersing !== undefined && { beheersing: doc.beheersing }),
     ...(doc.lastPracticedAt !== undefined && { lastPracticedAt: doc.lastPracticedAt }),
     ...(doc.isFavorite !== undefined && { isFavorite: doc.isFavorite }),
@@ -46,6 +57,20 @@ export function toApiEntry(doc: Phrase): WordEntry {
 
 export function normalizeWord(word: string): string {
   return word.trim().toLowerCase()
+}
+
+export function normalizeTags(tags: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const tag of tags) {
+    const trimmed = tag.trim()
+    if (!trimmed) continue
+    const key = trimmed.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(trimmed)
+  }
+  return result
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +97,10 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
     }
     if (typeof entry.isFavorite === 'boolean') {
       raw.isFavorite = entry.isFavorite
+    }
+    if (Array.isArray(entry.tags)) {
+      const tags = normalizeTags(entry.tags.map(String))
+      if (tags.length > 0) raw.tags = tags
     }
     return raw
   })
@@ -165,4 +194,109 @@ export async function deleteWord(id: string): Promise<Phrase | null> {
 
 export function isValidObjectId(id: string): boolean {
   return typeof id === 'string' && id.length > 0
+}
+
+// ---------------------------------------------------------------------------
+// Tag management — bulk operations across all phrases
+// ---------------------------------------------------------------------------
+export async function renameTag(oldTag: string, newTag: string): Promise<number> {
+  const all = await readAll()
+  const trimmedNew = newTag.trim()
+  const oldKey = oldTag.trim().toLowerCase()
+  const now = new Date().toISOString()
+  let count = 0
+
+  const updated = all.map((doc) => {
+    if (!doc.tags?.some((t) => t.toLowerCase() === oldKey)) return doc
+    count++
+    const withoutOld = doc.tags.filter((t) => t.toLowerCase() !== oldKey)
+    return { ...doc, tags: normalizeTags([...withoutOld, trimmedNew]), updatedAt: now }
+  })
+
+  if (count > 0) await writeAll(updated)
+  return count
+}
+
+// ---------------------------------------------------------------------------
+// Practice log — which days the user practiced, per practice type
+// (Oefensessie, Quiz — each tracked independently), stored as one
+// appProperties entry per year on the phrase-list file itself (a compact
+// day-of-year bitmap), since a service account has no storage quota to
+// create a separate file for this.
+// ---------------------------------------------------------------------------
+export async function getPracticedDatesAsync(logType: PracticeLogType): Promise<string[]> {
+  const drive = getDriveClient()
+  const res = await drive.files.get({ fileId: FILE_ID, fields: 'appProperties' })
+  const props = res.data.appProperties ?? {}
+
+  const dates: string[] = []
+  for (const [key, value] of Object.entries(props)) {
+    const year = yearFromPropertyKey(logType, key)
+    if (year === null || !value) continue
+    for (const day of decodeYearBitmap(value)) dates.push(yearDayToIsoDate(year, day))
+  }
+  return dates.sort()
+}
+
+export async function markPracticedDateAsync(logType: PracticeLogType, date: string): Promise<string[]> {
+  if (!isValidIsoDate(date)) throw new Error('date must be in YYYY-MM-DD format.')
+
+  const { year, day } = isoDateToYearDay(date)
+  const key = propertyKeyForYear(logType, year)
+
+  const drive = getDriveClient()
+  const res = await drive.files.get({ fileId: FILE_ID, fields: 'appProperties' })
+  const existing = res.data.appProperties?.[key]
+  const days = existing ? decodeYearBitmap(existing) : new Set<number>()
+
+  if (!days.has(day)) {
+    days.add(day)
+    await drive.files.update({
+      fileId: FILE_ID,
+      requestBody: { appProperties: { [key]: encodeYearBitmap(days) } },
+    })
+  }
+
+  return getPracticedDatesAsync(logType)
+}
+
+export async function unmarkPracticedDateAsync(logType: PracticeLogType, date: string): Promise<string[]> {
+  if (!isValidIsoDate(date)) throw new Error('date must be in YYYY-MM-DD format.')
+
+  const { year, day } = isoDateToYearDay(date)
+  const key = propertyKeyForYear(logType, year)
+
+  const drive = getDriveClient()
+  const res = await drive.files.get({ fileId: FILE_ID, fields: 'appProperties' })
+  const existing = res.data.appProperties?.[key]
+
+  if (existing) {
+    const days = decodeYearBitmap(existing)
+    if (days.has(day)) {
+      days.delete(day)
+      await drive.files.update({
+        fileId: FILE_ID,
+        requestBody: { appProperties: { [key]: encodeYearBitmap(days) } },
+      })
+    }
+  }
+
+  return getPracticedDatesAsync(logType)
+}
+
+export async function deleteTag(tag: string): Promise<number> {
+  const all = await readAll()
+  const key = tag.trim().toLowerCase()
+  const now = new Date().toISOString()
+  let count = 0
+
+  const updated = all.map((doc) => {
+    if (!doc.tags?.some((t) => t.toLowerCase() === key)) return doc
+    count++
+    const tags = doc.tags.filter((t) => t.toLowerCase() !== key)
+    return { ...doc, tags: tags.length > 0 ? tags : undefined, updatedAt: now }
+  })
+
+  if (count > 0) await writeAll(updated)
+  return count
 }

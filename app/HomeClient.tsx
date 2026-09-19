@@ -10,6 +10,7 @@ import { useAiChat } from './hooks/useAiChat'
 import { usePhrasePractice } from './hooks/usePhrasePractice'
 import { useOefenSessie } from './hooks/useOefenSessie'
 import { useQuiz } from './hooks/useQuiz'
+import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
@@ -20,23 +21,47 @@ import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  AccessDenied: 'Dit Google-account heeft geen toegang tot deze app.',
+}
+const DEFAULT_AUTH_ERROR_MESSAGE = 'Inloggen is niet gelukt. Probeer het opnieuw.'
+
 export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
   const [activeModel, setActiveModel] = useState(DEFAULT_MODEL)
+  const [authError, setAuthError] = useState<string | null>(null)
   const { data: session } = useSession()
+  const oefenSessieTracker = usePracticeTracker('oefensessie', !!session)
+  const quizTracker = usePracticeTracker('quiz', !!session)
 
   const exercises = useExercises()
   const words = useWords(activeModel)
   const chat = useAiChat(activeModel)
   const practice = usePhrasePractice(activeModel)
-  const oefenSessie = useOefenSessie(activeModel)
-  const quiz = useQuiz()
+  const oefenSessie = useOefenSessie(activeModel, oefenSessieTracker.markPracticedToday)
+  const quiz = useQuiz(quizTracker.markPracticedToday)
 
   useEffect(() => {
     setMounted(true)
     words.loadWords()
+
+    const params = new URLSearchParams(window.location.search)
+    const error = params.get('error')
+    if (error) {
+      setAuthError(AUTH_ERROR_MESSAGES[error] ?? DEFAULT_AUTH_ERROR_MESSAGE)
+      params.delete('error')
+      const query = params.toString()
+      window.history.replaceState({}, '', query ? `?${query}` : window.location.pathname)
+    }
   }, [])
+
+  useEffect(() => {
+    if (session) {
+      oefenSessieTracker.loadPracticeLog()
+      quizTracker.loadPracticeLog()
+    }
+  }, [session, oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog])
 
   if (!mounted) return null
 
@@ -46,6 +71,18 @@ export default function HomeClient() {
         <div className="flex justify-between items-center mb-1">
           <h1 className="text-2xl font-bold">Nederlands Oefenen</h1>
         </div>
+        {authError && (
+          <div className="flex items-start justify-between gap-3 mb-3 p-3 rounded border border-red-200 bg-red-50 text-sm text-red-700">
+            <span>{authError}</span>
+            <button
+              onClick={() => setAuthError(null)}
+              className="text-red-400 hover:text-red-600 leading-none shrink-0"
+              title="Sluiten"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div className="flex justify-end items-center gap-3 mb-2">
           <select
             value={activeModel}
@@ -83,16 +120,22 @@ export default function HomeClient() {
 
         <div className="flex border-b mb-4">
           <button
-            onClick={() => { setActiveTab('fraselijst'); words.loadWords() }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'fraselijst' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Fraselijst
-          </button>
-          <button
             onClick={() => { setActiveTab('quiz'); quiz.loadFiles() }}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'quiz' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Quiz
+          </button>
+          <button
+            onClick={() => { setActiveTab('oefensessie'); words.loadWords() }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefensessie' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Oefensessie
+          </button>
+          <button
+            onClick={() => { setActiveTab('fraselijst'); words.loadWords() }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'fraselijst' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Fraselijst
           </button>
           <button
             onClick={() => setActiveTab('herschrijver')}
@@ -107,12 +150,6 @@ export default function HomeClient() {
             Engels → Nederlands
           </button>
           <button
-            onClick={() => { setActiveTab('oefensessie'); words.loadWords() }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefensessie' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Oefensessie
-          </button>
-          <button
             onClick={() => setActiveTab('oefeningen')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefeningen' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
@@ -124,8 +161,31 @@ export default function HomeClient() {
         {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
         {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
         {activeTab === 'oefeningen' && <ErrorBoundary><OefeningenTab {...exercises} /></ErrorBoundary>}
-        {activeTab === 'oefensessie' && <ErrorBoundary><OefenSessieTab {...oefenSessie} words={words.words} wordsLoading={words.wordsLoading} wordsError={words.wordsError} /></ErrorBoundary>}
-        {activeTab === 'quiz' && <ErrorBoundary><QuizTab {...quiz} isLoggedIn={!!session} /></ErrorBoundary>}
+        {activeTab === 'oefensessie' && (
+          <ErrorBoundary>
+            <OefenSessieTab
+              {...oefenSessie}
+              words={words.words}
+              wordsLoading={words.wordsLoading}
+              wordsError={words.wordsError}
+              isLoggedIn={!!session}
+              practicedDates={oefenSessieTracker.practicedDates}
+              onCheckIn={oefenSessieTracker.markPracticedToday}
+              onCancelCheckIn={oefenSessieTracker.cancelPracticedToday}
+            />
+          </ErrorBoundary>
+        )}
+        {activeTab === 'quiz' && (
+          <ErrorBoundary>
+            <QuizTab
+              {...quiz}
+              isLoggedIn={!!session}
+              practicedDates={quizTracker.practicedDates}
+              onCheckIn={quizTracker.markPracticedToday}
+              onCancelCheckIn={quizTracker.cancelPracticedToday}
+            />
+          </ErrorBoundary>
+        )}
       </main>
 
       {chat.selectionPopup && (

@@ -7,11 +7,11 @@ export function useWords(selectedModel: string) {
   const [wordsLoading, setWordsLoading] = useState(false)
   const [wordsError, setWordsError] = useState<string | null>(null)
   const [wordsLoaded, setWordsLoaded] = useState(false)
-  const [expandedWords, setExpandedWords] = useState<Set<string>>(new Set())
 
   const [newWord, setNewWord] = useState('')
   const [newTranslation, setNewTranslation] = useState('')
   const [newExamples, setNewExamples] = useState<string[]>([])
+  const [newTags, setNewTags] = useState<string[]>([])
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(true)
@@ -23,6 +23,7 @@ export function useWords(selectedModel: string) {
   const [editWord, setEditWord] = useState('')
   const [editTranslation, setEditTranslation] = useState('')
   const [editExamples, setEditExamples] = useState<string[]>([])
+  const [editTags, setEditTags] = useState<string[]>([])
   const [editLoading, setEditLoading] = useState(false)
 
   const [aiExamplesLoading, setAiExamplesLoading] = useState(false)
@@ -57,7 +58,12 @@ export function useWords(selectedModel: string) {
     fetch('/api/words', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word: newWord, translation: newTranslation, examples: newExamples.filter(e => e.trim()) }),
+      body: JSON.stringify({
+        word: newWord,
+        translation: newTranslation,
+        examples: newExamples.filter(e => e.trim()),
+        tags: newTags,
+      }),
     })
       .then(res => {
         if (res.status === 401) throw new Error('Login om frase toe te voegen')
@@ -65,6 +71,7 @@ export function useWords(selectedModel: string) {
         setNewWord('')
         setNewTranslation('')
         setNewExamples([])
+        setNewTags([])
         setShowAddForm(false)
         loadWords(true)
       })
@@ -96,6 +103,7 @@ export function useWords(selectedModel: string) {
     setEditWord(entry.word)
     setEditTranslation(entry.translation)
     setEditExamples([...entry.examples])
+    setEditTags(entry.tags ?? [])
   }
 
   const cancelEdit = () => {
@@ -103,6 +111,7 @@ export function useWords(selectedModel: string) {
     setEditWord('')
     setEditTranslation('')
     setEditExamples([])
+    setEditTags([])
   }
 
   const handleEditWord = () => {
@@ -111,7 +120,13 @@ export function useWords(selectedModel: string) {
     fetch('/api/words', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: editId, word: editWord, translation: editTranslation, examples: editExamples.filter(e => e.trim()) }),
+      body: JSON.stringify({
+        id: editId,
+        word: editWord,
+        translation: editTranslation,
+        examples: editExamples.filter(e => e.trim()),
+        tags: editTags,
+      }),
     })
       .then(res => {
         if (!res.ok) throw new Error('Kon woord niet bijwerken')
@@ -188,21 +203,13 @@ export function useWords(selectedModel: string) {
       .finally(() => setFavoriteLoadingId(null))
   }
 
-  const toggleExamples = (id: string) => {
-    setExpandedWords(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
   return {
     words,
     wordsLoading, wordsError,
-    expandedWords,
     newWord, setNewWord,
     newTranslation, setNewTranslation,
     newExamples, setNewExamples,
+    newTags, setNewTags,
     addLoading, addError,
     showAddForm, setShowAddForm,
     deleteConfirmId, setDeleteConfirmId,
@@ -211,6 +218,7 @@ export function useWords(selectedModel: string) {
     editWord, setEditWord,
     editTranslation, setEditTranslation,
     editExamples, setEditExamples,
+    editTags, setEditTags,
     editLoading,
     aiExamplesLoading,
     aiTranslationLoading,
@@ -222,7 +230,6 @@ export function useWords(selectedModel: string) {
     handleEditWord,
     generateAiExamples,
     generateAiTranslation,
-    toggleExamples,
     setBeheersing,
     beheersingLoadingId,
     toggleFavorite,

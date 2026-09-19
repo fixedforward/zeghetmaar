@@ -3,6 +3,7 @@ export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'q
 export interface QuizFile {
   id: string
   name: string
+  completed?: boolean
 }
 
 export interface QuizPair {
@@ -15,6 +16,7 @@ export interface WordEntry {
   word: string
   translation: string
   examples: string[]
+  tags?: string[]
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string
   isFavorite?: boolean
@@ -41,6 +43,7 @@ export interface Phrase {
   normalizedWord: string
   translation: string
   examples: string[]
+  tags?: string[]
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string
   isFavorite?: boolean

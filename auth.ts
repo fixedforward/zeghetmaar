@@ -4,6 +4,9 @@ import { config } from '@/app/lib/config'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: config.auth.nextAuthSecret,
+  pages: {
+    error: '/',
+  },
   providers: [
     Google({
       clientId: config.auth.oauth2Providers.google.clientId,
