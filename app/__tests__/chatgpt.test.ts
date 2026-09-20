@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl } from '../lib/chatgpt'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
 
 describe('buildChatGptExplainUrl', () => {
   it('starts with the chatgpt.com prefilled-prompt URL', () => {
@@ -27,5 +27,25 @@ describe('buildChatGptCheckAnswerUrl', () => {
     expect(decoded).toContain('graag')
     expect(decoded).toContain('Je bestelt koffie.')
     expect(decoded).toContain('Ik wil graag een koffie.')
+  })
+})
+
+describe('openChatGptInBackground', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('opens the url as a popup window and tries to refocus the current window', () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+    const focusSpy = vi.spyOn(window, 'focus').mockImplementation(() => {})
+
+    openChatGptInBackground('https://chatgpt.com/?q=test')
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://chatgpt.com/?q=test',
+      'chatgpt-popup',
+      'popup=yes,noopener,noreferrer,width=480,height=720,left=200,top=100'
+    )
+    expect(focusSpy).toHaveBeenCalled()
   })
 })

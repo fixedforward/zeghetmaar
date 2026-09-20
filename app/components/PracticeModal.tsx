@@ -1,14 +1,11 @@
 import { useEffect } from 'react'
 import type { usePhrasePractice } from '../hooks/usePhrasePractice'
-import { buildChatGptCheckAnswerUrl } from '../lib/chatgpt'
+
+import { parseEvaluation } from '../lib/parseEvaluation'
+
+import { buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
 
 type Props = ReturnType<typeof usePhrasePractice>
-
-function parseEvaluation(text: string): { evaluatie: string; suggestie: string } | null {
-  const match = text.match(/Evaluatie:\s*([\s\S]*?)\nSuggestie:\s*([\s\S]*)/)
-  if (!match) return null
-  return { evaluatie: match[1].trim(), suggestie: match[2].trim() }
-}
 
 export function PracticeModal(props: Props) {
   const { isOpen, currentPhrase, prompt, promptLoading, userAnswer, setUserAnswer, evaluation, evaluationLoading, close, regeneratePrompt, submitAnswer } = props
@@ -35,10 +32,9 @@ export function PracticeModal(props: Props) {
       >
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="font-semibold text-gray-900">Oefen: <span className="text-blue-600">{currentPhrase.word}</span></h2>
-            {currentPhrase.translation && (
-              <p className="text-xs text-gray-500 mt-0.5">{currentPhrase.translation}</p>
-            )}
+            <h2 className="font-semibold text-gray-900">
+              Oefen: <span className="text-blue-600" title={currentPhrase.translation}>{currentPhrase.word}</span>
+            </h2>
           </div>
           <button onClick={close} className="text-gray-400 hover:text-gray-600 leading-none shrink-0">✕</button>
         </div>
@@ -80,7 +76,7 @@ export function PracticeModal(props: Props) {
             </button>
             <button
               type="button"
-              onClick={() => window.open(buildChatGptCheckAnswerUrl(currentPhrase.word, prompt, userAnswer), '_blank', 'noopener,noreferrer')}
+              onClick={() => openChatGptInBackground(buildChatGptCheckAnswerUrl(currentPhrase.word, prompt, userAnswer))}
               disabled={!userAnswer.trim() || promptLoading}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
             >

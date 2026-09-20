@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { useWords } from '../hooks/useWords'
 import type { WordEntry } from '../types'
-import { buildChatGptExplainUrl } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { PhraseDetailModal } from './PhraseDetailModal'
+import { TagsSelect } from './TagsSelect'
+import { TagsManageModal } from './TagsManageModal'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
 type SortKey = 'updatedAt' | 'lastPracticedAt' | 'isFavorite' | 'beheersing'
@@ -13,6 +16,16 @@ export function FraselijstTab(words: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('beheersing')
   const [sortAsc, setSortAsc] = useState(true)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
+  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [manageTagsOpen, setManageTagsOpen] = useState(false)
+
+  const allTags = [...new Set(words.words.flatMap(w => w.tags ?? []))].sort((a, b) =>
+    a.localeCompare(b)
+  )
+
+  useEffect(() => {
+    if (activeTag && !allTags.includes(activeTag)) setActiveTag(null)
+  }, [activeTag, allTags])
 
   const sortLabels: Record<SortKey, string> = {
     updatedAt: 'Bijgewerkt',
@@ -21,7 +34,9 @@ export function FraselijstTab(words: Props) {
     beheersing: 'Beheersing',
   }
 
-  const sortedWords = [...words.words].sort((a, b) => {
+  const filteredWords = activeTag ? words.words.filter(w => w.tags?.includes(activeTag)) : words.words
+
+  const sortedWords = [...filteredWords].sort((a, b) => {
     let result: number
     if (sortKey === 'isFavorite') {
       result = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0)
@@ -116,6 +131,11 @@ export function FraselijstTab(words: Props) {
             {words.newExamples.map((ex, i) => (
               <div key={i} className="flex gap-2 mb-2">
                 <textarea
+                  ref={(el) => {
+                    if (!el) return
+                    el.style.height = 'auto'
+                    el.style.height = `${el.scrollHeight}px`
+                  }}
                   value={ex}
                   onChange={(e) => {
                     const updated = [...words.newExamples]
@@ -124,7 +144,7 @@ export function FraselijstTab(words: Props) {
                   }}
                   placeholder="Dutch sentence — English translation"
                   rows={2}
-                  className="flex-1 p-2 border rounded text-sm resize-y"
+                  className="flex-1 p-2 border rounded text-sm resize-none overflow-hidden"
                 />
                 <button
                   onClick={() => words.setNewExamples(words.newExamples.filter((_, j) => j !== i))}
@@ -147,6 +167,11 @@ export function FraselijstTab(words: Props) {
             >
               {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
             </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+            <TagsSelect allTags={allTags} selected={words.newTags} onChange={words.setNewTags} />
           </div>
 
           {words.addError && <p className="text-sm text-red-600">{words.addError}</p>}
@@ -194,213 +219,104 @@ export function FraselijstTab(words: Props) {
       </div>
       </div>
 
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+          <span className="text-xs text-gray-500 mr-1">Tags:</span>
+          <button
+            onClick={() => { setActiveTag(null); setPage(1) }}
+            className={[
+              'text-xs px-2 py-0.5 rounded border',
+              activeTag === null
+                ? 'bg-blue-500 text-white border-blue-500'
+                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100',
+            ].join(' ')}
+          >
+            Alle
+          </button>
+          {allTags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => { setActiveTag(tag); setPage(1) }}
+              className={[
+                'text-xs px-2 py-0.5 rounded border',
+                activeTag === tag
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100',
+              ].join(' ')}
+            >
+              {tag}
+            </button>
+          ))}
+          {words.isLoggedIn && (
+            <button
+              onClick={() => setManageTagsOpen(true)}
+              className="text-xs text-blue-600 hover:underline ml-1"
+            >
+              ⚙ Beheren
+            </button>
+          )}
+        </div>
+      )}
+
+      {manageTagsOpen && (
+        <TagsManageModal
+          allTags={allTags}
+          onClose={() => setManageTagsOpen(false)}
+          onReload={() => words.loadWords(true)}
+        />
+      )}
+
       {words.wordsLoading && <p className="text-sm text-gray-400 italic">Laden...</p>}
       {words.wordsError && <p className="text-sm text-red-600">{words.wordsError}</p>}
       {!words.wordsLoading && !words.wordsError && words.words.length === 0 && (
         <p className="text-sm text-gray-400">Geen frasen gevonden.</p>
       )}
+      {!words.wordsLoading && !words.wordsError && words.words.length > 0 && filteredWords.length === 0 && (
+        <p className="text-sm text-gray-400">Geen frasen met deze tag.</p>
+      )}
 
       <ul className="space-y-2">
         {pageWords.map(entry => (
           <li key={entry.id} className="border rounded p-3 bg-white">
-            {words.editId === entry.id ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Frase</label>
-                  <input
-                    type="text"
-                    value={words.editWord}
-                    onChange={(e) => words.setEditWord(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && words.handleEditWord()}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      value={words.editTranslation}
-                      onChange={(e) => words.setEditTranslation(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && words.handleEditWord()}
-                      className="flex-1 p-2 border rounded"
-                    />
-                    <button
-                      onClick={() => words.generateAiTranslation(words.editWord, 'edit')}
-                      disabled={words.aiTranslationLoading || !words.editWord.trim()}
-                      className="text-sm text-purple-600 hover:underline disabled:opacity-50 shrink-0"
-                    >
-                      {words.aiTranslationLoading ? 'Vertalen...' : 'AI vertaling'}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
-                  {words.editExamples.map((ex, i) => (
-                    <div key={i} className="flex gap-2 mb-2">
-                      <textarea
-                        value={ex}
-                        onChange={(e) => {
-                          const updated = [...words.editExamples]
-                          updated[i] = e.target.value
-                          words.setEditExamples(updated)
-                        }}
-                        placeholder="Dutch sentence — English translation"
-                        rows={2}
-                        className="flex-1 p-2 border rounded text-sm resize-y"
-                      />
-                      <button
-                        onClick={() => words.setEditExamples(words.editExamples.filter((_, j) => j !== i))}
-                        className="text-red-500 hover:text-red-700 text-sm px-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <button
+                  onClick={() => words.startEdit(entry)}
+                  className="font-semibold text-gray-900 hover:text-blue-600 hover:underline text-left"
+                  title={entry.translation}
+                >
+                  {entry.word}
+                </button>
+                {entry.tags?.map(tag => (
                   <button
-                    onClick={() => words.setEditExamples([...words.editExamples, ''])}
-                    className="text-sm text-blue-600 hover:underline"
+                    key={tag}
+                    onClick={() => { setActiveTag(tag); setPage(1) }}
+                    className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100"
                   >
-                    + Voorbeeld toevoegen
+                    {tag}
                   </button>
-                  <button
-                    onClick={() => words.generateAiExamples(words.editWord, 'edit')}
-                    disabled={words.aiExamplesLoading || !words.editWord.trim()}
-                    className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
-                  >
-                    {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
-                  </button>
-                </div>
-                <div className="flex gap-2 items-center">
-                  {words.isLoggedIn ? (
-                    <button
-                      onClick={words.handleEditWord}
-                      disabled={words.editLoading || !words.editWord.trim() || !words.editTranslation.trim()}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
-                    >
-                      {words.editLoading ? 'Opslaan...' : 'Opslaan'}
-                    </button>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">Log in om wijzigingen op te slaan.</p>
-                  )}
-                  <button
-                    onClick={words.cancelEdit}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
-                  >
-                    Annuleren
-                  </button>
-                </div>
+                ))}
               </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-semibold text-gray-900">{entry.word}</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => words.toggleExamples(entry.id)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      {words.expandedWords.has(entry.id) ? '▼ Details' : '▶ Details'}
-                    </button>
-                    <button
-                      onClick={() => words.onPractice(entry)}
-                      className="text-xs text-purple-600 hover:underline"
-                    >
-                      Oefenen
-                    </button>
-                    <button
-                      onClick={() => window.open(buildChatGptExplainUrl(entry.word), '_blank', 'noopener,noreferrer')}
-                      className="text-xs text-green-600 hover:underline"
-                    >
-                      ChatGPT
-                    </button>
-                    <button
-                      onClick={() => words.startEdit(entry)}
-                      className="text-gray-400 hover:text-blue-600 text-sm"
-                      title="Bewerken"
-                    >
-                      ✎
-                    </button>
-                    {words.isLoggedIn && words.deleteConfirmId === entry.id ? (
-                      <span className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600">Verwijderen?</span>
-                        <button
-                          onClick={() => words.handleDeleteWord(entry.id)}
-                          disabled={words.deleteLoading}
-                          className="text-red-600 hover:underline font-medium"
-                        >
-                          Ja
-                        </button>
-                        <button
-                          onClick={() => words.setDeleteConfirmId(null)}
-                          className="text-gray-500 hover:underline"
-                        >
-                          Nee
-                        </button>
-                      </span>
-                    ) : words.isLoggedIn ? (
-                      <button
-                        onClick={() => words.setDeleteConfirmId(entry.id)}
-                        className="text-red-400 hover:text-red-600 text-sm"
-                        title="Verwijderen"
-                      >
-                        ✕
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                {words.expandedWords.has(entry.id) && (
-                  <div className="mt-2 space-y-2 border-t pt-2">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => words.toggleFavorite(entry.id, !!entry.isFavorite)}
-                        disabled={words.favoriteLoadingId === entry.id}
-                        className={`text-lg leading-none disabled:opacity-50 transition-colors ${entry.isFavorite ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
-                        title={entry.isFavorite ? 'Verwijder uit favorieten' : 'Voeg toe aan favorieten'}
-                      >
-                        {entry.isFavorite ? '★' : '☆'}
-                      </button>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
-                        {([1, 2, 3] as const).map(n => (
-                          <button
-                            key={n}
-                            onClick={() => words.setBeheersing(entry.id, n)}
-                            disabled={words.beheersingLoadingId === entry.id}
-                            title={`Beheersing ${n}`}
-                            className={[
-                              'w-6 h-6 rounded text-xs font-bold transition-colors disabled:opacity-50',
-                              entry.beheersing === n
-                                ? n === 1 ? 'bg-red-400 text-white'
-                                  : n === 2 ? 'bg-yellow-400 text-white'
-                                  : 'bg-green-500 text-white'
-                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
-                            ].join(' ')}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 font-medium">{entry.translation}</p>
-                    {entry.examples.length > 0 && (
-                      <ul className="space-y-1 mt-1">
-                        {entry.examples.map((ex, i) => (
-                          <li key={i} className="text-sm text-gray-700 pl-2 border-l-2 border-blue-200">
-                            {ex}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => words.onPractice(entry)}
+                  className="text-xs text-purple-600 hover:underline"
+                >
+                  Oefenen
+                </button>
+                <button
+                  onClick={() => openChatGptInBackground(buildChatGptExplainUrl(entry.word))}
+                  className="text-xs text-green-600 hover:underline"
+                >
+                  ChatGPT
+                </button>
+              </div>
+            </div>
           </li>
         ))}
       </ul>
+
+      <PhraseDetailModal {...words} />
 
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4">
