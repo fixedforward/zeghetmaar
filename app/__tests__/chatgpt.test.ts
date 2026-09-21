@@ -28,6 +28,13 @@ describe('buildChatGptCheckAnswerUrl', () => {
     expect(decoded).toContain('Je bestelt koffie.')
     expect(decoded).toContain('Ik wil graag een koffie.')
   })
+
+  it('includes the other (not directly practiced) words when given', () => {
+    const url = buildChatGptCheckAnswerUrl('graag', 'Je bestelt koffie.', 'Ik wil graag een koffie.', ['gezellig', 'onverwijld'])
+    const decoded = decodeURIComponent(url.replace('https://chatgpt.com/?q=', ''))
+    expect(decoded).toContain('gezellig')
+    expect(decoded).toContain('onverwijld')
+  })
 })
 
 describe('openChatGptInBackground', () => {

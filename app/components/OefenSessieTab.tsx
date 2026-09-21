@@ -21,6 +21,7 @@ export function OefenSessieTab(props: Props) {
     startEdit,
     previewPhrases, refreshPreview,
     sessionPhrases, currentIndex, currentPhrase, isActive, isFinished,
+    extraWords,
     prompt, promptLoading, userAnswer, setUserAnswer, evaluation, evaluationLoading,
     startSession, stopSession, regeneratePrompt, previousPhrase, nextPhrase, submitAnswer,
   } = props
@@ -167,6 +168,16 @@ export function OefenSessieTab(props: Props) {
           ? <p className="text-sm text-gray-400 italic">Laden...</p>
           : <p className="text-sm text-gray-800 bg-gray-50 border rounded p-3">{prompt}</p>
         }
+        {extraWords.length > 0 && (
+          <p className="text-xs text-gray-400">
+            Gebruik ook: {extraWords.map((w, i) => (
+              <span key={w.id}>
+                {i > 0 && ', '}
+                <span title={w.translation} className="underline decoration-dotted">{w.word}</span>
+              </span>
+            ))}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -175,7 +186,11 @@ export function OefenSessieTab(props: Props) {
           value={userAnswer}
           onChange={e => setUserAnswer(e.target.value)}
           rows={3}
-          placeholder={`Gebruik de frase "${currentPhrase.word}" in je antwoord…`}
+          placeholder={
+            extraWords.length > 0
+              ? `Gebruik "${currentPhrase.word}", "${extraWords.map(w => w.word).join('", "')}" in je antwoord…`
+              : `Gebruik de frase "${currentPhrase.word}" in je antwoord…`
+          }
           className="w-full p-2 border rounded text-sm resize-none"
           disabled={evaluationLoading}
         />
@@ -203,7 +218,7 @@ export function OefenSessieTab(props: Props) {
           </button>
           <button
             type="button"
-            onClick={() => openChatGptInBackground(buildChatGptCheckAnswerUrl(currentPhrase.word, prompt, userAnswer))}
+            onClick={() => openChatGptInBackground(buildChatGptCheckAnswerUrl(currentPhrase.word, prompt, userAnswer, extraWords.map(w => w.word)))}
             disabled={!userAnswer.trim() || promptLoading}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
           >

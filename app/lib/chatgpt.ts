@@ -1,11 +1,11 @@
+import { explainPhrasePrompt, checkAnswerPrompt } from './prompts'
+
 export function buildChatGptExplainUrl(phrase: string): string {
-  const prompt = `Leg dit Nederlandse woord of deze zin uit en hoe het wordt gebruikt: "${phrase}"`
-  return `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`
+  return `https://chatgpt.com/?q=${encodeURIComponent(explainPhrasePrompt(phrase))}`
 }
 
-export function buildChatGptCheckAnswerUrl(phrase: string, situation: string, answer: string): string {
-  const prompt = `Ik oefen Nederlands en ben de frase/het woord "${phrase}" aan het oefenen. De situatie was: "${situation}". Mijn antwoord was: "${answer}". Geef een korte uitleg waarom mijn antwoord niet klopt (als dat zo is), herhaal mijn poging, voordat je 2-3 concrete suggesties ter verbetering aan mij geven, en ook een engelse zin die de frase gebruikt.`
-  return `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`
+export function buildChatGptCheckAnswerUrl(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {
+  return `https://chatgpt.com/?q=${encodeURIComponent(checkAnswerPrompt(phrase, situation, answer, extraWords))}`
 }
 
 // chatgpt.com blocks being embedded in an iframe (it sends X-Frame-Options / a

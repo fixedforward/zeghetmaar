@@ -38,7 +38,7 @@ export default function HomeClient() {
   const exercises = useExercises()
   const words = useWords(activeModel)
   const chat = useAiChat(activeModel)
-  const practice = usePhrasePractice(activeModel)
+  const practice = usePhrasePractice(activeModel, words.words)
   const oefenSessie = useOefenSessie(activeModel, oefenSessieTracker.markPracticedToday)
   const quiz = useQuiz(quizTracker.markPracticedToday)
 

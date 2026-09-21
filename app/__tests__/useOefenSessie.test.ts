@@ -135,4 +135,43 @@ describe('useOefenSessie prompt prefetching', () => {
     act(() => { result.current.previousPhrase() })
     expect(result.current.prompt).toBe('Nieuwe vraag voor a')
   })
+
+  it('excludes the two extra phrases from each prefetched question, like the target phrase', async () => {
+    global.fetch = mockChatFetch()
+    const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
+
+    await act(async () => { result.current.refreshPreview(words) })
+
+    const bodies = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(
+      ([, options]) => JSON.parse((options as RequestInit).body as string)
+    )
+    const bodyForA = bodies.find(b => b.text === 'a')
+    expect(bodyForA.prompt).toContain('GEEN van deze frasen zelf bevatten')
+    expect(bodyForA.prompt).toContain('"b"')
+    expect(bodyForA.prompt).toContain('"c"')
+  })
+
+  it('exposes the two extra words used for the current phrase, excluding the phrase itself', async () => {
+    global.fetch = mockChatFetch()
+    const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
+
+    await act(async () => { result.current.refreshPreview(words) })
+    act(() => { result.current.startSession(0) })
+
+    expect(result.current.extraWords.map(w => w.id)).toEqual(['2', '3'])
+  })
+
+  it('reuses the same extraWords when navigating back to a cached phrase', async () => {
+    global.fetch = mockChatFetch()
+    const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
+
+    await act(async () => { result.current.refreshPreview(words) })
+    act(() => { result.current.startSession(0) })
+    const first = result.current.extraWords
+
+    act(() => { result.current.nextPhrase() })
+    act(() => { result.current.previousPhrase() })
+
+    expect(result.current.extraWords).toEqual(first)
+  })
 })

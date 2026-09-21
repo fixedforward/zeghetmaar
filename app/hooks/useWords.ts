@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { WordEntry } from '../types'
 import { chatRequest } from '../lib/apiClient'
+import { translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
 
 export function useWords(selectedModel: string) {
   const [words, setWords] = useState<WordEntry[]>([])
@@ -140,8 +141,7 @@ export function useWords(selectedModel: string) {
   const generateAiTranslation = (word: string, target: 'add' | 'edit') => {
     if (!word.trim()) return
     setAiTranslationLoading(true)
-    const prompt = `Translate the following Dutch word or phrase into English. Return ONLY the English translation, nothing else: "${word}"`
-    chatRequest(word, prompt, selectedModel)
+    chatRequest(word, translateWordPrompt(word), selectedModel)
       .then(data => {
         const translation = (data.response || '').trim()
         if (translation) {
@@ -159,8 +159,7 @@ export function useWords(selectedModel: string) {
   const generateAiExamples = (word: string, target: 'add' | 'edit') => {
     if (!word.trim()) return
     setAiExamplesLoading(true)
-    const prompt = `Generate a natural Dutch example sentence using the phrase "${word}". Provide the Dutch sentence followed by " — " and the English translation.`
-    chatRequest(word, prompt, selectedModel)
+    chatRequest(word, generateExamplePrompt(word), selectedModel)
       .then(data => {
         const lines = (data.response || '').split('\n').map((l: string) => l.trim()).filter(Boolean)
         if (target === 'add') {

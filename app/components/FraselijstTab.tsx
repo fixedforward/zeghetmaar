@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { useWords } from '../hooks/useWords'
 import type { WordEntry } from '../types'
 import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { buildPageList } from '../lib/pagination'
 import { PhraseDetailModal } from './PhraseDetailModal'
 import { TagsSelect } from './TagsSelect'
 import { TagsManageModal } from './TagsManageModal'
@@ -13,6 +14,7 @@ const PAGE_SIZE = 10
 
 export function FraselijstTab(words: Props) {
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('beheersing')
   const [sortAsc, setSortAsc] = useState(true)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
@@ -36,7 +38,14 @@ export function FraselijstTab(words: Props) {
 
   const filteredWords = activeTag ? words.words.filter(w => w.tags?.includes(activeTag)) : words.words
 
-  const sortedWords = [...filteredWords].sort((a, b) => {
+  const trimmedSearch = search.trim().toLowerCase()
+  const searchedWords = trimmedSearch
+    ? filteredWords.filter(w =>
+        w.word.toLowerCase().includes(trimmedSearch) || w.translation.toLowerCase().includes(trimmedSearch)
+      )
+    : filteredWords
+
+  const sortedWords = [...searchedWords].sort((a, b) => {
     let result: number
     if (sortKey === 'isFavorite') {
       result = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0)
@@ -185,7 +194,25 @@ export function FraselijstTab(words: Props) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <div className="relative flex-1 min-w-[160px]">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            placeholder="Zoeken op woord of vertaling..."
+            className="w-full p-1.5 pr-7 text-sm border rounded"
+          />
+          {search && (
+            <button
+              onClick={() => { setSearch(''); setPage(1) }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+              title="Wissen"
+            >
+              ✕
+            </button>
+          )}
+        </div>
         <button
           onClick={() => setSortAsc(a => !a)}
           title={sortAsc ? 'Oplopend' : 'Aflopend'}
@@ -274,6 +301,9 @@ export function FraselijstTab(words: Props) {
       {!words.wordsLoading && !words.wordsError && words.words.length > 0 && filteredWords.length === 0 && (
         <p className="text-sm text-gray-400">Geen frasen met deze tag.</p>
       )}
+      {!words.wordsLoading && !words.wordsError && filteredWords.length > 0 && searchedWords.length === 0 && (
+        <p className="text-sm text-gray-400">Geen frasen gevonden voor &quot;{search}&quot;.</p>
+      )}
 
       <ul className="space-y-2">
         {pageWords.map(entry => (
@@ -287,6 +317,17 @@ export function FraselijstTab(words: Props) {
                 >
                   {entry.word}
                 </button>
+                {entry.beheersing && (
+                  <span
+                    title={`Beheersing ${entry.beheersing}`}
+                    className={[
+                      'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold text-white shrink-0',
+                      entry.beheersing === 1 ? 'bg-red-400' : entry.beheersing === 2 ? 'bg-yellow-400' : 'bg-green-500',
+                    ].join(' ')}
+                  >
+                    {entry.beheersing}
+                  </span>
+                )}
                 {entry.tags?.map(tag => (
                   <button
                     key={tag}
@@ -308,7 +349,7 @@ export function FraselijstTab(words: Props) {
                   onClick={() => openChatGptInBackground(buildChatGptExplainUrl(entry.word))}
                   className="text-xs text-green-600 hover:underline"
                 >
-                  ChatGPT
+                  Meer info
                 </button>
               </div>
             </div>
@@ -319,7 +360,7 @@ export function FraselijstTab(words: Props) {
       <PhraseDetailModal {...words} />
 
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
+        <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={safePage === 1}
@@ -327,15 +368,21 @@ export function FraselijstTab(words: Props) {
           >
             ‹
           </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`px-3 py-1 text-sm border rounded ${p === safePage ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-            >
-              {p}
-            </button>
-          ))}
+          {buildPageList(safePage, totalPages).map((item, i) =>
+            item === 'ellipsis' ? (
+              <span key={`ellipsis-${i}`} className="px-1 text-sm text-gray-400">
+                …
+              </span>
+            ) : (
+              <button
+                key={item}
+                onClick={() => setPage(item)}
+                className={`px-3 py-1 text-sm border rounded ${item === safePage ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+              >
+                {item}
+              </button>
+            )
+          )}
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={safePage === totalPages}
