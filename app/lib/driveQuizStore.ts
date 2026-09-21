@@ -61,7 +61,7 @@ export async function listQuizFilesAsync(pageToken?: string, pageSize = QUIZ_FIL
   const [res, folderRes] = await Promise.all([
     drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
-      fields: 'files(id, name, appProperties), nextPageToken',
+      fields: 'files(id, name), nextPageToken',
       orderBy: 'name desc',
       pageSize,
       pageToken,
@@ -73,20 +73,11 @@ export async function listQuizFilesAsync(pageToken?: string, pageSize = QUIZ_FIL
   ])
 
   const files = (res.data.files ?? [])
-    .filter((f): f is { id: string; name: string; appProperties?: Record<string, string> | null } => !!f.id && !!f.name)
+    .filter((f): f is { id: string; name: string } => !!f.id && !!f.name)
     .filter((f) => f.name.toLowerCase().endsWith('.txt'))
-    .map((f) => ({ id: f.id, name: f.name, completed: f.appProperties?.completed === 'true' }))
+    .map((f) => ({ id: f.id, name: f.name }))
 
   return { files, nextPageToken: res.data.nextPageToken ?? undefined, folderName: folderRes?.data.name ?? undefined }
-}
-
-export async function setQuizFileCompletion(fileId: string, completed: boolean): Promise<void> {
-  const drive = getDriveClient()
-  await drive.files.update({
-    fileId,
-    requestBody: { appProperties: { completed: completed ? 'true' : 'false' } },
-    supportsAllDrives: true,
-  })
 }
 
 const GOOGLE_NATIVE_MIME_PREFIX = 'application/vnd.google-apps.'

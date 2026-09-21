@@ -32,7 +32,9 @@ Everything is served from a single Next.js process on a single port.
 | `app/HomeClient.tsx` | Thin shell: tab switching, model picker, login/logout UI, wires hooks to tab components |
 | `app/hooks/useWords.ts` | Fraselijst state + CRUD calls to `/api/words` |
 | `app/hooks/useAiChat.ts` | Herschrijver + Vertaler state, selection popup, calls to `/api/chat` |
+| `app/hooks/usePracticeEngine.ts` | Shared prompt-generation + answer-evaluation for a single phrase, used by both `usePhrasePractice` and `useOefenSessie`; exposes both a stateful `generatePrompt` and a raw `fetchPromptFor` for prefetch-aware callers |
 | `app/hooks/usePhrasePractice.ts` | Practice modal state: generates a prompt, evaluates the user's answer |
+| `app/hooks/useOefenSessie.ts` | Oefensessie tab state: preview/session phrases, navigation, and a prompt cache (`Map` keyed by phrase id, in-flight fetches deduped) that prefetches every previewed phrase's prompt in the background as soon as the preview loads |
 | `app/hooks/useExercises.ts` | Extra Oefeningen state, persisted to `localStorage` |
 | `app/hooks/useQuiz.ts` | Quiz tab state: file list, pairs, current question, derived score, `jumpTo` |
 | `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `OefeningenTab`, `QuizTab`) |
@@ -43,7 +45,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/words/route.ts` | GET/POST/PUT/DELETE for the phrase list; writes require an authenticated session |
 | `app/api/tags/route.ts` | PUT/DELETE for bulk tag operations — rename or remove a tag across every phrase that has it; login required |
 | `app/api/quiz/files/route.ts` | GET handler: lists quiz files in the configured Drive folder; login required |
-| `app/api/quiz/files/[id]/route.ts` | GET: reads and parses one quiz file into sentence pairs. PATCH: sets its `completed` checkbox state on Drive. Both login required |
+| `app/api/quiz/files/[id]/route.ts` | GET handler: reads and parses one quiz file into sentence pairs; login required |
 | `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie` or `quiz`, tracked independently) — DELETE undoes a check-in; login required |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
@@ -148,12 +150,6 @@ Highlighting any text inside the Herschrijver response area triggers a floating 
 ## Quiz
 
 The Quiz tab lists `.txt` files from a Drive folder (`database.googleQuizFolder.folderId`).
-Each file has a checkbox to mark it as done, stored as a Drive `appProperties.completed`
-flag on the file itself (`driveQuizStore.ts`'s `setQuizFileCompletion`, wired through a
-`PATCH` on `/api/quiz/files/[id]` and `useQuiz.ts`'s `toggleFileCompleted`) — so it's the
-same on every browser/device instead of being tied to one browser's `localStorage`. It's
-purely a personal checklist and doesn't affect quiz progress or scoring.
-
 Each file is expected to hold a numbered list of Dutch sentences followed by a numbered list of
 matching English sentences (`app/lib/driveQuizStore.ts`'s `parseQuizFile`). Picking a file
 loads its sentence pairs in random order (`shuffleArray`) and shows them as flashcards:

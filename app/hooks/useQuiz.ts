@@ -21,25 +21,6 @@ export function useQuiz(onPractice?: () => void) {
   const [revealed, setRevealed] = useState(false)
   const [answers, setAnswers] = useState<(boolean | null)[]>([])
 
-  // Stored on the Drive file itself (appProperties), not localStorage, so it's the
-  // same on every browser/device instead of being tied to one browser's storage.
-  const toggleFileCompleted = useCallback((file: QuizFile) => {
-    const next = !file.completed
-    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, completed: next } : f))
-    fetch(`/api/quiz/files/${file.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: next }),
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Kon voltooiingsstatus niet opslaan.')
-      })
-      .catch(err => {
-        console.error('[useQuiz]', err instanceof Error ? err.message : err)
-        setFiles(prev => prev.map(f => f.id === file.id ? { ...f, completed: !next } : f))
-      })
-  }, [])
-
   // Derived from answers, not tracked separately — this way jumping back to an
   // already-answered question and re-marking it updates the score correctly
   // instead of double-counting.
@@ -163,7 +144,6 @@ export function useQuiz(onPractice?: () => void) {
 
   return {
     files, folderName, filesLoading, filesError,
-    toggleFileCompleted,
     hasNextPage: !!nextPageToken, hasPrevPage: pageTokenStack.length > 0,
     selectedFile, pairs, pairsLoading, pairsError,
     currentIndex, revealed, score, answers,

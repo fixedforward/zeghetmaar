@@ -232,33 +232,6 @@ describe('useQuiz', () => {
     randomSpy.mockRestore()
   })
 
-  it('toggles a file as completed via PATCH, and rolls back on failure', async () => {
-    const mockFiles = [{ id: 'f1', name: 'les1.txt', completed: false }]
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ files: mockFiles }) } as Response)
-      .mockResolvedValueOnce({ ok: true } as Response) // PATCH to true succeeds
-      .mockResolvedValueOnce({ ok: false } as Response) // PATCH to false fails
-
-    const { result } = renderHook(() => useQuiz())
-
-    await act(async () => { result.current.loadFiles() })
-    expect(result.current.files[0].completed).toBe(false)
-
-    act(() => { result.current.toggleFileCompleted(result.current.files[0]) })
-    expect(result.current.files[0].completed).toBe(true)
-    expect(fetch).toHaveBeenLastCalledWith('/api/quiz/files/f1', expect.objectContaining({
-      method: 'PATCH',
-      body: JSON.stringify({ completed: true }),
-    }))
-    await Promise.resolve()
-
-    act(() => { result.current.toggleFileCompleted(result.current.files[0]) })
-    expect(result.current.files[0].completed).toBe(false)
-    await act(async () => { await Promise.resolve() })
-    // the failed PATCH rolls the optimistic update back
-    expect(result.current.files[0].completed).toBe(true)
-  })
-
   it('resets to the file list on backToFiles()', async () => {
     const mockPairs = [{ dutch: 'Hallo', english: 'Hello' }]
     global.fetch = vi.fn().mockResolvedValue({

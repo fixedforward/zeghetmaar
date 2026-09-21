@@ -28,7 +28,7 @@ const DEFAULT_AUTH_ERROR_MESSAGE = 'Inloggen is niet gelukt. Probeer het opnieuw
 
 export default function HomeClient() {
   const [mounted, setMounted] = useState(false)
-  const [activeTab, setActiveTab] = useState<Tab>('fraselijst')
+  const [activeTab, setActiveTab] = useState<Tab>('quiz')
   const [activeModel, setActiveModel] = useState(DEFAULT_MODEL)
   const [authError, setAuthError] = useState<string | null>(null)
   const { data: session } = useSession()
@@ -45,6 +45,7 @@ export default function HomeClient() {
   useEffect(() => {
     setMounted(true)
     words.loadWords()
+    quiz.loadFiles()
 
     const params = new URLSearchParams(window.location.search)
     const error = params.get('error')
@@ -165,9 +166,7 @@ export default function HomeClient() {
           <ErrorBoundary>
             <OefenSessieTab
               {...oefenSessie}
-              words={words.words}
-              wordsLoading={words.wordsLoading}
-              wordsError={words.wordsError}
+              {...words}
               isLoggedIn={!!session}
               practicedDates={oefenSessieTracker.practicedDates}
               onCheckIn={oefenSessieTracker.markPracticedToday}

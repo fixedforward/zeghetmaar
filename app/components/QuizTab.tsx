@@ -58,17 +58,7 @@ export function QuizTab(quiz: Props) {
         <ul className="space-y-2">
           {quiz.files.map((file) => (
             <li key={file.id} className="border rounded p-3 bg-white flex justify-between items-center gap-3">
-              <label className="flex items-center gap-2 min-w-0">
-                <input
-                  type="checkbox"
-                  checked={!!file.completed}
-                  onChange={() => quiz.toggleFileCompleted(file)}
-                  title="Markeer als afgerond"
-                />
-                <span className={`font-medium truncate ${file.completed ? 'text-gray-400 line-through' : ''}`}>
-                  {file.name}
-                </span>
-              </label>
+              <span className="font-medium truncate min-w-0">{file.name}</span>
               <button
                 onClick={() => quiz.selectFile(file)}
                 className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
