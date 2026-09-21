@@ -33,9 +33,13 @@ describe('buildChatGptCheckAnswerUrl', () => {
 describe('openChatGptInBackground', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
-  it('opens the url as a popup window and tries to refocus the current window', () => {
+  it('opens the url as a popup window positioned right next to the current browser window, and tries to refocus it', () => {
+    vi.stubGlobal('screenLeft', 150)
+    vi.stubGlobal('screenTop', 80)
+    vi.stubGlobal('outerWidth', 1000)
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
     const focusSpy = vi.spyOn(window, 'focus').mockImplementation(() => {})
 
@@ -44,8 +48,27 @@ describe('openChatGptInBackground', () => {
     expect(openSpy).toHaveBeenCalledWith(
       'https://chatgpt.com/?q=test',
       'chatgpt-popup',
-      'popup=yes,noopener,noreferrer,width=480,height=720,left=200,top=100'
+      // left = origin window's left (150) + its width (1000); top = origin window's top (80)
+      'popup=yes,noopener,noreferrer,width=480,height=720,left=1150,top=80'
     )
     expect(focusSpy).toHaveBeenCalled()
+  })
+
+  it('falls back to 0,0 when the browser exposes no window position/size', () => {
+    vi.stubGlobal('screenLeft', undefined)
+    vi.stubGlobal('screenTop', undefined)
+    vi.stubGlobal('screenX', undefined)
+    vi.stubGlobal('screenY', undefined)
+    vi.stubGlobal('outerWidth', undefined)
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+    vi.spyOn(window, 'focus').mockImplementation(() => {})
+
+    openChatGptInBackground('https://chatgpt.com/?q=test')
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://chatgpt.com/?q=test',
+      'chatgpt-popup',
+      'popup=yes,noopener,noreferrer,width=480,height=720,left=0,top=0'
+    )
   })
 })

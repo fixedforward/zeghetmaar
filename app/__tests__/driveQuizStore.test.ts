@@ -12,7 +12,7 @@ vi.mock('../lib/config', () => ({
   config: { database: { googleQuizFolder: { folderId: 'folder123' } } },
 }))
 
-import { parseQuizFile, listQuizFilesAsync, setQuizFileCompletion, QUIZ_FILES_PAGE_SIZE } from '../lib/driveQuizStore'
+import { parseQuizFile, listQuizFilesAsync, QUIZ_FILES_PAGE_SIZE } from '../lib/driveQuizStore'
 
 describe('parseQuizFile', () => {
   it('pairs a Dutch list with a matching English list by sentence number', () => {
@@ -70,8 +70,8 @@ describe('listQuizFilesAsync', () => {
       expect.objectContaining({ orderBy: 'name desc', pageSize: QUIZ_FILES_PAGE_SIZE, pageToken: undefined })
     )
     expect(page.files).toEqual([
-      { id: '1', name: 'les1.txt', completed: false },
-      { id: '3', name: 'les2.TXT', completed: false },
+      { id: '1', name: 'les1.txt' },
+      { id: '3', name: 'les2.TXT' },
     ])
     expect(page.nextPageToken).toBeUndefined()
   })
@@ -87,26 +87,6 @@ describe('listQuizFilesAsync', () => {
       expect.objectContaining({ pageToken: 'tok1', pageSize: 5 })
     )
     expect(page.nextPageToken).toBe('tok2')
-  })
-
-  it('reads completed from the file\'s appProperties', async () => {
-    filesListMock.mockResolvedValue({
-      data: {
-        files: [
-          { id: '1', name: 'les1.txt', appProperties: { completed: 'true' } },
-          { id: '2', name: 'les2.txt', appProperties: { completed: 'false' } },
-          { id: '3', name: 'les3.txt' },
-        ],
-      },
-    })
-
-    const page = await listQuizFilesAsync()
-
-    expect(page.files).toEqual([
-      { id: '1', name: 'les1.txt', completed: true },
-      { id: '2', name: 'les2.txt', completed: false },
-      { id: '3', name: 'les3.txt', completed: false },
-    ])
   })
 
   it('includes the configured folder\'s real name, fetched alongside the file list', async () => {
@@ -127,33 +107,5 @@ describe('listQuizFilesAsync', () => {
     const page = await listQuizFilesAsync()
 
     expect(page.folderName).toBeUndefined()
-  })
-})
-
-describe('setQuizFileCompletion', () => {
-  beforeEach(() => {
-    filesUpdateMock.mockReset()
-    filesUpdateMock.mockResolvedValue({})
-  })
-
-  it('writes completed as a string appProperty on the Drive file', async () => {
-    await setQuizFileCompletion('f1', true)
-
-    expect(filesUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fileId: 'f1',
-        requestBody: { appProperties: { completed: 'true' } },
-      })
-    )
-  })
-
-  it('clears completed back to false', async () => {
-    await setQuizFileCompletion('f1', false)
-
-    expect(filesUpdateMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        requestBody: { appProperties: { completed: 'false' } },
-      })
-    )
   })
 })

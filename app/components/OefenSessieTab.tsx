@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
-import type { WordEntry } from '../types'
 import type { useOefenSessie } from '../hooks/useOefenSessie'
 import { OEFENSESSIE_SIZE } from '../hooks/useOefenSessie'
+import type { useWords } from '../hooks/useWords'
 import { parseEvaluation } from '../lib/parseEvaluation'
 import { buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { getAllTags } from '../lib/tags'
 import { PracticeCounter } from './PracticeCounter'
+import { PhraseDetailModal } from './PhraseDetailModal'
 
-type Props = ReturnType<typeof useOefenSessie> & {
-  words: WordEntry[]
-  wordsLoading: boolean
-  wordsError: string | null
+type Props = ReturnType<typeof useOefenSessie> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
   practicedDates: Set<string>
   onCheckIn: () => void
@@ -20,6 +18,7 @@ type Props = ReturnType<typeof useOefenSessie> & {
 export function OefenSessieTab(props: Props) {
   const {
     words, wordsLoading, wordsError, isLoggedIn, practicedDates, onCheckIn, onCancelCheckIn,
+    startEdit,
     previewPhrases, refreshPreview,
     sessionPhrases, currentIndex, currentPhrase, isActive, isFinished,
     prompt, promptLoading, userAnswer, setUserAnswer, evaluation, evaluationLoading,
@@ -142,7 +141,14 @@ export function OefenSessieTab(props: Props) {
 
       <div>
         <h2 className="font-semibold text-gray-900">
-          Oefen: <span className="text-blue-600" title={currentPhrase.translation}>{currentPhrase.word}</span>
+          Oefen:{' '}
+          <button
+            onClick={() => startEdit(currentPhrase)}
+            className="text-blue-600 hover:underline"
+            title={currentPhrase.translation}
+          >
+            {currentPhrase.word}
+          </button>
         </h2>
       </div>
 
@@ -224,6 +230,8 @@ export function OefenSessieTab(props: Props) {
           )}
         </div>
       )}
+
+      <PhraseDetailModal {...props} />
     </div>
   )
 }

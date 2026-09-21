@@ -3,7 +3,6 @@ export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'q
 export interface QuizFile {
   id: string
   name: string
-  completed?: boolean
 }
 
 export interface QuizPair {
