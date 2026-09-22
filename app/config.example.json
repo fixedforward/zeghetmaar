@@ -3,6 +3,10 @@
     "openRouterApiKey": "sk-or-..."
   },
   "database": {
+    "mongodb": {
+      "_comment": "MongoDB Atlas connection string, database name included in the path",
+      "connectionString": "mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<db-name>?retryWrites=true&w=majority"
+    },
     "googleJsonFile": {
       "enabled": true,
       "googleDriveFileId": "<your-drive-file-id>",

@@ -1,5 +1,5 @@
 /**
- * Startup wrapper: launches Next.js (JSON file store, no external DB needed).
+ * Startup wrapper: launches Next.js.
  * Usage:  tsx scripts/startup.ts dev | start
  */
 import { spawn } from 'child_process'

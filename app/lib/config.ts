@@ -12,6 +12,9 @@ interface AppConfig {
     openRouterApiKey: string
   }
   database: {
+    mongodb: {
+      connectionString: string
+    }
     googleJsonFile: GoogleJsonFile
     googleQuizFolder?: {
       folderId: string
@@ -54,6 +57,9 @@ function loadConfig(): AppConfig {
   if (!ai?.openRouterApiKey) missing.push('aiProviders.openRouterApiKey')
 
   const db = raw.database as Record<string, unknown> | undefined
+  const mongodb = db?.mongodb as Record<string, unknown> | undefined
+  if (!mongodb?.connectionString) missing.push('database.mongodb.connectionString')
+
   const gj = db?.googleJsonFile as Record<string, unknown> | undefined
   if (!gj) {
     missing.push('database.googleJsonFile')
