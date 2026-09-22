@@ -5,7 +5,7 @@ const YEAR_BITMAP_BYTES = 46 // ceil(366 / 8)
 
 // Each practice type (Oefensessie, Quiz) tracks its own independent log, so they
 // get their own appProperties namespace on the same phrase-list Drive file.
-export const PRACTICE_LOG_TYPES = ['oefensessie', 'quiz'] as const
+export const PRACTICE_LOG_TYPES = ['oefensessie', 'quiz', 'cloze'] as const
 export type PracticeLogType = (typeof PRACTICE_LOG_TYPES)[number]
 
 export function isPracticeLogType(value: string): value is PracticeLogType {

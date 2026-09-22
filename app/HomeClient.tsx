@@ -3,22 +3,27 @@
 import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import type { Tab } from './types'
-import { DEFAULT_MODEL, MODEL_OPTIONS } from './config/models'
+import { DEFAULT_MODEL } from './config/models'
 import { useExercises } from './hooks/useExercises'
 import { useWords } from './hooks/useWords'
 import { useAiChat } from './hooks/useAiChat'
 import { usePhrasePractice } from './hooks/usePhrasePractice'
 import { useOefenSessie } from './hooks/useOefenSessie'
 import { useQuiz } from './hooks/useQuiz'
+import { useCloze } from './hooks/useCloze'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
+import { useTabSettings } from './hooks/useTabSettings'
+import { TAB_LABELS } from './config/tabs'
 import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
 import { OefeningenTab } from './components/OefeningenTab'
 import { OefenSessieTab } from './components/OefenSessieTab'
 import { QuizTab } from './components/QuizTab'
+import { ClozeTab } from './components/ClozeTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
+import { SettingsModal } from './components/SettingsModal'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -34,6 +39,7 @@ export default function HomeClient() {
   const { data: session } = useSession()
   const oefenSessieTracker = usePracticeTracker('oefensessie', !!session)
   const quizTracker = usePracticeTracker('quiz', !!session)
+  const clozeTracker = usePracticeTracker('cloze', !!session)
 
   const exercises = useExercises()
   const words = useWords(activeModel)
@@ -41,6 +47,14 @@ export default function HomeClient() {
   const practice = usePhrasePractice(activeModel, words.words)
   const oefenSessie = useOefenSessie(activeModel, oefenSessieTracker.markPracticedToday)
   const quiz = useQuiz(quizTracker.markPracticedToday)
+  const cloze = useCloze(clozeTracker.markPracticedToday)
+  const tabSettings = useTabSettings()
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab)
+    if (tab === 'quiz') quiz.loadFiles()
+    if (tab === 'oefensessie' || tab === 'fraselijst' || tab === 'cloze') words.loadWords()
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -61,8 +75,15 @@ export default function HomeClient() {
     if (session) {
       oefenSessieTracker.loadPracticeLog()
       quizTracker.loadPracticeLog()
+      clozeTracker.loadPracticeLog()
     }
-  }, [session, oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog])
+  }, [session, oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog])
+
+  useEffect(() => {
+    if (tabSettings.visibleTabs.length > 0 && !tabSettings.visibleTabs.includes(activeTab)) {
+      setActiveTab(tabSettings.visibleTabs[0])
+    }
+  }, [tabSettings.visibleTabs, activeTab])
 
   if (!mounted) return null
 
@@ -84,77 +105,25 @@ export default function HomeClient() {
             </button>
           </div>
         )}
-        <div className="flex justify-end items-center gap-3 mb-2">
-          <select
-            value={activeModel}
-            onChange={e => setActiveModel(e.target.value)}
-            className="text-sm border rounded px-2 py-1 bg-white text-gray-700"
-          >
-            {MODEL_OPTIONS.map(({ label, value }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex justify-end items-center gap-2 mb-4">
-          {session ? (
-            <>
-              {session.user?.image && (
-                <img src={session.user.image} alt="avatar" className="w-7 h-7 rounded-full" />
-              )}
-              <span className="text-sm text-gray-700">{session.user?.name}</span>
-              <button
-                onClick={() => signOut()}
-                className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
-              >
-                Uitloggen
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => signIn('google')}
-              className="text-sm border rounded px-2 py-1 bg-white text-gray-700 hover:bg-gray-100"
-            >
-              Log in om frases te beheren
-            </button>
-          )}
-        </div>
 
-        <div className="flex border-b mb-4">
+        <div className="flex border-b mb-4 items-center justify-between">
+          <div className="flex flex-wrap">
+            {tabSettings.visibleTabs.map(tab => (
+              <button
+                key={tab}
+                onClick={() => selectTab(tab)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+              >
+                {TAB_LABELS[tab]}
+              </button>
+            ))}
+          </div>
           <button
-            onClick={() => { setActiveTab('quiz'); quiz.loadFiles() }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'quiz' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={tabSettings.open}
+            title="Instellingen"
+            className="text-gray-400 hover:text-gray-600 text-lg px-2 shrink-0"
           >
-            Quiz
-          </button>
-          <button
-            onClick={() => { setActiveTab('oefensessie'); words.loadWords() }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefensessie' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Oefensessie
-          </button>
-          <button
-            onClick={() => { setActiveTab('fraselijst'); words.loadWords() }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'fraselijst' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Fraselijst
-          </button>
-          <button
-            onClick={() => setActiveTab('herschrijver')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'herschrijver' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Herschrijver
-          </button>
-          <button
-            onClick={() => setActiveTab('vertaler')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'vertaler' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Engels → Nederlands
-          </button>
-          <button
-            onClick={() => setActiveTab('oefeningen')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'oefeningen' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          >
-            Extra Oefeningen
+            ⚙
           </button>
         </div>
 
@@ -185,12 +154,32 @@ export default function HomeClient() {
             />
           </ErrorBoundary>
         )}
+        {activeTab === 'cloze' && (
+          <ErrorBoundary>
+            <ClozeTab
+              {...cloze}
+              {...words}
+              isLoggedIn={!!session}
+              practicedDates={clozeTracker.practicedDates}
+              onCheckIn={clozeTracker.markPracticedToday}
+              onCancelCheckIn={clozeTracker.cancelPracticedToday}
+            />
+          </ErrorBoundary>
+        )}
       </main>
 
       {chat.selectionPopup && (
         <SelectionPopup popup={chat.selectionPopup} onClose={() => chat.setSelectionPopup(null)} />
       )}
       <PracticeModal {...practice} />
+      <SettingsModal
+        {...tabSettings}
+        activeModel={activeModel}
+        setActiveModel={setActiveModel}
+        session={session}
+        onSignIn={() => signIn('google')}
+        onSignOut={() => signOut()}
+      />
     </div>
   )
 }
