@@ -1,14 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useOefenSessie } from '../hooks/useOefenSessie'
+import { useOefenSessie, oefenWeight } from '../hooks/useOefenSessie'
 import type { WordEntry } from '../types'
 
 // Keep phrase order deterministic — these tests assert on which phrase ends
-// up at which index, which the real shuffle would make flaky.
-vi.mock('../lib/shuffle', () => ({ shuffleArray: (arr: unknown[]) => arr }))
+// up at which index, which the real (weighted) shuffle would make flaky.
+vi.mock('../lib/shuffle', () => ({
+  shuffleArray: (arr: unknown[]) => arr,
+  weightedShuffleArray: (arr: unknown[]) => arr,
+}))
 
 const now = new Date().toISOString()
-const makePhrase = (id: string, word: string): WordEntry => ({ id, word, translation: word, examples: [], updatedAt: now })
+const makePhrase = (id: string, word: string): WordEntry => ({ id, word, meanings: [{ translation: word, examples: [] }], updatedAt: now })
 
 const words: WordEntry[] = [
   makePhrase('1', 'a'),
@@ -136,7 +139,7 @@ describe('useOefenSessie prompt prefetching', () => {
     expect(result.current.prompt).toBe('Nieuwe vraag voor a')
   })
 
-  it('excludes the two extra phrases from each prefetched question, like the target phrase', async () => {
+  it('excludes the extra phrase from each prefetched question, like the target phrase', async () => {
     global.fetch = mockChatFetch()
     const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
 
@@ -148,17 +151,16 @@ describe('useOefenSessie prompt prefetching', () => {
     const bodyForA = bodies.find(b => b.text === 'a')
     expect(bodyForA.prompt).toContain('GEEN van deze frasen zelf bevatten')
     expect(bodyForA.prompt).toContain('"b"')
-    expect(bodyForA.prompt).toContain('"c"')
   })
 
-  it('exposes the two extra words used for the current phrase, excluding the phrase itself', async () => {
+  it('exposes the extra word used for the current phrase, excluding the phrase itself', async () => {
     global.fetch = mockChatFetch()
     const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
 
     await act(async () => { result.current.refreshPreview(words) })
     act(() => { result.current.startSession(0) })
 
-    expect(result.current.extraWords.map(w => w.id)).toEqual(['2', '3'])
+    expect(result.current.extraWords.map(w => w.id)).toEqual(['2'])
   })
 
   it('reuses the same extraWords when navigating back to a cached phrase', async () => {
@@ -173,5 +175,23 @@ describe('useOefenSessie prompt prefetching', () => {
     act(() => { result.current.previousPhrase() })
 
     expect(result.current.extraWords).toEqual(first)
+  })
+})
+
+describe('oefenWeight', () => {
+  const withBeheersing = (beheersing?: 1 | 2 | 3, isFavorite?: boolean): WordEntry =>
+    ({ ...makePhrase('x', 'x'), beheersing, isFavorite })
+
+  it('weighs weaker beheersing higher than stronger beheersing', () => {
+    expect(oefenWeight(withBeheersing(1))).toBeGreaterThan(oefenWeight(withBeheersing(2)))
+    expect(oefenWeight(withBeheersing(2))).toBeGreaterThan(oefenWeight(withBeheersing(3)))
+  })
+
+  it('treats a missing beheersing the same as beheersing 1 (weak)', () => {
+    expect(oefenWeight(withBeheersing(undefined))).toBe(oefenWeight(withBeheersing(1)))
+  })
+
+  it('gives favorites a bonus on top of their beheersing weight', () => {
+    expect(oefenWeight(withBeheersing(3, true))).toBeGreaterThan(oefenWeight(withBeheersing(3, false)))
   })
 })

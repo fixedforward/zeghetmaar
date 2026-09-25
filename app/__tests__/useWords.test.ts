@@ -8,7 +8,7 @@ describe('useWords', () => {
   })
 
   it('loads words on loadWords() call', async () => {
-    const mockWords = [{ id: '1', word: 'gezellig', translation: 'cozy', examples: [] }]
+    const mockWords = [{ id: '1', word: 'gezellig', meanings: [{ translation: 'cozy', examples: [] }] }]
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockWords),
@@ -50,7 +50,7 @@ describe('useWords', () => {
 
     act(() => {
       result.current.setNewWord('gezellig')
-      result.current.setNewTranslation('cozy')
+      result.current.setNewMeanings([{ translation: 'cozy', examples: [] }])
       result.current.setNewTags(['werk', 'reizen'])
     })
 
@@ -61,7 +61,7 @@ describe('useWords', () => {
     const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(JSON.parse(options.body)).toMatchObject({
       word: 'gezellig',
-      translation: 'cozy',
+      meanings: [{ translation: 'cozy', examples: [] }],
       tags: ['werk', 'reizen'],
     })
   })
@@ -73,7 +73,7 @@ describe('useWords', () => {
     } as Response)
 
     const { result } = renderHook(() => useWords('gpt-4o-mini'))
-    const entry = { id: '1', word: 'gezellig', translation: 'cozy', examples: [], tags: ['werk', 'reizen'], updatedAt: '2024-01-01T00:00:00.000Z' }
+    const entry = { id: '1', word: 'gezellig', meanings: [{ translation: 'cozy', examples: [] }], tags: ['werk', 'reizen'], updatedAt: '2024-01-01T00:00:00.000Z' }
 
     act(() => {
       result.current.startEdit(entry)

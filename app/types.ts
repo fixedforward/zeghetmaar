@@ -10,11 +10,15 @@ export interface QuizPair {
   english: string
 }
 
+export interface Meaning {
+  translation: string
+  examples: string[]
+}
+
 export interface WordEntry {
   id: string
   word: string
-  translation: string
-  examples: string[]
+  meanings: Meaning[]
   tags?: string[]
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string
@@ -40,8 +44,7 @@ export interface Phrase {
   id: string
   word: string
   normalizedWord: string
-  translation: string
-  examples: string[]
+  meanings: Meaning[]
   tags?: string[]
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string

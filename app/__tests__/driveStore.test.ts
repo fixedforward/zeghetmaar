@@ -25,7 +25,7 @@ vi.mock('googleapis', () => ({
   },
 }))
 
-import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync } from '../lib/driveStore'
+import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings } from '../lib/driveStore'
 import { encodeYearBitmap } from '../lib/practiceLog'
 import type { Phrase } from '../types'
 
@@ -38,7 +38,83 @@ function writtenPhrases(): Phrase[] {
   return JSON.parse(body)
 }
 
-const base = { normalizedWord: '', translation: '', examples: [], createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }
+const base = { normalizedWord: '', meanings: [{ translation: '', examples: [] }], createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }
+
+describe('getAllWords — meanings migration', () => {
+  beforeEach(() => {
+    filesGetMock.mockReset()
+  })
+
+  it('wraps a legacy single translation/examples pair into a one-item meanings array', async () => {
+    // Legacy on-disk shape predates `meanings` — cast past the current type.
+    mockStoredPhrases([{
+      id: '1', word: 'gezellig', normalizedWord: 'gezellig',
+      translation: 'cozy', examples: ['Wat een gezellige avond.'],
+      createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+    } as unknown as Partial<Phrase>])
+
+    const [doc] = await getAllWords()
+
+    expect(doc.meanings).toEqual([{ translation: 'cozy', examples: ['Wat een gezellige avond.'] }])
+  })
+
+  it('leaves a doc already shaped with meanings unchanged', async () => {
+    const meanings = [
+      { translation: 'to assign', examples: ['Ik ken taken toe.'] },
+      { translation: 'to award', examples: [] },
+    ]
+    mockStoredPhrases([{
+      id: '1', word: 'toekennen', normalizedWord: 'toekennen', meanings,
+      createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+    }])
+
+    const [doc] = await getAllWords()
+
+    expect(doc.meanings).toEqual(meanings)
+  })
+
+  it('defaults to one empty meaning when there is no legacy translation either', async () => {
+    mockStoredPhrases([{
+      id: '1', word: 'x', normalizedWord: 'x',
+      createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z',
+    }])
+
+    const [doc] = await getAllWords()
+
+    expect(doc.meanings).toEqual([{ translation: '', examples: [] }])
+  })
+})
+
+describe('normalizeMeanings', () => {
+  it('rejects a non-array or empty array', () => {
+    expect(normalizeMeanings(undefined)).toBeNull()
+    expect(normalizeMeanings('not an array')).toBeNull()
+    expect(normalizeMeanings([])).toBeNull()
+  })
+
+  it('rejects a meaning with a blank translation', () => {
+    expect(normalizeMeanings([{ translation: '  ', examples: [] }])).toBeNull()
+    expect(normalizeMeanings([{ examples: [] }])).toBeNull()
+  })
+
+  it('trims translations and dedupes/trims/drops-blank examples', () => {
+    const result = normalizeMeanings([
+      { translation: '  cozy  ', examples: [' a ', 'a', '', '  '] },
+    ])
+    expect(result).toEqual([{ translation: 'cozy', examples: ['a'] }])
+  })
+
+  it('accepts multiple meanings', () => {
+    const result = normalizeMeanings([
+      { translation: 'to assign', examples: [] },
+      { translation: 'to award', examples: ['We awarded the prize.'] },
+    ])
+    expect(result).toEqual([
+      { translation: 'to assign', examples: [] },
+      { translation: 'to award', examples: ['We awarded the prize.'] },
+    ])
+  })
+})
 
 describe('renameTag', () => {
   beforeEach(() => {

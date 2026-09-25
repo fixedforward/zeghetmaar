@@ -24,6 +24,7 @@ import { ClozeTab } from './components/ClozeTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
 import { SettingsModal } from './components/SettingsModal'
+import { DailyTrackerModal } from './components/DailyTrackerModal'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -40,6 +41,17 @@ export default function HomeClient() {
   const oefenSessieTracker = usePracticeTracker('oefensessie', !!session)
   const quizTracker = usePracticeTracker('quiz', !!session)
   const clozeTracker = usePracticeTracker('cloze', !!session)
+  const clozemasterTracker = usePracticeTracker('clozemaster', !!session)
+  const podcastActiefTracker = usePracticeTracker('podcastactief', !!session)
+  const podcastPassiefTracker = usePracticeTracker('podcastpassief', !!session)
+  const zeghetmaarTracker = usePracticeTracker('zeghetmaar', !!session)
+  const [trackerOpen, setTrackerOpen] = useState(false)
+  const dailyTrackerItems = [
+    { type: 'clozemaster' as const, label: 'Clozemaster: review + nieuwe kaarten', tracker: clozemasterTracker },
+    { type: 'podcastactief' as const, label: 'Podcast: 10 minuten actief luisteren', tracker: podcastActiefTracker },
+    { type: 'podcastpassief' as const, label: 'Podcast van gisteren passief terugluisteren', tracker: podcastPassiefTracker },
+    { type: 'zeghetmaar' as const, label: 'ZegHetMaar: reviews geoefend', tracker: zeghetmaarTracker },
+  ]
 
   const exercises = useExercises()
   const words = useWords(activeModel)
@@ -76,8 +88,17 @@ export default function HomeClient() {
       oefenSessieTracker.loadPracticeLog()
       quizTracker.loadPracticeLog()
       clozeTracker.loadPracticeLog()
+      clozemasterTracker.loadPracticeLog()
+      podcastActiefTracker.loadPracticeLog()
+      podcastPassiefTracker.loadPracticeLog()
+      zeghetmaarTracker.loadPracticeLog()
     }
-  }, [session, oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog])
+  }, [
+    session,
+    oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
+    clozemasterTracker.loadPracticeLog, podcastActiefTracker.loadPracticeLog,
+    podcastPassiefTracker.loadPracticeLog, zeghetmaarTracker.loadPracticeLog,
+  ])
 
   useEffect(() => {
     if (tabSettings.visibleTabs.length > 0 && !tabSettings.visibleTabs.includes(activeTab)) {
@@ -118,13 +139,22 @@ export default function HomeClient() {
               </button>
             ))}
           </div>
-          <button
-            onClick={tabSettings.open}
-            title="Instellingen"
-            className="text-gray-400 hover:text-gray-600 text-lg px-2 shrink-0"
-          >
-            ⚙
-          </button>
+          <div className="flex items-center shrink-0">
+            <button
+              onClick={() => setTrackerOpen(true)}
+              title="Dagelijkse tracker"
+              className="text-gray-400 hover:text-gray-600 text-lg px-2 shrink-0"
+            >
+              📋
+            </button>
+            <button
+              onClick={tabSettings.open}
+              title="Instellingen"
+              className="text-gray-400 hover:text-gray-600 text-lg px-2 shrink-0"
+            >
+              ⚙
+            </button>
+          </div>
         </div>
 
         {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} isLoggedIn={!!session} onPractice={practice.open} /></ErrorBoundary>}
@@ -172,6 +202,12 @@ export default function HomeClient() {
         <SelectionPopup popup={chat.selectionPopup} onClose={() => chat.setSelectionPopup(null)} />
       )}
       <PracticeModal {...practice} />
+      <DailyTrackerModal
+        isOpen={trackerOpen}
+        onClose={() => setTrackerOpen(false)}
+        isLoggedIn={!!session}
+        items={dailyTrackerItems}
+      />
       <SettingsModal
         {...tabSettings}
         activeModel={activeModel}

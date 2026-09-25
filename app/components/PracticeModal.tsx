@@ -4,6 +4,7 @@ import type { usePhrasePractice } from '../hooks/usePhrasePractice'
 import { parseEvaluation } from '../lib/parseEvaluation'
 
 import { buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { joinMeanings } from '../lib/meanings'
 
 type Props = ReturnType<typeof usePhrasePractice>
 
@@ -33,7 +34,7 @@ export function PracticeModal(props: Props) {
         <div className="flex justify-between items-start">
           <div>
             <h2 className="font-semibold text-gray-900">
-              Oefen: <span className="text-blue-600" title={currentPhrase.translation}>{currentPhrase.word}</span>
+              Oefen: <span className="text-blue-600" title={joinMeanings(currentPhrase.meanings)}>{currentPhrase.word}</span>
             </h2>
           </div>
           <button onClick={close} className="text-gray-400 hover:text-gray-600 leading-none shrink-0">✕</button>
@@ -59,7 +60,7 @@ export function PracticeModal(props: Props) {
               Gebruik ook: {extraWords.map((w, i) => (
                 <span key={w.id}>
                   {i > 0 && ', '}
-                  <span title={w.translation} className="underline decoration-dotted">{w.word}</span>
+                  <span title={joinMeanings(w.meanings)} className="underline decoration-dotted">{w.word}</span>
                 </span>
               ))}
             </p>

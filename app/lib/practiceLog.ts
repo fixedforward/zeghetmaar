@@ -3,9 +3,14 @@
 // per file) instead of needing a growing list of date strings.
 const YEAR_BITMAP_BYTES = 46 // ceil(366 / 8)
 
-// Each practice type (Oefensessie, Quiz) tracks its own independent log, so they
-// get their own appProperties namespace on the same phrase-list Drive file.
-export const PRACTICE_LOG_TYPES = ['oefensessie', 'quiz', 'cloze'] as const
+// Each practice type (Oefensessie, Quiz, ...) tracks its own independent log, so
+// they get their own appProperties namespace on the same phrase-list Drive file.
+// The last four back the daily-tracker checklist modal — manually checked off,
+// same mark/cancel mechanism as the in-app ones.
+export const PRACTICE_LOG_TYPES = [
+  'oefensessie', 'quiz', 'cloze',
+  'clozemaster', 'podcastactief', 'podcastpassief', 'zeghetmaar',
+] as const
 export type PracticeLogType = (typeof PRACTICE_LOG_TYPES)[number]
 
 export function isPracticeLogType(value: string): value is PracticeLogType {
@@ -64,4 +69,19 @@ export function yearFromPropertyKey(logType: PracticeLogType, key: string): numb
   if (!key.startsWith(prefix)) return null
   const year = Number(key.slice(prefix.length))
   return Number.isInteger(year) ? year : null
+}
+
+// Counts consecutive days, ending at (and including) todayIso, where every
+// given set has that date — i.e. every checklist item was checked off. Stops
+// at the first day any set is missing the date, including today itself.
+export function computeFullStreak(dateSets: Set<string>[], todayIso: string): number {
+  if (dateSets.length === 0) return 0
+  let streak = 0
+  let cursor = todayIso
+  while (dateSets.every(set => set.has(cursor))) {
+    streak++
+    const { year, day } = isoDateToYearDay(cursor)
+    cursor = yearDayToIsoDate(year, day - 1)
+  }
+  return streak
 }

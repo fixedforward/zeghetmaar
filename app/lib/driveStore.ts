@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry } from '../types'
+import type { Phrase, WordEntry, Meaning } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -45,8 +45,7 @@ export function toApiEntry(doc: Phrase): WordEntry {
   return {
     id: doc.id,
     word: doc.word,
-    translation: doc.translation,
-    examples: doc.examples,
+    meanings: doc.meanings,
     updatedAt: doc.updatedAt,
     ...(doc.tags !== undefined && doc.tags.length > 0 && { tags: doc.tags }),
     ...(doc.beheersing !== undefined && { beheersing: doc.beheersing }),
@@ -73,9 +72,48 @@ export function normalizeTags(tags: string[]): string[] {
   return result
 }
 
+// Validates/cleans a raw `meanings` payload from a request body: must be a
+// non-empty array of { translation, examples }, each translation non-blank.
+// Returns null if the shape is invalid so the caller can reject the request.
+export function normalizeMeanings(raw: unknown): Meaning[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const result: Meaning[] = []
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) return null
+    const { translation, examples } = item as { translation?: unknown; examples?: unknown }
+    if (typeof translation !== 'string' || !translation.trim()) return null
+    const rawExamples = Array.isArray(examples) ? examples : []
+    const cleanExamples = [...new Set(
+      rawExamples.filter((e): e is string => typeof e === 'string').map(e => e.trim()).filter(Boolean)
+    )]
+    result.push({ translation: translation.trim(), examples: cleanExamples })
+  }
+  return result
+}
+
 // ---------------------------------------------------------------------------
 // Migrate legacy / partial entries
 // ---------------------------------------------------------------------------
+
+// Legacy docs had one top-level { translation, examples } pair; that becomes
+// a single-item meanings array. Docs already shaped with `meanings` pass
+// through (re-cleaned in case of partial/corrupt data).
+function migrateMeanings(entry: Record<string, unknown>): Meaning[] {
+  if (Array.isArray(entry.meanings) && entry.meanings.length > 0) {
+    return entry.meanings.map((m) => {
+      const meaning = (m ?? {}) as Record<string, unknown>
+      return {
+        translation: String(meaning.translation ?? ''),
+        examples: Array.isArray(meaning.examples) ? meaning.examples.map(String) : [],
+      }
+    })
+  }
+  return [{
+    translation: String(entry.translation ?? ''),
+    examples: Array.isArray(entry.examples) ? entry.examples.map(String) : [],
+  }]
+}
+
 function migrate(parsed: Record<string, unknown>[]): Phrase[] {
   return parsed.map((entry) => {
     const raw: Phrase = {
@@ -84,8 +122,7 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
       normalizedWord: String(
         entry.normalizedWord ?? normalizeWord(String(entry.word ?? ''))
       ),
-      translation: String(entry.translation ?? ''),
-      examples: Array.isArray(entry.examples) ? entry.examples.map(String) : [],
+      meanings: migrateMeanings(entry),
       createdAt: String(entry.createdAt ?? new Date().toISOString()),
       updatedAt: String(entry.updatedAt ?? new Date().toISOString()),
     }

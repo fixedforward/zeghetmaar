@@ -16,8 +16,28 @@ interface ChatGptLink {
   url: string
 }
 
+const QUIZ_NOTES_STORAGE_KEY = 'quiz-notes'
+
 export function QuizTab(quiz: Props) {
   const [chatGptLink, setChatGptLink] = useState<ChatGptLink | null>(null)
+  const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    try {
+      setNotes(localStorage.getItem(QUIZ_NOTES_STORAGE_KEY) ?? '')
+    } catch {
+      // localStorage unavailable — notes just won't persist.
+    }
+  }, [])
+
+  const handleNotesChange = (value: string) => {
+    setNotes(value)
+    try {
+      localStorage.setItem(QUIZ_NOTES_STORAGE_KEY, value)
+    } catch {
+      // localStorage unavailable — notes just won't persist.
+    }
+  }
 
   useEffect(() => {
     if (!chatGptLink) return
@@ -145,12 +165,21 @@ export function QuizTab(quiz: Props) {
           <p className="text-lg" onMouseUp={handleTextSelection}>{quiz.pairs[quiz.currentIndex].dutch}</p>
 
           {!quiz.revealed ? (
-            <button
-              onClick={quiz.reveal}
-              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Toon antwoord
-            </button>
+            <>
+              <textarea
+                value={notes}
+                onChange={e => handleNotesChange(e.target.value)}
+                placeholder="Antwoord..."
+                rows={1}
+                className="w-full text-xs border rounded p-1.5 bg-white"
+              />
+              <button
+                onClick={quiz.reveal}
+                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Toon antwoord
+              </button>
+            </>
           ) : (
             <>
               <p className="text-lg text-gray-700 border-t pt-3" onMouseUp={handleTextSelection}>{quiz.pairs[quiz.currentIndex].english}</p>

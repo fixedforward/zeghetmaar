@@ -4,8 +4,10 @@ import type { WordEntry } from '../types'
 import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { buildPageList } from '../lib/pagination'
 import { PhraseDetailModal } from './PhraseDetailModal'
+import { MeaningsEditor } from './MeaningsEditor'
 import { TagsSelect } from './TagsSelect'
 import { TagsManageModal } from './TagsManageModal'
+import { joinMeanings } from '../lib/meanings'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
 type SortKey = 'updatedAt' | 'lastPracticedAt' | 'isFavorite' | 'beheersing'
@@ -41,7 +43,8 @@ export function FraselijstTab(words: Props) {
   const trimmedSearch = search.trim().toLowerCase()
   const searchedWords = trimmedSearch
     ? filteredWords.filter(w =>
-        w.word.toLowerCase().includes(trimmedSearch) || w.translation.toLowerCase().includes(trimmedSearch)
+        w.word.toLowerCase().includes(trimmedSearch) ||
+        w.meanings.some(m => m.translation.toLowerCase().includes(trimmedSearch))
       )
     : filteredWords
 
@@ -106,77 +109,15 @@ export function FraselijstTab(words: Props) {
               )}
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={words.newTranslation}
-                onChange={(e) => words.setNewTranslation(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && words.handleAddWord()}
-                placeholder="bijv. yellow fever does not occur in America"
-                className="flex-1 p-2 border rounded"
-              />
-              {words.newTranslation && (
-                <button
-                  onClick={() => words.setNewTranslation('')}
-                  className="text-gray-400 hover:text-gray-600 text-sm shrink-0"
-                  title="Wissen"
-                >
-                  ✕
-                </button>
-              )}
-              <button
-                onClick={() => words.generateAiTranslation(words.newWord, 'add')}
-                disabled={words.aiTranslationLoading || !words.newWord.trim()}
-                className="text-sm text-purple-600 hover:underline disabled:opacity-50 shrink-0"
-              >
-                {words.aiTranslationLoading ? 'Vertalen...' : 'AI vertaling'}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
-            {words.newExamples.map((ex, i) => (
-              <div key={i} className="flex gap-2 mb-2">
-                <textarea
-                  ref={(el) => {
-                    if (!el) return
-                    el.style.height = 'auto'
-                    el.style.height = `${el.scrollHeight}px`
-                  }}
-                  value={ex}
-                  onChange={(e) => {
-                    const updated = [...words.newExamples]
-                    updated[i] = e.target.value
-                    words.setNewExamples(updated)
-                  }}
-                  placeholder="Dutch sentence — English translation"
-                  rows={2}
-                  className="flex-1 p-2 border rounded text-sm resize-none overflow-hidden"
-                />
-                <button
-                  onClick={() => words.setNewExamples(words.newExamples.filter((_, j) => j !== i))}
-                  className="text-red-500 hover:text-red-700 text-sm px-2"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => words.setNewExamples([...words.newExamples, ''])}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              + Voorbeeld toevoegen
-            </button>
-            <button
-              onClick={() => words.generateAiExamples(words.newWord, 'add')}
-              disabled={words.aiExamplesLoading || !words.newWord.trim()}
-              className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
-            >
-              {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
-            </button>
-          </div>
+          <MeaningsEditor
+            meanings={words.newMeanings}
+            onChange={words.setNewMeanings}
+            word={words.newWord}
+            onGenerateTranslation={(w, i) => words.generateAiTranslation(w, 'add', i)}
+            onGenerateExamples={(w, i) => words.generateAiExamples(w, 'add', i)}
+            translationLoading={words.aiTranslationLoading}
+            examplesLoading={words.aiExamplesLoading}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
@@ -186,7 +127,7 @@ export function FraselijstTab(words: Props) {
           {words.addError && <p className="text-sm text-red-600">{words.addError}</p>}
           <button
             onClick={words.handleAddWord}
-            disabled={words.addLoading || !words.newWord.trim() || !words.newTranslation.trim()}
+            disabled={words.addLoading || !words.newWord.trim() || !words.newMeanings.some(m => m.translation.trim())}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
           >
             {words.addLoading ? 'Opslaan...' : 'Opslaan'}
@@ -313,20 +254,43 @@ export function FraselijstTab(words: Props) {
                 <button
                   onClick={() => words.startEdit(entry)}
                   className="font-semibold text-gray-900 hover:text-blue-600 hover:underline text-left"
-                  title={entry.translation}
+                  title={joinMeanings(entry.meanings)}
                 >
                   {entry.word}
                 </button>
-                {entry.beheersing && (
-                  <span
-                    title={`Beheersing ${entry.beheersing}`}
-                    className={[
-                      'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold text-white shrink-0',
-                      entry.beheersing === 1 ? 'bg-red-400' : entry.beheersing === 2 ? 'bg-yellow-400' : 'bg-green-500',
-                    ].join(' ')}
-                  >
-                    {entry.beheersing}
-                  </span>
+                {words.isLoggedIn ? (
+                  <div className="flex items-center gap-1 shrink-0">
+                    {([1, 2, 3] as const).map(n => (
+                      <button
+                        key={n}
+                        onClick={() => words.setBeheersing(entry.id, n)}
+                        disabled={words.beheersingLoadingId === entry.id}
+                        title={`Beheersing ${n}`}
+                        className={[
+                          'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold transition-colors disabled:opacity-50',
+                          entry.beheersing === n
+                            ? n === 1 ? 'bg-red-400 text-white'
+                              : n === 2 ? 'bg-yellow-400 text-white'
+                              : 'bg-green-500 text-white'
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+                        ].join(' ')}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  entry.beheersing && (
+                    <span
+                      title={`Beheersing ${entry.beheersing}`}
+                      className={[
+                        'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold text-white shrink-0',
+                        entry.beheersing === 1 ? 'bg-red-400' : entry.beheersing === 2 ? 'bg-yellow-400' : 'bg-green-500',
+                      ].join(' ')}
+                    >
+                      {entry.beheersing}
+                    </span>
+                  )
                 )}
                 {entry.tags?.map(tag => (
                   <button

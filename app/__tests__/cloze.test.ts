@@ -2,11 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { buildClozeQuestions, maskWord } from '../lib/cloze'
 import type { WordEntry } from '../types'
 
-const makeWord = (overrides: Partial<WordEntry> = {}): WordEntry => ({
+const makeWord = (examples: string[] = [], overrides: Partial<WordEntry> = {}): WordEntry => ({
   id: '1',
   word: 'hoewel',
-  translation: 'although',
-  examples: [],
+  meanings: [{ translation: 'although', examples }],
   updatedAt: '2024-01-01T00:00:00.000Z',
   ...overrides,
 })
@@ -25,7 +24,7 @@ describe('maskWord', () => {
 
 describe('buildClozeQuestions', () => {
   it('builds a question for a word with an example containing it', () => {
-    const words = [makeWord({ examples: ['Hoewel het regende, gingen we wandelen.'] })]
+    const words = [makeWord(['Hoewel het regende, gingen we wandelen.'])]
     const questions = buildClozeQuestions(words)
     expect(questions).toEqual([
       { phraseId: '1', word: 'hoewel', translation: 'although', sentence: 'Hoewel het regende, gingen we wandelen.' },
@@ -33,17 +32,29 @@ describe('buildClozeQuestions', () => {
   })
 
   it('skips words with no examples', () => {
-    const words = [makeWord({ examples: [] })]
+    const words = [makeWord([])]
     expect(buildClozeQuestions(words)).toEqual([])
   })
 
   it('skips words whose examples never actually contain the word', () => {
-    const words = [makeWord({ examples: ['Dit voorbeeld bevat het woord niet.'] })]
+    const words = [makeWord(['Dit voorbeeld bevat het woord niet.'])]
     expect(buildClozeQuestions(words)).toEqual([])
   })
 
   it('picks the first example that contains the word when multiple exist', () => {
-    const words = [makeWord({ examples: ['Geen match hier.', 'Hoewel het laat was, bleven we.'] })]
+    const words = [makeWord(['Geen match hier.', 'Hoewel het laat was, bleven we.'])]
     expect(buildClozeQuestions(words)[0].sentence).toBe('Hoewel het laat was, bleven we.')
+  })
+
+  it('picks the first meaning with a matching example when meanings differ', () => {
+    const words = [makeWord([], {
+      meanings: [
+        { translation: 'although', examples: ['Geen match hier.'] },
+        { translation: 'even though', examples: ['Hoewel het laat was, bleven we.'] },
+      ],
+    })]
+    expect(buildClozeQuestions(words)).toEqual([
+      { phraseId: '1', word: 'hoewel', translation: 'even though', sentence: 'Hoewel het laat was, bleven we.' },
+    ])
   })
 })

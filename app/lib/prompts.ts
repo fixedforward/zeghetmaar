@@ -1,16 +1,20 @@
 import type { WordEntry } from '../types'
 
 export function practiceScenarioPrompt(phrase: WordEntry, extraWords: WordEntry[] = []): string {
-  // Ground the generated situation in the phrase's own translation/examples,
-  // not just the bare Dutch text — some phrases are idiomatic or ambiguous,
-  // and without this the AI can guess a different (often literal) meaning
-  // than the one the user actually saved.
-  const context = [
-    `Bedoelde betekenis (vertaling): "${phrase.translation}"`,
-    phrase.examples.length > 0
-      ? `Voorbeeldzinnen die de bedoelde betekenis/context tonen:\n${phrase.examples.map(e => `- ${e}`).join('\n')}`
-      : null,
-  ].filter(Boolean).join('\n')
+  // Ground the generated situation in the phrase's own meanings/examples, not
+  // just the bare Dutch text — some phrases are idiomatic, ambiguous, or have
+  // multiple distinct senses, and without this the AI can guess a different
+  // meaning than the one the user actually saved. Each meaning keeps its own
+  // examples so they don't get mixed up with another sense's context.
+  const context = phrase.meanings.map((m, i) => {
+    const label = phrase.meanings.length > 1
+      ? `Betekenis ${i + 1} (vertaling): "${m.translation}"`
+      : `Bedoelde betekenis (vertaling): "${m.translation}"`
+    const examplesText = m.examples.length > 0
+      ? `Voorbeeldzinnen die deze betekenis/context tonen:\n${m.examples.map(e => `- ${e}`).join('\n')}`
+      : null
+    return [label, examplesText].filter(Boolean).join('\n')
+  }).join('\n\n')
 
   // The two extra phrases are only a requirement on the student's ANSWER
   // (see evaluateAnswerPrompt + the "Gebruik ook" UI hint) — they must stay

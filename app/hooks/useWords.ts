@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react'
-import type { WordEntry } from '../types'
+import type { WordEntry, Meaning } from '../types'
 import { chatRequest } from '../lib/apiClient'
 import { translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
+
+const EMPTY_MEANING: Meaning = { translation: '', examples: [] }
 
 export function useWords(selectedModel: string) {
   const [words, setWords] = useState<WordEntry[]>([])
@@ -10,8 +12,7 @@ export function useWords(selectedModel: string) {
   const [wordsLoaded, setWordsLoaded] = useState(false)
 
   const [newWord, setNewWord] = useState('')
-  const [newTranslation, setNewTranslation] = useState('')
-  const [newExamples, setNewExamples] = useState<string[]>([])
+  const [newMeanings, setNewMeanings] = useState<Meaning[]>([EMPTY_MEANING])
   const [newTags, setNewTags] = useState<string[]>([])
   const [addLoading, setAddLoading] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
@@ -22,8 +23,7 @@ export function useWords(selectedModel: string) {
 
   const [editId, setEditId] = useState<string | null>(null)
   const [editWord, setEditWord] = useState('')
-  const [editTranslation, setEditTranslation] = useState('')
-  const [editExamples, setEditExamples] = useState<string[]>([])
+  const [editMeanings, setEditMeanings] = useState<Meaning[]>([])
   const [editTags, setEditTags] = useState<string[]>([])
   const [editLoading, setEditLoading] = useState(false)
 
@@ -53,7 +53,10 @@ export function useWords(selectedModel: string) {
   }, [wordsLoaded, wordsLoading])
 
   const handleAddWord = () => {
-    if (!newWord.trim() || !newTranslation.trim()) return
+    const meanings = newMeanings
+      .map(m => ({ translation: m.translation.trim(), examples: m.examples.map(e => e.trim()).filter(Boolean) }))
+      .filter(m => m.translation)
+    if (!newWord.trim() || meanings.length === 0) return
     setAddLoading(true)
     setAddError(null)
     fetch('/api/words', {
@@ -61,8 +64,7 @@ export function useWords(selectedModel: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         word: newWord,
-        translation: newTranslation,
-        examples: newExamples.filter(e => e.trim()),
+        meanings,
         tags: newTags,
       }),
     })
@@ -70,8 +72,7 @@ export function useWords(selectedModel: string) {
         if (res.status === 401) throw new Error('Login om frase toe te voegen')
         if (!res.ok) throw new Error('Kon frase niet toevoegen')
         setNewWord('')
-        setNewTranslation('')
-        setNewExamples([])
+        setNewMeanings([EMPTY_MEANING])
         setNewTags([])
         setShowAddForm(false)
         loadWords(true)
@@ -102,21 +103,22 @@ export function useWords(selectedModel: string) {
   const startEdit = (entry: WordEntry) => {
     setEditId(entry.id)
     setEditWord(entry.word)
-    setEditTranslation(entry.translation)
-    setEditExamples([...entry.examples])
+    setEditMeanings(entry.meanings.map(m => ({ translation: m.translation, examples: [...m.examples] })))
     setEditTags(entry.tags ?? [])
   }
 
   const cancelEdit = () => {
     setEditId(null)
     setEditWord('')
-    setEditTranslation('')
-    setEditExamples([])
+    setEditMeanings([])
     setEditTags([])
   }
 
   const handleEditWord = () => {
-    if (!editId || !editWord.trim() || !editTranslation.trim()) return
+    const meanings = editMeanings
+      .map(m => ({ translation: m.translation.trim(), examples: m.examples.map(e => e.trim()).filter(Boolean) }))
+      .filter(m => m.translation)
+    if (!editId || !editWord.trim() || meanings.length === 0) return
     setEditLoading(true)
     fetch('/api/words', {
       method: 'PUT',
@@ -124,8 +126,7 @@ export function useWords(selectedModel: string) {
       body: JSON.stringify({
         id: editId,
         word: editWord,
-        translation: editTranslation,
-        examples: editExamples.filter(e => e.trim()),
+        meanings,
         tags: editTags,
       }),
     })
@@ -138,35 +139,28 @@ export function useWords(selectedModel: string) {
       .finally(() => setEditLoading(false))
   }
 
-  const generateAiTranslation = (word: string, target: 'add' | 'edit') => {
+  const generateAiTranslation = (word: string, target: 'add' | 'edit', index: number) => {
     if (!word.trim()) return
     setAiTranslationLoading(true)
     chatRequest(word, translateWordPrompt(word), selectedModel)
       .then(data => {
         const translation = (data.response || '').trim()
-        if (translation) {
-          if (target === 'add') {
-            setNewTranslation(translation)
-          } else {
-            setEditTranslation(translation)
-          }
-        }
+        if (!translation) return
+        const setMeanings = target === 'add' ? setNewMeanings : setEditMeanings
+        setMeanings(prev => prev.map((m, i) => i === index ? { ...m, translation } : m))
       })
       .catch(err => console.error('[generateAiTranslation]', err))
       .finally(() => setAiTranslationLoading(false))
   }
 
-  const generateAiExamples = (word: string, target: 'add' | 'edit') => {
+  const generateAiExamples = (word: string, target: 'add' | 'edit', index: number) => {
     if (!word.trim()) return
     setAiExamplesLoading(true)
     chatRequest(word, generateExamplePrompt(word), selectedModel)
       .then(data => {
         const lines = (data.response || '').split('\n').map((l: string) => l.trim()).filter(Boolean)
-        if (target === 'add') {
-          setNewExamples(prev => [...prev, ...lines])
-        } else {
-          setEditExamples(prev => [...prev, ...lines])
-        }
+        const setMeanings = target === 'add' ? setNewMeanings : setEditMeanings
+        setMeanings(prev => prev.map((m, i) => i === index ? { ...m, examples: [...m.examples, ...lines] } : m))
       })
       .catch(err => console.error('[generateAiExamples]', err))
       .finally(() => setAiExamplesLoading(false))
@@ -206,8 +200,7 @@ export function useWords(selectedModel: string) {
     words,
     wordsLoading, wordsError,
     newWord, setNewWord,
-    newTranslation, setNewTranslation,
-    newExamples, setNewExamples,
+    newMeanings, setNewMeanings,
     newTags, setNewTags,
     addLoading, addError,
     showAddForm, setShowAddForm,
@@ -215,8 +208,7 @@ export function useWords(selectedModel: string) {
     deleteLoading,
     editId,
     editWord, setEditWord,
-    editTranslation, setEditTranslation,
-    editExamples, setEditExamples,
+    editMeanings, setEditMeanings,
     editTags, setEditTags,
     editLoading,
     aiExamplesLoading,

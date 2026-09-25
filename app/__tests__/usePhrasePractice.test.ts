@@ -3,9 +3,9 @@ import { renderHook, act } from '@testing-library/react'
 import { usePhrasePractice } from '../hooks/usePhrasePractice'
 import type { WordEntry } from '../types'
 
-const mockPhrase: WordEntry = { id: '1', word: 'iets van maken', translation: 'to make something of it', examples: [], updatedAt: new Date().toISOString() }
-const otherPhrase1: WordEntry = { id: '2', word: 'gezellig', translation: 'cozy', examples: [], updatedAt: new Date().toISOString() }
-const otherPhrase2: WordEntry = { id: '3', word: 'onverwijld', translation: 'immediately', examples: [], updatedAt: new Date().toISOString() }
+const mockPhrase: WordEntry = { id: '1', word: 'iets van maken', meanings: [{ translation: 'to make something of it', examples: [] }], updatedAt: new Date().toISOString() }
+const otherPhrase1: WordEntry = { id: '2', word: 'gezellig', meanings: [{ translation: 'cozy', examples: [] }], updatedAt: new Date().toISOString() }
+const otherPhrase2: WordEntry = { id: '3', word: 'onverwijld', meanings: [{ translation: 'immediately', examples: [] }], updatedAt: new Date().toISOString() }
 const allWords = [mockPhrase, otherPhrase1, otherPhrase2]
 
 const mockFetch = (response: string) =>
@@ -45,7 +45,7 @@ describe('usePhrasePractice', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('open() picks two other words from allWords and excludes them (like the target) from the generated question', async () => {
+  it('open() picks one other word from allWords, excluding the target itself, from the generated question', async () => {
     global.fetch = mockFetch('Wat ga je vandaag doen?')
 
     const { result } = renderHook(() => usePhrasePractice('gpt-4o-mini', allWords))
@@ -54,13 +54,15 @@ describe('usePhrasePractice', () => {
       result.current.open(mockPhrase)
     })
 
-    expect(result.current.extraWords.map(w => w.id).sort()).toEqual(['2', '3'])
+    expect(result.current.extraWords).toHaveLength(1)
+    const pickedId = result.current.extraWords[0].id
+    expect(['2', '3']).toContain(pickedId)
+    const pickedWord = pickedId === '2' ? otherPhrase1.word : otherPhrase2.word
 
     const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     const body = JSON.parse((options as RequestInit).body as string)
     expect(body.prompt).toContain('GEEN van deze frasen zelf bevatten')
-    expect(body.prompt).toContain('"gezellig"')
-    expect(body.prompt).toContain('"onverwijld"')
+    expect(body.prompt).toContain(`"${pickedWord}"`)
   })
 
   it('promptLoading is true during generation then false after', async () => {
@@ -125,10 +127,11 @@ describe('usePhrasePractice', () => {
     expect(result.current.evaluationLoading).toBe(false)
   })
 
-  it('submitAnswer() tells the evaluator to check for all three phrases, not just the target one', async () => {
+  it('submitAnswer() tells the evaluator to check for both the target and the extra phrase', async () => {
     global.fetch = mockFetch('Wat ga je vandaag doen?')
     const { result } = renderHook(() => usePhrasePractice('gpt-4o-mini', allWords))
     await act(async () => { result.current.open(mockPhrase) })
+    const pickedWord = result.current.extraWords[0].word
 
     act(() => { result.current.setUserAnswer('Ik ga er gezellig en onverwijld iets van maken!') })
 
@@ -138,8 +141,7 @@ describe('usePhrasePractice', () => {
     const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     const body = JSON.parse((options as RequestInit).body as string)
     expect(body.prompt).toContain('"iets van maken"')
-    expect(body.prompt).toContain('"gezellig"')
-    expect(body.prompt).toContain('"onverwijld"')
+    expect(body.prompt).toContain(`"${pickedWord}"`)
   })
 
   it('evaluationLoading is true during submitAnswer then false after', async () => {

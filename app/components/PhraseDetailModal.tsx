@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { useWords } from '../hooks/useWords'
 import { TagsSelect } from './TagsSelect'
+import { MeaningsEditor } from './MeaningsEditor'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
 
@@ -44,63 +45,15 @@ export function PhraseDetailModal(words: Props) {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Vertaling</label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="text"
-              value={words.editTranslation}
-              onChange={(e) => words.setEditTranslation(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && words.handleEditWord()}
-              className="flex-1 p-2 border rounded"
-            />
-            <button
-              onClick={() => words.generateAiTranslation(words.editWord, 'edit')}
-              disabled={words.aiTranslationLoading || !words.editWord.trim()}
-              className="text-sm text-purple-600 hover:underline disabled:opacity-50 shrink-0"
-            >
-              {words.aiTranslationLoading ? 'Vertalen...' : 'AI vertaling'}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Voorbeeldzinnen</label>
-          {words.editExamples.map((ex, i) => (
-            <div key={i} className="flex gap-2 mb-2">
-              <textarea
-                value={ex}
-                onChange={(e) => {
-                  const updated = [...words.editExamples]
-                  updated[i] = e.target.value
-                  words.setEditExamples(updated)
-                }}
-                placeholder="Dutch sentence — English translation"
-                rows={2}
-                className="flex-1 p-2 border rounded text-sm resize-y"
-              />
-              <button
-                onClick={() => words.setEditExamples(words.editExamples.filter((_, j) => j !== i))}
-                className="text-red-500 hover:text-red-700 text-sm px-2"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={() => words.setEditExamples([...words.editExamples, ''])}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            + Voorbeeld toevoegen
-          </button>
-          <button
-            onClick={() => words.generateAiExamples(words.editWord, 'edit')}
-            disabled={words.aiExamplesLoading || !words.editWord.trim()}
-            className="text-sm text-purple-600 hover:underline ml-4 disabled:opacity-50"
-          >
-            {words.aiExamplesLoading ? 'Genereren...' : 'AI voorbeelden'}
-          </button>
-        </div>
+        <MeaningsEditor
+          meanings={words.editMeanings}
+          onChange={words.setEditMeanings}
+          word={words.editWord}
+          onGenerateTranslation={(w, i) => words.generateAiTranslation(w, 'edit', i)}
+          onGenerateExamples={(w, i) => words.generateAiExamples(w, 'edit', i)}
+          translationLoading={words.aiTranslationLoading}
+          examplesLoading={words.aiExamplesLoading}
+        />
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
@@ -144,7 +97,7 @@ export function PhraseDetailModal(words: Props) {
             {words.isLoggedIn ? (
               <button
                 onClick={words.handleEditWord}
-                disabled={words.editLoading || !words.editWord.trim() || !words.editTranslation.trim()}
+                disabled={words.editLoading || !words.editWord.trim() || !words.editMeanings.some(m => m.translation.trim())}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
               >
                 {words.editLoading ? 'Opslaan...' : 'Opslaan'}

@@ -5,10 +5,13 @@ import type { WordEntry } from '../types'
 const basePhrase: WordEntry = {
   id: '1',
   word: 'hoewel',
-  translation: 'although',
-  examples: [],
+  meanings: [{ translation: 'although', examples: [] }],
   updatedAt: '2024-01-01T00:00:00.000Z',
 }
+
+const makeExtra = (id: string, word: string, translation: string): WordEntry => ({
+  id, word, meanings: [{ translation, examples: [] }], updatedAt: '2024-01-01T00:00:00.000Z',
+})
 
 describe('practiceScenarioPrompt', () => {
   it('includes the phrase and its translation', () => {
@@ -18,7 +21,7 @@ describe('practiceScenarioPrompt', () => {
   })
 
   it('includes example sentences when present', () => {
-    const prompt = practiceScenarioPrompt({ ...basePhrase, examples: ['Hoewel het regende, gingen we wandelen.'] })
+    const prompt = practiceScenarioPrompt({ ...basePhrase, meanings: [{ translation: 'although', examples: ['Hoewel het regende, gingen we wandelen.'] }] })
     expect(prompt).toContain('Hoewel het regende, gingen we wandelen.')
   })
 
@@ -34,8 +37,8 @@ describe('practiceScenarioPrompt', () => {
 
   it('tells the AI to exclude the two extra phrases too, not weave them in', () => {
     const extraWords: WordEntry[] = [
-      { id: '2', word: 'gezellig', translation: 'cozy', examples: [], updatedAt: '2024-01-01T00:00:00.000Z' },
-      { id: '3', word: 'onverwijld', translation: 'immediately', examples: [], updatedAt: '2024-01-01T00:00:00.000Z' },
+      makeExtra('2', 'gezellig', 'cozy'),
+      makeExtra('3', 'onverwijld', 'immediately'),
     ]
     const prompt = practiceScenarioPrompt(basePhrase, extraWords)
     expect(prompt).toContain('GEEN van deze frasen zelf bevatten')
@@ -63,8 +66,8 @@ describe('evaluateAnswerPrompt', () => {
 
   it('requires all three phrases and asks to flag any missing one', () => {
     const extraWords: WordEntry[] = [
-      { id: '2', word: 'gezellig', translation: 'cozy', examples: [], updatedAt: '2024-01-01T00:00:00.000Z' },
-      { id: '3', word: 'onverwijld', translation: 'immediately', examples: [], updatedAt: '2024-01-01T00:00:00.000Z' },
+      makeExtra('2', 'gezellig', 'cozy'),
+      makeExtra('3', 'onverwijld', 'immediately'),
     ]
     const prompt = evaluateAnswerPrompt('Je bestelt koffie.', 'graag', extraWords)
     expect(prompt).toContain('"graag"')

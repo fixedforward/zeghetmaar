@@ -9,3 +9,5 @@ node_modules
 .idea
 .vscode/launch.json
 plans/
+scripts/migrated-phrases.json
+scripts/pre-migration-backup.json

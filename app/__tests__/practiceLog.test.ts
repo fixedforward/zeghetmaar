@@ -7,6 +7,7 @@ import {
   decodeYearBitmap,
   propertyKeyForYear,
   yearFromPropertyKey,
+  computeFullStreak,
 } from '../lib/practiceLog'
 
 describe('isValidIsoDate', () => {
@@ -84,5 +85,34 @@ describe('propertyKeyForYear / yearFromPropertyKey', () => {
   it('returns null for keys that are not a practice-log property', () => {
     expect(yearFromPropertyKey('quiz', 'unrelated_key')).toBeNull()
     expect(yearFromPropertyKey('quiz', 'practice_quiz_not_a_year')).toBeNull()
+  })
+})
+
+describe('computeFullStreak', () => {
+  it('returns 0 for no date sets', () => {
+    expect(computeFullStreak([], '2026-09-24')).toBe(0)
+  })
+
+  it('returns 0 when today is missing from any set', () => {
+    const a = new Set(['2026-09-23'])
+    const b = new Set(['2026-09-23', '2026-09-24'])
+    expect(computeFullStreak([a, b], '2026-09-24')).toBe(0)
+  })
+
+  it('counts consecutive days present in every set, stopping at the first gap', () => {
+    const a = new Set(['2026-09-22', '2026-09-23', '2026-09-24'])
+    const b = new Set(['2026-09-23', '2026-09-24'])
+    // 2026-09-22 is missing from b, so the streak stops after the 23rd/24th.
+    expect(computeFullStreak([a, b], '2026-09-24')).toBe(2)
+  })
+
+  it('crosses a year boundary correctly', () => {
+    const a = new Set(['2025-12-31', '2026-01-01'])
+    expect(computeFullStreak([a], '2026-01-01')).toBe(2)
+  })
+
+  it('treats a single fully-checked-off set as one streak', () => {
+    const a = new Set(['2026-09-24'])
+    expect(computeFullStreak([a], '2026-09-24')).toBe(1)
   })
 })

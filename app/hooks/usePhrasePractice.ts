@@ -3,7 +3,7 @@ import type { WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
 import { usePracticeEngine } from './usePracticeEngine'
 
-const EXTRA_WORD_COUNT = 2
+const EXTRA_WORD_COUNT = 1
 
 export function usePhrasePractice(selectedModel: string, allWords: WordEntry[]) {
   const [isOpen, setIsOpen] = useState(false)

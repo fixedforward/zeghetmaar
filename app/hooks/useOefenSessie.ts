@@ -1,10 +1,19 @@
 import { useState, useCallback, useRef } from 'react'
 import type { WordEntry } from '../types'
-import { shuffleArray } from '../lib/shuffle'
+import { shuffleArray, weightedShuffleArray } from '../lib/shuffle'
 import { usePracticeEngine } from './usePracticeEngine'
 
 export const OEFENSESSIE_SIZE = 10
-const EXTRA_WORD_COUNT = 2
+const EXTRA_WORD_COUNT = 1
+
+// Biases session selection toward phrases that need more practice: lower
+// beheersing (1 = weak/red, 3 = mastered/green) gets more weight, and
+// favorites get a further bonus. It's a soft bias, not a hard filter — even
+// mastered, non-favorite phrases keep a (smaller) chance of being picked.
+export function oefenWeight(word: WordEntry): number {
+  const base = { 1: 3, 2: 2, 3: 1 }[word.beheersing ?? 1]
+  return word.isFavorite ? base + 2 : base
+}
 
 export function useOefenSessie(selectedModel: string, onPractice?: () => void) {
   const [previewPhrases, setPreviewPhrases] = useState<WordEntry[]>([])
@@ -77,7 +86,7 @@ export function useOefenSessie(selectedModel: string, onPractice?: () => void) {
 
   const refreshPreview = useCallback((words: WordEntry[]) => {
     allWordsRef.current = words
-    const selected = shuffleArray(words).slice(0, OEFENSESSIE_SIZE)
+    const selected = weightedShuffleArray(words, oefenWeight).slice(0, OEFENSESSIE_SIZE)
     setPreviewPhrases(selected)
     prefetchPrompts(selected)
   }, [prefetchPrompts])

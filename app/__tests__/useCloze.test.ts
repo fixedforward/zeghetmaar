@@ -6,8 +6,7 @@ import type { WordEntry } from '../types'
 const makeWord = (id: string, word: string, examples: string[]): WordEntry => ({
   id,
   word,
-  translation: `translation-${word}`,
-  examples,
+  meanings: [{ translation: `translation-${word}`, examples }],
   updatedAt: '2024-01-01T00:00:00.000Z',
 })
 

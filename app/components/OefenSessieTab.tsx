@@ -5,6 +5,7 @@ import type { useWords } from '../hooks/useWords'
 import { parseEvaluation } from '../lib/parseEvaluation'
 import { buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { getAllTags } from '../lib/tags'
+import { joinMeanings } from '../lib/meanings'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 
@@ -99,18 +100,37 @@ export function OefenSessieTab(props: Props) {
             </div>
             <ul className="space-y-2">
               {previewPhrases.map((phrase, i) => (
-                <li key={phrase.id}>
-                  <button
-                    onClick={() => startSession(i)}
-                    className="w-full text-left border rounded p-3 bg-white hover:bg-blue-50 flex justify-between items-center"
-                  >
-                    <span className="font-medium text-gray-900">{phrase.word}</span>
-                  </button>
+                <li
+                  key={phrase.id}
+                  onClick={() => startSession(i)}
+                  className="border rounded p-3 bg-white hover:bg-blue-50 cursor-pointer flex justify-between items-center gap-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      onClick={e => { e.stopPropagation(); startEdit(phrase) }}
+                      className="font-medium text-gray-900 hover:text-blue-600 hover:underline text-left"
+                      title={joinMeanings(phrase.meanings)}
+                    >
+                      {phrase.word}
+                    </button>
+                    {phrase.beheersing && (
+                      <span
+                        title={`Beheersing ${phrase.beheersing}`}
+                        className={[
+                          'inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold text-white shrink-0',
+                          phrase.beheersing === 1 ? 'bg-red-400' : phrase.beheersing === 2 ? 'bg-yellow-400' : 'bg-green-500',
+                        ].join(' ')}
+                      >
+                        {phrase.beheersing}
+                      </span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
           </>
         )}
+        <PhraseDetailModal {...props} />
       </div>
     )
   }
@@ -146,7 +166,7 @@ export function OefenSessieTab(props: Props) {
           <button
             onClick={() => startEdit(currentPhrase)}
             className="text-blue-600 hover:underline"
-            title={currentPhrase.translation}
+            title={joinMeanings(currentPhrase.meanings)}
           >
             {currentPhrase.word}
           </button>
@@ -173,7 +193,7 @@ export function OefenSessieTab(props: Props) {
             Gebruik ook: {extraWords.map((w, i) => (
               <span key={w.id}>
                 {i > 0 && ', '}
-                <span title={w.translation} className="underline decoration-dotted">{w.word}</span>
+                <span title={joinMeanings(w.meanings)} className="underline decoration-dotted">{w.word}</span>
               </span>
             ))}
           </p>
