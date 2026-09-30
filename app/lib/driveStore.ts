@@ -46,6 +46,7 @@ export function toApiEntry(doc: Phrase): WordEntry {
     id: doc.id,
     word: doc.word,
     meanings: doc.meanings,
+    createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     ...(doc.tags !== undefined && doc.tags.length > 0 && { tags: doc.tags }),
     ...(doc.beheersing !== undefined && { beheersing: doc.beheersing }),

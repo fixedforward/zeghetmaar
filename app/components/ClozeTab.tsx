@@ -14,7 +14,7 @@ type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
 export function ClozeTab(props: Props) {
   const {
     words, wordsLoading, wordsError, isLoggedIn, practicedDates, onCheckIn, onCancelCheckIn,
-    startEdit,
+    startEdit, setBeheersing, beheersingLoadingId,
     questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, jumpTo, restart,
   } = props
@@ -142,9 +142,32 @@ export function ClozeTab(props: Props) {
         </div>
 
         {checked && (
-          <p className={`text-sm ${isCorrect ? 'text-green-700' : 'text-red-600'}`}>
-            {isCorrect ? '✓ Goed!' : `✗ Fout — het juiste woord was "${question.word}".`}
-          </p>
+          <div className="space-y-2">
+            <p className={`text-sm ${isCorrect ? 'text-green-700' : 'text-red-600'}`}>
+              {isCorrect ? '✓ Goed!' : `✗ Fout — het juiste woord was "${question.word}".`}
+            </p>
+            {currentEntry && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
+                {([1, 2, 3] as const).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setBeheersing(currentEntry.id, n)}
+                    disabled={beheersingLoadingId === currentEntry.id}
+                    title={`Beheersing ${n}`}
+                    className={[
+                      'w-6 h-6 rounded text-xs font-bold transition-colors disabled:opacity-50',
+                      currentEntry.beheersing === n
+                        ? n === 1 ? 'bg-red-400 text-white' : n === 2 ? 'bg-yellow-400 text-white' : 'bg-green-500 text-white'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+                    ].join(' ')}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {!checked ? (

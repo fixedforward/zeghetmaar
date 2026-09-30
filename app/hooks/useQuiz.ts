@@ -1,6 +1,11 @@
 import { useState, useCallback } from 'react'
-import type { QuizFile, QuizPair } from '../types'
+import type { QuizFile, QuizPair, WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
+import { buildQuizPairsFromWords } from '../lib/wordQuiz'
+
+// A synthetic "file" id for reviewing Fraselijst directly, so it can reuse
+// the exact same selectedFile/pairs flow as a real Drive quiz file.
+export const FRASELIJST_SOURCE_ID = '__fraselijst__'
 
 export function useQuiz(onPractice?: () => void) {
   const [files, setFiles] = useState<QuizFile[]>([])
@@ -96,6 +101,17 @@ export function useQuiz(onPractice?: () => void) {
       .finally(() => setPairsLoading(false))
   }
 
+  const selectFraselijst = (words: WordEntry[]) => {
+    const pairs = shuffleArray(buildQuizPairsFromWords(words))
+    setSelectedFile({ id: FRASELIJST_SOURCE_ID, name: 'Fraselijst' })
+    setPairs(pairs)
+    setPairsLoading(false)
+    setPairsError(pairs.length === 0 ? 'Geen frasen met een betekenis gevonden. Voeg eerst frases toe in de Fraselijst.' : null)
+    setCurrentIndex(0)
+    setRevealed(false)
+    setAnswers(new Array(pairs.length).fill(null))
+  }
+
   const backToFiles = () => {
     setSelectedFile(null)
     setPairs([])
@@ -147,7 +163,7 @@ export function useQuiz(onPractice?: () => void) {
     hasNextPage: !!nextPageToken, hasPrevPage: pageTokenStack.length > 0,
     selectedFile, pairs, pairsLoading, pairsError,
     currentIndex, revealed, score, answers,
-    loadFiles, selectFile, backToFiles,
+    loadFiles, selectFile, selectFraselijst, backToFiles,
     nextFilesPage, prevFilesPage,
     reveal, markAndNext, jumpTo, restart,
   }

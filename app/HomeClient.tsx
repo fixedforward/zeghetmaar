@@ -177,6 +177,7 @@ export default function HomeClient() {
           <ErrorBoundary>
             <QuizTab
               {...quiz}
+              {...words}
               isLoggedIn={!!session}
               practicedDates={quizTracker.practicedDates}
               onCheckIn={quizTracker.markPracticedToday}

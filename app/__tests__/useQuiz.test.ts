@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useQuiz } from '../hooks/useQuiz'
+import { useQuiz, FRASELIJST_SOURCE_ID } from '../hooks/useQuiz'
+import type { WordEntry } from '../types'
+
+const now = '2024-01-01T00:00:00.000Z'
 
 describe('useQuiz', () => {
   beforeEach(() => {
@@ -230,6 +233,40 @@ describe('useQuiz', () => {
     expect(result.current.pairs).toHaveLength(4)
     expect(result.current.score).toEqual({ correct: 0, incorrect: 1 })
     randomSpy.mockRestore()
+  })
+
+  it('builds pairs from Fraselijst words on selectFraselijst(), one per meaning', () => {
+    const words: WordEntry[] = [
+      {
+        id: '1', word: 'toekennen', updatedAt: now,
+        meanings: [
+          { translation: 'to assign', examples: [] },
+          { translation: 'to award', examples: [] },
+        ],
+      },
+    ]
+
+    const { result } = renderHook(() => useQuiz())
+
+    act(() => { result.current.selectFraselijst(words) })
+
+    expect(result.current.selectedFile).toEqual({ id: FRASELIJST_SOURCE_ID, name: 'Fraselijst' })
+    expect(result.current.pairs).toHaveLength(2)
+    expect(result.current.pairs).toEqual(expect.arrayContaining([
+      { dutch: 'toekennen', english: 'to assign', phraseId: '1' },
+      { dutch: 'toekennen', english: 'to award', phraseId: '1' },
+    ]))
+    expect(result.current.answers).toEqual([null, null])
+    expect(result.current.pairsError).toBeNull()
+  })
+
+  it('sets a pairsError when there are no Fraselijst words to review', () => {
+    const { result } = renderHook(() => useQuiz())
+
+    act(() => { result.current.selectFraselijst([]) })
+
+    expect(result.current.pairsError).toBe('Geen frasen met een betekenis gevonden. Voeg eerst frases toe in de Fraselijst.')
+    expect(result.current.pairs).toEqual([])
   })
 
   it('resets to the file list on backToFiles()', async () => {

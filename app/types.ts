@@ -8,6 +8,9 @@ export interface QuizFile {
 export interface QuizPair {
   dutch: string
   english: string
+  // Set only for pairs built from Fraselijst (not a Drive quiz file) — lets
+  // the quiz adjust that phrase's beheersing directly.
+  phraseId?: string
 }
 
 export interface Meaning {
@@ -23,6 +26,7 @@ export interface WordEntry {
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string
   isFavorite?: boolean
+  createdAt?: string
   updatedAt: string
 }
 

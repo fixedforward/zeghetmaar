@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { useQuiz } from '../hooks/useQuiz'
+import type { useWords } from '../hooks/useWords'
 import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { filterWordsForQuiz } from '../lib/wordQuiz'
 import { PracticeCounter } from './PracticeCounter'
 
-type Props = ReturnType<typeof useQuiz> & {
+type Props = ReturnType<typeof useQuiz> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
   practicedDates: Set<string>
   onCheckIn: () => void
@@ -21,6 +23,19 @@ const QUIZ_NOTES_STORAGE_KEY = 'quiz-notes'
 export function QuizTab(quiz: Props) {
   const [chatGptLink, setChatGptLink] = useState<ChatGptLink | null>(null)
   const [notes, setNotes] = useState('')
+  const [beheersingLevels, setBeheersingLevels] = useState<Set<1 | 2 | 3>>(new Set([1, 2, 3]))
+  const [recentCount, setRecentCount] = useState<number | null>(null)
+
+  const toggleBeheersingLevel = (level: 1 | 2 | 3) => {
+    setBeheersingLevels(prev => {
+      if (prev.has(level) && prev.size === 1) return prev // keep at least one selected
+      const next = new Set(prev)
+      next.has(level) ? next.delete(level) : next.add(level)
+      return next
+    })
+  }
+
+  const filteredWords = filterWordsForQuiz(quiz.words, { beheersingLevels, recentCount })
 
   useEffect(() => {
     try {
@@ -65,8 +80,55 @@ export function QuizTab(quiz: Props) {
     return (
       <div>
         <PracticeCounter practicedDates={quiz.practicedDates} onCheckIn={quiz.onCheckIn} onCancelCheckIn={quiz.onCancelCheckIn} />
+
+        <div className="border rounded p-3 bg-white mb-4 space-y-2">
+          <div className="flex justify-between items-center gap-3">
+            <span className="font-medium truncate min-w-0">
+              📚 Fraselijst {!quiz.wordsLoading && <span className="text-gray-400">({filteredWords.length} van {quiz.words.length} frasen)</span>}
+            </span>
+            <button
+              onClick={() => quiz.selectFraselijst(filteredWords)}
+              disabled={quiz.wordsLoading || filteredWords.length === 0}
+              className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 shrink-0"
+            >
+              Start
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
+            {([1, 2, 3] as const).map(n => (
+              <button
+                key={n}
+                onClick={() => toggleBeheersingLevel(n)}
+                title={`Beheersing ${n}`}
+                className={[
+                  'w-6 h-6 rounded text-xs font-bold transition-colors',
+                  beheersingLevels.has(n)
+                    ? n === 1 ? 'bg-red-400 text-white' : n === 2 ? 'bg-yellow-400 text-white' : 'bg-green-500 text-white'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+                ].join(' ')}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">Laatst toegevoegd:</span>
+            <select
+              value={recentCount ?? 'all'}
+              onChange={(e) => setRecentCount(e.target.value === 'all' ? null : Number(e.target.value))}
+              className="text-xs border rounded px-1.5 py-0.5 bg-white text-gray-600"
+            >
+              <option value="all">Alle</option>
+              <option value="10">Laatste 10</option>
+              <option value="20">Laatste 20</option>
+              <option value="50">Laatste 50</option>
+            </select>
+          </div>
+        </div>
+
         <p className="text-sm text-gray-500 mb-4">
-          Kies een bestand uit {quiz.folderName ? <>de map <span className="font-medium">{quiz.folderName}</span></> : 'de geconfigureerde map'} om jezelf te overhoren.
+          Of kies een bestand uit {quiz.folderName ? <>de map <span className="font-medium">{quiz.folderName}</span></> : 'de geconfigureerde map'} om jezelf te overhoren.
         </p>
 
         {quiz.filesLoading && <p className="text-sm text-gray-400">Bestanden laden...</p>}
@@ -120,7 +182,7 @@ export function QuizTab(quiz: Props) {
       <div>
         <p className="text-sm text-red-500 mb-4">{quiz.pairsError}</p>
         <button onClick={quiz.backToFiles} className="text-sm text-blue-600 hover:underline">
-          ← Terug naar bestanden
+          ← Terug
         </button>
       </div>
     )
@@ -128,13 +190,15 @@ export function QuizTab(quiz: Props) {
 
   const total = quiz.pairs.length
   const done = quiz.currentIndex >= total
+  const currentPhraseId = !done ? quiz.pairs[quiz.currentIndex]?.phraseId : undefined
+  const currentWord = currentPhraseId ? quiz.words.find(w => w.id === currentPhraseId) : undefined
 
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <span className="text-sm text-gray-500">{quiz.selectedFile.name}</span>
         <button onClick={quiz.backToFiles} className="text-sm text-blue-600 hover:underline">
-          ← Ander bestand
+          ← Terug
         </button>
       </div>
 
@@ -197,6 +261,27 @@ export function QuizTab(quiz: Props) {
                   ✗ Fout
                 </button>
               </div>
+              {currentPhraseId && (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
+                  {([1, 2, 3] as const).map(n => (
+                    <button
+                      key={n}
+                      onClick={() => quiz.setBeheersing(currentPhraseId, n)}
+                      disabled={quiz.beheersingLoadingId === currentPhraseId}
+                      title={`Beheersing ${n}`}
+                      className={[
+                        'w-6 h-6 rounded text-xs font-bold transition-colors disabled:opacity-50',
+                        currentWord?.beheersing === n
+                          ? n === 1 ? 'bg-red-400 text-white' : n === 2 ? 'bg-yellow-400 text-white' : 'bg-green-500 text-white'
+                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+                      ].join(' ')}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
