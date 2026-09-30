@@ -6,6 +6,7 @@ import { parseEvaluation } from '../lib/parseEvaluation'
 import { buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { getAllTags } from '../lib/tags'
 import { joinMeanings } from '../lib/meanings'
+import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 
@@ -22,7 +23,6 @@ export function OefenSessieTab(props: Props) {
     startEdit,
     previewPhrases, refreshPreview,
     sessionPhrases, currentIndex, currentPhrase, isActive, isFinished,
-    extraWords,
     prompt, promptLoading, userAnswer, setUserAnswer, evaluation, evaluationLoading,
     startSession, stopSession, regeneratePrompt, previousPhrase, nextPhrase, submitAnswer,
   } = props
@@ -30,16 +30,25 @@ export function OefenSessieTab(props: Props) {
   const parsed = evaluation ? parseEvaluation(evaluation) : null
 
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [daysFilter, setDaysFilter] = useState<number | null>(3)
   const allTags = getAllTags(words)
-  const filteredWords = activeTag ? words.filter(w => w.tags?.includes(activeTag)) : words
+  const tagFilteredWords = activeTag ? words.filter(w => w.tags?.includes(activeTag)) : words
+  const filteredWords = filterWordsByDaysSinceAdded(tagFilteredWords, daysFilter)
 
   const selectTag = (tag: string | null) => {
     setActiveTag(tag)
-    refreshPreview(tag ? words.filter(w => w.tags?.includes(tag)) : words)
+    const pool = tag ? words.filter(w => w.tags?.includes(tag)) : words
+    refreshPreview(filterWordsByDaysSinceAdded(pool, daysFilter))
+  }
+
+  const changeDaysFilter = (value: number | null) => {
+    setDaysFilter(value)
+    refreshPreview(filterWordsByDaysSinceAdded(tagFilteredWords, value))
   }
 
   useEffect(() => {
-    if (!isActive && previewPhrases.length === 0 && words.length > 0) refreshPreview(words)
+    if (!isActive && previewPhrases.length === 0 && words.length > 0) refreshPreview(filteredWords)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, previewPhrases.length, words, refreshPreview])
 
   if (!isActive) {
@@ -54,6 +63,25 @@ export function OefenSessieTab(props: Props) {
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
         {!wordsLoading && !wordsError && words.length === 0 && (
           <p className="text-sm text-gray-400">Geen frasen gevonden. Voeg eerst frases toe in de Fraselijst.</p>
+        )}
+        {!wordsLoading && !wordsError && words.length > 0 && (
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs text-gray-500">
+              Toegevoegd binnen laatste
+              <select
+                value={daysFilter ?? 'all'}
+                onChange={(e) => changeDaysFilter(e.target.value === 'all' ? null : Number(e.target.value))}
+                className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
+              >
+                <option value="1">1 dag</option>
+                <option value="3">3 dagen</option>
+                <option value="7">7 dagen</option>
+                <option value="14">14 dagen</option>
+                <option value="30">30 dagen</option>
+                <option value="all">alle</option>
+              </select>
+            </label>
+          </div>
         )}
         {!wordsLoading && !wordsError && allTags.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -85,8 +113,8 @@ export function OefenSessieTab(props: Props) {
             ))}
           </div>
         )}
-        {!wordsLoading && !wordsError && words.length > 0 && activeTag && filteredWords.length === 0 && (
-          <p className="text-sm text-gray-400">Geen frasen met tag &quot;{activeTag}&quot; gevonden.</p>
+        {!wordsLoading && !wordsError && words.length > 0 && filteredWords.length === 0 && (
+          <p className="text-sm text-gray-400">Geen frasen gevonden voor deze filters.</p>
         )}
         {!wordsLoading && !wordsError && previewPhrases.length > 0 && (
           <>
@@ -188,16 +216,6 @@ export function OefenSessieTab(props: Props) {
           ? <p className="text-sm text-gray-400 italic">Laden...</p>
           : <p className="text-sm text-gray-800 bg-gray-50 border rounded p-3">{prompt}</p>
         }
-        {extraWords.length > 0 && (
-          <p className="text-xs text-gray-400">
-            Gebruik ook: {extraWords.map((w, i) => (
-              <span key={w.id}>
-                {i > 0 && ', '}
-                <span title={joinMeanings(w.meanings)} className="underline decoration-dotted">{w.word}</span>
-              </span>
-            ))}
-          </p>
-        )}
       </div>
 
       <div className="space-y-2">
@@ -206,11 +224,7 @@ export function OefenSessieTab(props: Props) {
           value={userAnswer}
           onChange={e => setUserAnswer(e.target.value)}
           rows={3}
-          placeholder={
-            extraWords.length > 0
-              ? `Gebruik "${currentPhrase.word}", "${extraWords.map(w => w.word).join('", "')}" in je antwoord…`
-              : `Gebruik de frase "${currentPhrase.word}" in je antwoord…`
-          }
+          placeholder={`Gebruik de frase "${currentPhrase.word}" in je antwoord…`}
           className="w-full p-2 border rounded text-sm resize-none"
           disabled={evaluationLoading}
         />
@@ -238,7 +252,7 @@ export function OefenSessieTab(props: Props) {
           </button>
           <button
             type="button"
-            onClick={() => openChatGptInBackground(buildChatGptCheckAnswerUrl(currentPhrase.word, prompt, userAnswer, extraWords.map(w => w.word)))}
+            onClick={() => openChatGptInBackground(buildChatGptCheckAnswerUrl(currentPhrase.word, prompt, userAnswer))}
             disabled={!userAnswer.trim() || promptLoading}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
           >

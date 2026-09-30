@@ -33,6 +33,8 @@ describe('buildQuizPairsFromWords', () => {
 })
 
 describe('filterWordsForQuiz', () => {
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString()
+
   const make = (id: string, beheersing: 1 | 2 | 3 | undefined, createdAt: string): WordEntry => ({
     id, word: `w${id}`, meanings: [{ translation: 't', examples: [] }], beheersing, createdAt, updatedAt: now,
   })
@@ -40,7 +42,7 @@ describe('filterWordsForQuiz', () => {
   it('filters by beheersing level, treating a missing level as 1', () => {
     const words = [make('1', 1, '2024-01-01'), make('2', 2, '2024-01-02'), make('3', undefined, '2024-01-03')]
 
-    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1]), recentCount: null })
+    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1]), daysFilter: null })
 
     expect(result.map(w => w.id)).toEqual(['1', '3'])
   })
@@ -48,33 +50,31 @@ describe('filterWordsForQuiz', () => {
   it('keeps every word when all beheersing levels are selected', () => {
     const words = [make('1', 1, '2024-01-01'), make('2', 3, '2024-01-02')]
 
-    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1, 2, 3]), recentCount: null })
+    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1, 2, 3]), daysFilter: null })
 
     expect(result).toHaveLength(2)
   })
 
-  it('limits to the N most recently created words when recentCount is set', () => {
+  it('keeps only words added within the last N days when daysFilter is set', () => {
     const words = [
-      make('1', 1, '2024-01-01'),
-      make('2', 1, '2024-01-03'),
-      make('3', 1, '2024-01-02'),
+      make('1', 1, daysAgo(1)),
+      make('2', 1, daysAgo(10)),
     ]
 
-    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1, 2, 3]), recentCount: 2 })
+    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1, 2, 3]), daysFilter: 3 })
 
-    expect(result.map(w => w.id)).toEqual(['2', '3'])
+    expect(result.map(w => w.id)).toEqual(['1'])
   })
 
-  it('applies the beheersing filter before the recentCount cutoff', () => {
+  it('applies the beheersing filter before the days cutoff', () => {
     const words = [
-      make('1', 2, '2024-01-04'), // newest, but wrong beheersing
-      make('2', 1, '2024-01-03'),
-      make('3', 1, '2024-01-02'),
-      make('4', 1, '2024-01-01'),
+      make('1', 2, daysAgo(1)), // recent, but wrong beheersing
+      make('2', 1, daysAgo(2)),
+      make('3', 1, daysAgo(10)),
     ]
 
-    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1]), recentCount: 2 })
+    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1]), daysFilter: 3 })
 
-    expect(result.map(w => w.id)).toEqual(['2', '3'])
+    expect(result.map(w => w.id)).toEqual(['2'])
   })
 })

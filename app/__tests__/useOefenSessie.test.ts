@@ -139,7 +139,7 @@ describe('useOefenSessie prompt prefetching', () => {
     expect(result.current.prompt).toBe('Nieuwe vraag voor a')
   })
 
-  it('excludes the extra phrase from each prefetched question, like the target phrase', async () => {
+  it('only excludes the target phrase itself from each prefetched question', async () => {
     global.fetch = mockChatFetch()
     const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
 
@@ -149,32 +149,8 @@ describe('useOefenSessie prompt prefetching', () => {
       ([, options]) => JSON.parse((options as RequestInit).body as string)
     )
     const bodyForA = bodies.find(b => b.text === 'a')
-    expect(bodyForA.prompt).toContain('GEEN van deze frasen zelf bevatten')
-    expect(bodyForA.prompt).toContain('"b"')
-  })
-
-  it('exposes the extra word used for the current phrase, excluding the phrase itself', async () => {
-    global.fetch = mockChatFetch()
-    const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
-
-    await act(async () => { result.current.refreshPreview(words) })
-    act(() => { result.current.startSession(0) })
-
-    expect(result.current.extraWords.map(w => w.id)).toEqual(['2'])
-  })
-
-  it('reuses the same extraWords when navigating back to a cached phrase', async () => {
-    global.fetch = mockChatFetch()
-    const { result } = renderHook(() => useOefenSessie('gpt-4o-mini'))
-
-    await act(async () => { result.current.refreshPreview(words) })
-    act(() => { result.current.startSession(0) })
-    const first = result.current.extraWords
-
-    act(() => { result.current.nextPhrase() })
-    act(() => { result.current.previousPhrase() })
-
-    expect(result.current.extraWords).toEqual(first)
+    expect(bodyForA.prompt).toContain('mag de frase zelf NIET bevatten')
+    expect(bodyForA.prompt).not.toContain('"b"')
   })
 })
 

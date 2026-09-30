@@ -3,6 +3,8 @@ import type { useQuiz } from '../hooks/useQuiz'
 import type { useWords } from '../hooks/useWords'
 import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { filterWordsForQuiz } from '../lib/wordQuiz'
+import { groupQuizFilesByDate } from '../lib/quizFiles'
+import { formatDutchDate } from '../lib/date'
 import { PracticeCounter } from './PracticeCounter'
 
 type Props = ReturnType<typeof useQuiz> & ReturnType<typeof useWords> & {
@@ -24,7 +26,7 @@ export function QuizTab(quiz: Props) {
   const [chatGptLink, setChatGptLink] = useState<ChatGptLink | null>(null)
   const [notes, setNotes] = useState('')
   const [beheersingLevels, setBeheersingLevels] = useState<Set<1 | 2 | 3>>(new Set([1, 2, 3]))
-  const [recentCount, setRecentCount] = useState<number | null>(null)
+  const [daysFilter, setDaysFilter] = useState<number | null>(3)
 
   const toggleBeheersingLevel = (level: 1 | 2 | 3) => {
     setBeheersingLevels(prev => {
@@ -35,7 +37,7 @@ export function QuizTab(quiz: Props) {
     })
   }
 
-  const filteredWords = filterWordsForQuiz(quiz.words, { beheersingLevels, recentCount })
+  const filteredWords = filterWordsForQuiz(quiz.words, { beheersingLevels, daysFilter })
 
   useEffect(() => {
     try {
@@ -112,23 +114,25 @@ export function QuizTab(quiz: Props) {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500">Laatst toegevoegd:</span>
+          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            Toegevoegd binnen laatste
             <select
-              value={recentCount ?? 'all'}
-              onChange={(e) => setRecentCount(e.target.value === 'all' ? null : Number(e.target.value))}
-              className="text-xs border rounded px-1.5 py-0.5 bg-white text-gray-600"
+              value={daysFilter ?? 'all'}
+              onChange={(e) => setDaysFilter(e.target.value === 'all' ? null : Number(e.target.value))}
+              className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
             >
-              <option value="all">Alle</option>
-              <option value="10">Laatste 10</option>
-              <option value="20">Laatste 20</option>
-              <option value="50">Laatste 50</option>
+              <option value="1">1 dag</option>
+              <option value="3">3 dagen</option>
+              <option value="7">7 dagen</option>
+              <option value="14">14 dagen</option>
+              <option value="30">30 dagen</option>
+              <option value="all">alle</option>
             </select>
-          </div>
+          </label>
         </div>
 
         <p className="text-sm text-gray-500 mb-4">
-          Of kies een bestand uit {quiz.folderName ? <>de map <span className="font-medium">{quiz.folderName}</span></> : 'de geconfigureerde map'} om jezelf te overhoren.
+          Of kies een oefening met frases die niet uit je fraselijst komen.
         </p>
 
         {quiz.filesLoading && <p className="text-sm text-gray-400">Bestanden laden...</p>}
@@ -137,19 +141,33 @@ export function QuizTab(quiz: Props) {
           <p className="text-sm text-gray-400">Geen quizbestanden gevonden.</p>
         )}
 
-        <ul className="space-y-2">
-          {quiz.files.map((file) => (
-            <li key={file.id} className="border rounded p-3 bg-white flex justify-between items-center gap-3">
-              <span className="font-medium truncate min-w-0">{file.name}</span>
-              <button
-                onClick={() => quiz.selectFile(file)}
-                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
-              >
-                Start
-              </button>
-            </li>
-          ))}
-        </ul>
+        {groupQuizFilesByDate(quiz.files).map((group) => (
+          <div key={group.date ?? 'geen-datum'} className="mb-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
+              {group.date ? formatDutchDate(group.date) : 'Overig'}
+            </p>
+            <ul className="space-y-2">
+              {group.files.map((file) => (
+                <li key={file.id} className="border rounded p-3 bg-white flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={quiz.preparedFileIds.has(file.id)}
+                    onChange={() => quiz.toggleFilePrepared(file.id)}
+                    title="Gemarkeerd als voorbereid"
+                    className="shrink-0"
+                  />
+                  <span className="font-medium truncate min-w-0 flex-1">{file.name}</span>
+                  <button
+                    onClick={() => quiz.selectFile(file)}
+                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 shrink-0"
+                  >
+                    Start
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
 
         {(quiz.hasPrevPage || quiz.hasNextPage) && (
           <div className="flex justify-between items-center mt-4">

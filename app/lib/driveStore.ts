@@ -147,18 +147,40 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 // Drive read / write
 // ---------------------------------------------------------------------------
-async function driveReadAll(): Promise<Phrase[]> {
+
+// The file's root used to just be the phrases array. It's now
+// { phrases, preparedQuizFileIds } so a second, unrelated concern (which quiz
+// files the user has marked as prepared) can live in the same file without a
+// new Drive file (service accounts can't create one). A legacy array-shaped
+// root is still read correctly (preparedQuizFileIds defaults to empty).
+interface StoredRoot {
+  phrases: Phrase[]
+  preparedQuizFileIds: string[]
+}
+
+async function driveReadRoot(): Promise<StoredRoot> {
   const drive = getDriveClient()
   const res = await drive.files.get(
     { fileId: FILE_ID, alt: 'media' },
     { responseType: 'text' }
   )
-  return migrate(JSON.parse(res.data as string) as Record<string, unknown>[])
+  const parsed = JSON.parse(res.data as string) as unknown
+
+  if (Array.isArray(parsed)) {
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [] }
+  }
+
+  const obj = (parsed ?? {}) as Record<string, unknown>
+  const phrases = Array.isArray(obj.phrases) ? (obj.phrases as Record<string, unknown>[]) : []
+  const preparedQuizFileIds = Array.isArray(obj.preparedQuizFileIds)
+    ? obj.preparedQuizFileIds.filter((x): x is string => typeof x === 'string')
+    : []
+  return { phrases: migrate(phrases), preparedQuizFileIds }
 }
 
-async function driveWriteAll(docs: Phrase[]): Promise<void> {
+async function driveWriteRoot(root: StoredRoot): Promise<void> {
   const drive = getDriveClient()
-  const body = JSON.stringify(docs, null, 2) + '\n'
+  const body = JSON.stringify({ phrases: root.phrases, preparedQuizFileIds: root.preparedQuizFileIds }, null, 2) + '\n'
   await drive.files.update({
     fileId: FILE_ID,
     media: { mimeType: 'application/json', body: Readable.from([body]) },
@@ -166,14 +188,12 @@ async function driveWriteAll(docs: Phrase[]): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Unified read / write
+// Unified read / write — phrase-only callers use these; callers that also
+// need to preserve preparedQuizFileIds across a write use driveReadRoot /
+// driveWriteRoot directly instead (see the CRUD functions below).
 // ---------------------------------------------------------------------------
 async function readAll(): Promise<Phrase[]> {
-  return driveReadAll()
-}
-
-async function writeAll(docs: Phrase[]): Promise<void> {
-  await driveWriteAll(docs)
+  return (await driveReadRoot()).phrases
 }
 
 // ---------------------------------------------------------------------------
@@ -202,10 +222,10 @@ export async function findByNormalizedWord(
 export async function insertWord(
   doc: Omit<Phrase, 'id'>
 ): Promise<Phrase> {
-  const all = await readAll()
+  const root = await driveReadRoot()
   const newDoc: Phrase = { id: randomUUID(), ...doc }
-  all.push(newDoc)
-  await writeAll(all)
+  root.phrases.push(newDoc)
+  await driveWriteRoot(root)
   return newDoc
 }
 
@@ -213,20 +233,20 @@ export async function updateWord(
   id: string,
   update: Partial<Omit<Phrase, 'id'>>
 ): Promise<Phrase | null> {
-  const all = await readAll()
-  const idx = all.findIndex((d) => d.id === id)
+  const root = await driveReadRoot()
+  const idx = root.phrases.findIndex((d) => d.id === id)
   if (idx === -1) return null
-  all[idx] = { ...all[idx], ...update }
-  await writeAll(all)
-  return all[idx]
+  root.phrases[idx] = { ...root.phrases[idx], ...update }
+  await driveWriteRoot(root)
+  return root.phrases[idx]
 }
 
 export async function deleteWord(id: string): Promise<Phrase | null> {
-  const all = await readAll()
-  const idx = all.findIndex((d) => d.id === id)
+  const root = await driveReadRoot()
+  const idx = root.phrases.findIndex((d) => d.id === id)
   if (idx === -1) return null
-  const [removed] = all.splice(idx, 1)
-  await writeAll(all)
+  const [removed] = root.phrases.splice(idx, 1)
+  await driveWriteRoot(root)
   return removed
 }
 
@@ -238,20 +258,20 @@ export function isValidObjectId(id: string): boolean {
 // Tag management — bulk operations across all phrases
 // ---------------------------------------------------------------------------
 export async function renameTag(oldTag: string, newTag: string): Promise<number> {
-  const all = await readAll()
+  const root = await driveReadRoot()
   const trimmedNew = newTag.trim()
   const oldKey = oldTag.trim().toLowerCase()
   const now = new Date().toISOString()
   let count = 0
 
-  const updated = all.map((doc) => {
+  const updated = root.phrases.map((doc) => {
     if (!doc.tags?.some((t) => t.toLowerCase() === oldKey)) return doc
     count++
     const withoutOld = doc.tags.filter((t) => t.toLowerCase() !== oldKey)
     return { ...doc, tags: normalizeTags([...withoutOld, trimmedNew]), updatedAt: now }
   })
 
-  if (count > 0) await writeAll(updated)
+  if (count > 0) await driveWriteRoot({ ...root, phrases: updated })
   return count
 }
 
@@ -323,18 +343,41 @@ export async function unmarkPracticedDateAsync(logType: PracticeLogType, date: s
 }
 
 export async function deleteTag(tag: string): Promise<number> {
-  const all = await readAll()
+  const root = await driveReadRoot()
   const key = tag.trim().toLowerCase()
   const now = new Date().toISOString()
   let count = 0
 
-  const updated = all.map((doc) => {
+  const updated = root.phrases.map((doc) => {
     if (!doc.tags?.some((t) => t.toLowerCase() === key)) return doc
     count++
     const tags = doc.tags.filter((t) => t.toLowerCase() !== key)
     return { ...doc, tags: tags.length > 0 ? tags : undefined, updatedAt: now }
   })
 
-  if (count > 0) await writeAll(updated)
+  if (count > 0) await driveWriteRoot({ ...root, phrases: updated })
   return count
+}
+
+// ---------------------------------------------------------------------------
+// Prepared quiz files — which Drive quiz .txt files the user has marked as
+// prepared/reviewed. A plain array on the same file's root (see StoredRoot)
+// rather than an appProperties bitmap, since these are arbitrary Drive file
+// IDs, not dates — there's no fixed-size encoding for an open-ended set of ids.
+// ---------------------------------------------------------------------------
+export async function getPreparedQuizFileIdsAsync(): Promise<string[]> {
+  return (await driveReadRoot()).preparedQuizFileIds
+}
+
+export async function setQuizFilePreparedAsync(fileId: string, prepared: boolean): Promise<string[]> {
+  const root = await driveReadRoot()
+  const set = new Set(root.preparedQuizFileIds)
+  if (prepared) {
+    set.add(fileId)
+  } else {
+    set.delete(fileId)
+  }
+  const preparedQuizFileIds = [...set]
+  await driveWriteRoot({ ...root, preparedQuizFileIds })
+  return preparedQuizFileIds
 }

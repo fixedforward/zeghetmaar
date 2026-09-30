@@ -73,7 +73,7 @@ export function FraselijstTab(words: Props) {
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-500">
-          Opgeslagen woorden en zinnen met vertaling en voorbeeldgebruik.
+          Opgeslagen woorden en zinnen met vertalingen en voorbeeldgebruik.
         </p>
         {words.isLoggedIn && (
           <button

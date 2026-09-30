@@ -269,6 +269,39 @@ describe('useQuiz', () => {
     expect(result.current.pairs).toEqual([])
   })
 
+  it('loadPreparedFileIds() populates preparedFileIds from the API', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ fileIds: ['f1', 'f2'] }),
+    } as Response)
+
+    const { result } = renderHook(() => useQuiz())
+
+    await act(async () => { result.current.loadPreparedFileIds() })
+
+    expect(result.current.preparedFileIds).toEqual(new Set(['f1', 'f2']))
+    expect(fetch).toHaveBeenCalledWith('/api/quiz/prepared')
+  })
+
+  it('toggleFilePrepared() optimistically marks/unmarks and calls the API', () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ fileIds: [] }) } as Response)
+    const { result } = renderHook(() => useQuiz())
+
+    act(() => { result.current.toggleFilePrepared('f1') })
+    expect(result.current.preparedFileIds.has('f1')).toBe(true)
+    expect(fetch).toHaveBeenCalledWith('/api/quiz/prepared', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ fileId: 'f1' }),
+    }))
+
+    act(() => { result.current.toggleFilePrepared('f1') })
+    expect(result.current.preparedFileIds.has('f1')).toBe(false)
+    expect(fetch).toHaveBeenCalledWith('/api/quiz/prepared', expect.objectContaining({
+      method: 'DELETE',
+      body: JSON.stringify({ fileId: 'f1' }),
+    }))
+  })
+
   it('resets to the file list on backToFiles()', async () => {
     const mockPairs = [{ dutch: 'Hallo', english: 'Hello' }]
     global.fetch = vi.fn().mockResolvedValue({

@@ -92,12 +92,14 @@ export default function HomeClient() {
       podcastActiefTracker.loadPracticeLog()
       podcastPassiefTracker.loadPracticeLog()
       zeghetmaarTracker.loadPracticeLog()
+      quiz.loadPreparedFileIds()
     }
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
     clozemasterTracker.loadPracticeLog, podcastActiefTracker.loadPracticeLog,
     podcastPassiefTracker.loadPracticeLog, zeghetmaarTracker.loadPracticeLog,
+    quiz.loadPreparedFileIds,
   ])
 
   useEffect(() => {

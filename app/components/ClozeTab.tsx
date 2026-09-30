@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import type { useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
 import { buildClozeQuestions, maskWord } from '../lib/cloze'
+import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 
@@ -23,8 +25,19 @@ export function ClozeTab(props: Props) {
   const total = questions.length
   const done = isActive && currentIndex >= total
 
+  const [daysFilter, setDaysFilter] = useState<number | null>(3)
+
+  // Keeps typing uninterrupted across questions — refocuses whenever a new
+  // question loads, whether that's via Enter, the "Volgende" button, or a
+  // click in Overzicht, since none of those otherwise return focus here.
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [currentIndex])
+
   if (!isActive) {
-    const eligibleCount = buildClozeQuestions(words).length
+    const filteredWords = filterWordsByDaysSinceAdded(words, daysFilter)
+    const eligibleCount = buildClozeQuestions(filteredWords).length
     return (
       <div className="space-y-4">
         {isLoggedIn && <PracticeCounter practicedDates={practicedDates} onCheckIn={onCheckIn} onCancelCheckIn={onCancelCheckIn} />}
@@ -36,12 +49,31 @@ export function ClozeTab(props: Props) {
         {!wordsLoading && !wordsError && words.length === 0 && (
           <p className="text-sm text-gray-400">Geen frasen gevonden. Voeg eerst frases toe in de Fraselijst.</p>
         )}
+        {!wordsLoading && !wordsError && words.length > 0 && (
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs text-gray-500">
+              Toegevoegd binnen laatste
+              <select
+                value={daysFilter ?? 'all'}
+                onChange={(e) => setDaysFilter(e.target.value === 'all' ? null : Number(e.target.value))}
+                className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
+              >
+                <option value="1">1 dag</option>
+                <option value="3">3 dagen</option>
+                <option value="7">7 dagen</option>
+                <option value="14">14 dagen</option>
+                <option value="30">30 dagen</option>
+                <option value="all">alle</option>
+              </select>
+            </label>
+          </div>
+        )}
         {!wordsLoading && !wordsError && words.length > 0 && eligibleCount === 0 && (
-          <p className="text-sm text-gray-400">Geen frasen met een bruikbare voorbeeldzin gevonden. Voeg voorbeeldzinnen toe in de Fraselijst.</p>
+          <p className="text-sm text-gray-400">Geen frasen met een bruikbare voorbeeldzin gevonden voor deze filters.</p>
         )}
         {!wordsLoading && !wordsError && eligibleCount > 0 && (
           <button
-            onClick={() => start(words)}
+            onClick={() => start(filteredWords)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
           >
             Start Cloze-oefening ({eligibleCount} frases)
@@ -130,14 +162,21 @@ export function ClozeTab(props: Props) {
             })}
           </div>
           <input
+            ref={inputRef}
             type="text"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (checked ? nextQuestion() : checkAnswer())}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                checked ? nextQuestion() : checkAnswer()
+              } else if (e.key === 'Tab' && !checked && !hintExhausted) {
+                e.preventDefault()
+                revealHint()
+              }
+            }}
             placeholder="Typ het ontbrekende woord..."
-            disabled={checked}
-            autoFocus
-            className="relative w-full p-2 border rounded text-sm font-mono bg-transparent text-transparent caret-gray-800 placeholder:text-gray-400 disabled:bg-gray-50"
+            readOnly={checked}
+            className={`relative w-full p-2 border rounded text-sm font-mono bg-transparent text-transparent caret-gray-800 placeholder:text-gray-400 ${checked ? 'bg-gray-50' : ''}`}
           />
         </div>
 
@@ -182,9 +221,10 @@ export function ClozeTab(props: Props) {
             <button
               onClick={revealHint}
               disabled={hintExhausted}
+              title="Sneltoets: Tab"
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
             >
-              💡 Hint
+              💡 Hint (Tab)
             </button>
           </div>
         ) : (
