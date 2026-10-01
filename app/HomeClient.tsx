@@ -11,6 +11,7 @@ import { usePhrasePractice } from './hooks/usePhrasePractice'
 import { useOefenSessie } from './hooks/useOefenSessie'
 import { useQuiz } from './hooks/useQuiz'
 import { useCloze } from './hooks/useCloze'
+import { useArticles } from './hooks/useArticles'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { TAB_LABELS } from './config/tabs'
@@ -21,6 +22,7 @@ import { OefeningenTab } from './components/OefeningenTab'
 import { OefenSessieTab } from './components/OefenSessieTab'
 import { QuizTab } from './components/QuizTab'
 import { ClozeTab } from './components/ClozeTab'
+import { ArtikelenTab } from './components/ArtikelenTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
 import { SettingsModal } from './components/SettingsModal'
@@ -60,6 +62,7 @@ export default function HomeClient() {
   const oefenSessie = useOefenSessie(activeModel, oefenSessieTracker.markPracticedToday)
   const quiz = useQuiz(quizTracker.markPracticedToday)
   const cloze = useCloze(clozeTracker.markPracticedToday)
+  const articles = useArticles()
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {
@@ -199,6 +202,7 @@ export default function HomeClient() {
             />
           </ErrorBoundary>
         )}
+        {activeTab === 'artikelen' && <ErrorBoundary><ArtikelenTab {...articles} isLoggedIn={!!session} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (

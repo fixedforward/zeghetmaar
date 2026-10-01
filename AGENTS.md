@@ -46,6 +46,8 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/tags/route.ts` | PUT/DELETE for bulk tag operations — rename or remove a tag across every phrase that has it; login required |
 | `app/api/quiz/files/route.ts` | GET handler: lists quiz files in the configured Drive folder; login required |
 | `app/api/quiz/files/[id]/route.ts` | GET handler: reads and parses one quiz file into sentence pairs; login required |
+| `app/api/articles/route.ts` | GET handler: lists subfolders + articles (Google Docs / `.txt`) in a Drive folder (`?folderId=`, defaults to the configured root); login required |
+| `app/api/articles/[id]/route.ts` | GET handler: reads one article as plain text, split into paragraphs; login required |
 | `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie` or `quiz`, tracked independently) — DELETE undoes a check-in; login required |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
@@ -57,7 +59,11 @@ Everything is served from a single Next.js process on a single port.
 | `app/components/PracticeCounter.tsx` | "X dagen geoefend" count plus a check-in button that also lets you cancel today's check-in, used in Oefensessie and Quiz |
 | `app/components/TagsSelect.tsx` | Dropdown for picking existing tags (checkboxes) or creating a new one, used in the add form and `PhraseDetailModal` |
 | `app/components/TagsManageModal.tsx` | "Tags beheren" modal: rename or delete a tag across every phrase that has it, via `/api/tags` |
-| `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs |
+| `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs; also exports `readDriveTextFileAsync` (Google Doc → plain-text export, other files → raw download) |
+| `app/lib/driveArticleStore.ts` | Lists article folders and reads articles for the Artikelen tab |
+| `app/hooks/useArticles.ts` | Artikelen tab state: folder breadcrumb stack, open article |
+| `app/hooks/useChatGptSelection.ts` + `app/components/ChatGptSelectionLink.tsx` | Shared "select text → Open in ChatGPT" floating link, used by Quiz and Artikelen |
+| `app/components/ArtikelenTab.tsx` | Artikelen tab: folder browser + article reader |
 | `app/lib/chatgpt.ts` | Builds a ChatGPT explain-this-phrase URL for the "Open in ChatGPT" links |
 | `app/lib/shuffle.ts` | Generic Fisher–Yates `shuffleArray` helper |
 | `app/lib/raceModels.ts` | Races free OpenRouter models against each other with a timeout |
@@ -95,6 +101,9 @@ Optional:
 - `database.googleQuizFolder.folderId` — Drive folder holding quiz text files, readable
   by the same service account as above. Enables the Quiz tab; if unset, the app still
   starts normally and the Quiz tab's file-list endpoint returns a "not configured" error.
+- `database.googleArticlesFolder.folderId` — Drive folder (subfolders allowed) holding
+  articles as Google Docs or `.txt` files, readable by the same service account. Enables
+  the Artikelen tab; if unset, `/api/articles` returns a "not configured" error.
 
 See `app/config.example.json` for the full shape. The default selectable model is set in
 `app/config/models.ts` (`DEFAULT_MODEL`), not via config.
@@ -134,6 +143,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
+| **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, and select text to open a ChatGPT explanation; login required |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 
 ## Phrase Practice

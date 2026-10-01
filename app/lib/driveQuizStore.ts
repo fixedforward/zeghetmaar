@@ -82,7 +82,7 @@ export async function listQuizFilesAsync(pageToken?: string, pageSize = QUIZ_FIL
 
 const GOOGLE_NATIVE_MIME_PREFIX = 'application/vnd.google-apps.'
 
-export async function getQuizPairsAsync(fileId: string): Promise<QuizPair[]> {
+export async function readDriveTextFileAsync(fileId: string): Promise<string> {
   const drive = getDriveClient()
 
   const meta = await drive.files.get({
@@ -96,5 +96,9 @@ export async function getQuizPairsAsync(fileId: string): Promise<QuizPair[]> {
     ? await drive.files.export({ fileId, mimeType: 'text/plain' }, { responseType: 'text' })
     : await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'text' })
 
-  return parseQuizFile(res.data as string)
+  return res.data as string
+}
+
+export async function getQuizPairsAsync(fileId: string): Promise<QuizPair[]> {
+  return parseQuizFile(await readDriveTextFileAsync(fileId))
 }

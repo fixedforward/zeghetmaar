@@ -16,6 +16,9 @@ interface AppConfig {
     googleQuizFolder?: {
       folderId: string
     }
+    googleArticlesFolder?: {
+      folderId: string
+    }
   }
   auth: {
     nextAuthSecret: string

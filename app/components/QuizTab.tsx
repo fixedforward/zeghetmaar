@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { useQuiz } from '../hooks/useQuiz'
 import type { useWords } from '../hooks/useWords'
-import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { filterWordsForQuiz } from '../lib/wordQuiz'
 import { groupQuizFilesByDate } from '../lib/quizFiles'
 import { formatDutchDate } from '../lib/date'
 import { PracticeCounter } from './PracticeCounter'
+import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 
 type Props = ReturnType<typeof useQuiz> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -14,16 +15,10 @@ type Props = ReturnType<typeof useQuiz> & ReturnType<typeof useWords> & {
   onCancelCheckIn: () => void
 }
 
-interface ChatGptLink {
-  x: number
-  y: number
-  url: string
-}
-
 const QUIZ_NOTES_STORAGE_KEY = 'quiz-notes'
 
 export function QuizTab(quiz: Props) {
-  const [chatGptLink, setChatGptLink] = useState<ChatGptLink | null>(null)
+  const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection()
   const [notes, setNotes] = useState('')
   const [beheersingLevels, setBeheersingLevels] = useState<Set<1 | 2 | 3>>(new Set([1, 2, 3]))
   const [daysFilter, setDaysFilter] = useState<number | null>(3)
@@ -54,24 +49,6 @@ export function QuizTab(quiz: Props) {
     } catch {
       // localStorage unavailable — notes just won't persist.
     }
-  }
-
-  useEffect(() => {
-    if (!chatGptLink) return
-    const closeIfOutside = (e: MouseEvent) => {
-      if (!(e.target as Element)?.closest('[data-chatgpt-link]')) setChatGptLink(null)
-    }
-    document.addEventListener('mousedown', closeIfOutside)
-    return () => document.removeEventListener('mousedown', closeIfOutside)
-  }, [chatGptLink])
-
-  const handleTextSelection = (e: React.MouseEvent) => {
-    const selected = window.getSelection()?.toString().trim()
-    if (!selected) {
-      setChatGptLink(null)
-      return
-    }
-    setChatGptLink({ x: e.clientX, y: e.clientY + 12, url: buildChatGptExplainUrl(selected) })
   }
 
   if (!quiz.isLoggedIn) {
@@ -329,17 +306,7 @@ export function QuizTab(quiz: Props) {
         </ul>
       </div>
 
-      {chatGptLink && (
-        <button
-          type="button"
-          data-chatgpt-link
-          onClick={() => { openChatGptInBackground(chatGptLink.url); setChatGptLink(null) }}
-          className="fixed z-50 bg-white border border-gray-200 rounded shadow-lg px-3 py-1.5 text-sm text-blue-600 hover:bg-gray-50"
-          style={{ left: Math.min(chatGptLink.x, window.innerWidth - 180), top: chatGptLink.y }}
-        >
-          Open in ChatGPT
-        </button>
-      )}
+      <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} />
     </div>
   )
 }

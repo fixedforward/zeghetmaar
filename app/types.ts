@@ -1,4 +1,4 @@
-export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze'
+export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen'
 
 export interface QuizFile {
   id: string
@@ -55,4 +55,22 @@ export interface Phrase {
   isFavorite?: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface ArticleItem {
+  id: string
+  name: string
+  kind: 'folder' | 'article'
+}
+
+export interface ArticleFolder {
+  id: string
+  name: string
+  items: ArticleItem[]
+}
+
+export interface Article {
+  id: string
+  name: string
+  paragraphs: string[]
 }
