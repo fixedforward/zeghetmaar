@@ -62,8 +62,10 @@ Everything is served from a single Next.js process on a single port.
 | `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs; also exports `readDriveTextFileAsync` (Google Doc → plain-text export, other files → raw download) |
 | `app/lib/driveArticleStore.ts` | Lists article folders and reads articles for the Artikelen tab |
 | `app/hooks/useArticles.ts` | Artikelen tab state: folder breadcrumb stack, open article |
-| `app/hooks/useChatGptSelection.ts` + `app/components/ChatGptSelectionLink.tsx` | Shared "select text → Open in ChatGPT" floating link, used by Quiz and Artikelen |
+| `app/hooks/useChatGptSelection.ts` + `app/components/ChatGptSelectionLink.tsx` | Shared "select text → Open in ChatGPT" floating link, used by Quiz and Artikelen; an optional `onAddPhrase` prop adds a "+ Fraselijst" button (Artikelen only) |
 | `app/components/ArtikelenTab.tsx` | Artikelen tab: folder browser + article reader |
+| `app/components/AddPhraseForm.tsx` | Add-phrase form (phrase, meanings, tags) driven by `useWords`; used inline in Fraselijst and in `AddPhraseModal` |
+| `app/components/AddPhraseModal.tsx` | Modal around `AddPhraseForm`, opened from Artikelen's "+ Fraselijst" selection button |
 | `app/lib/chatgpt.ts` | Builds a ChatGPT explain-this-phrase URL for the "Open in ChatGPT" links |
 | `app/lib/shuffle.ts` | Generic Fisher–Yates `shuffleArray` helper |
 | `app/lib/raceModels.ts` | Races free OpenRouter models against each other with a timeout |
@@ -143,7 +145,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
-| **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, and select text to open a ChatGPT explanation; login required |
+| **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, and select text to open a ChatGPT explanation or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 
 ## Phrase Practice

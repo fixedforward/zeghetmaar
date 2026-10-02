@@ -52,14 +52,21 @@ export function useWords(selectedModel: string) {
       })
   }, [wordsLoaded, wordsLoading])
 
-  const handleAddWord = () => {
+  const startAddWord = (word: string) => {
+    setNewWord(word)
+    setNewMeanings([EMPTY_MEANING])
+    setNewTags([])
+    setAddError(null)
+  }
+
+  const handleAddWord = (): Promise<boolean> => {
     const meanings = newMeanings
       .map(m => ({ translation: m.translation.trim(), examples: m.examples.map(e => e.trim()).filter(Boolean) }))
       .filter(m => m.translation)
-    if (!newWord.trim() || meanings.length === 0) return
+    if (!newWord.trim() || meanings.length === 0) return Promise.resolve(false)
     setAddLoading(true)
     setAddError(null)
-    fetch('/api/words', {
+    return fetch('/api/words', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -76,8 +83,12 @@ export function useWords(selectedModel: string) {
         setNewTags([])
         setShowAddForm(false)
         loadWords(true)
+        return true
       })
-      .catch((err: Error) => setAddError(err.message))
+      .catch((err: Error) => {
+        setAddError(err.message)
+        return false
+      })
       .finally(() => setAddLoading(false))
   }
 
@@ -214,6 +225,7 @@ export function useWords(selectedModel: string) {
     aiExamplesLoading,
     aiTranslationLoading,
     loadWords,
+    startAddWord,
     handleAddWord,
     handleDeleteWord,
     startEdit,

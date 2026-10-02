@@ -91,4 +91,46 @@ describe('useWords', () => {
     const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(JSON.parse(options.body)).toMatchObject({ id: '1', tags: ['vakantie'] })
   })
+
+  it('startAddWord prefills the phrase and resets meanings and tags', () => {
+    const { result } = renderHook(() => useWords('gpt-4o-mini'))
+
+    act(() => {
+      result.current.setNewMeanings([{ translation: 'old', examples: ['x'] }])
+      result.current.setNewTags(['werk'])
+    })
+    act(() => {
+      result.current.startAddWord('op de hoogte zijn')
+    })
+
+    expect(result.current.newWord).toBe('op de hoogte zijn')
+    expect(result.current.newMeanings).toEqual([{ translation: '', examples: [] }])
+    expect(result.current.newTags).toEqual([])
+  })
+
+  it('handleAddWord resolves true on success and false on failure', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) } as Response)
+    const { result } = renderHook(() => useWords('gpt-4o-mini'))
+
+    act(() => {
+      result.current.setNewWord('gezellig')
+      result.current.setNewMeanings([{ translation: 'cozy', examples: [] }])
+    })
+    let added: boolean | undefined
+    await act(async () => {
+      added = await result.current.handleAddWord()
+    })
+    expect(added).toBe(true)
+
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 } as Response)
+    act(() => {
+      result.current.setNewWord('gezellig')
+      result.current.setNewMeanings([{ translation: 'cozy', examples: [] }])
+    })
+    await act(async () => {
+      added = await result.current.handleAddWord()
+    })
+    expect(added).toBe(false)
+    expect(result.current.addError).toBe('Kon frase niet toevoegen')
+  })
 })

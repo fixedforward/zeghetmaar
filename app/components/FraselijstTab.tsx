@@ -4,13 +4,12 @@ import type { WordEntry } from '../types'
 import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { buildPageList } from '../lib/pagination'
 import { PhraseDetailModal } from './PhraseDetailModal'
-import { MeaningsEditor } from './MeaningsEditor'
-import { TagsSelect } from './TagsSelect'
+import { AddPhraseForm } from './AddPhraseForm'
 import { TagsManageModal } from './TagsManageModal'
 import { joinMeanings } from '../lib/meanings'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
-type SortKey = 'updatedAt' | 'lastPracticedAt' | 'isFavorite' | 'beheersing'
+type SortKey = 'createdAt' | 'updatedAt' | 'lastPracticedAt' | 'isFavorite' | 'beheersing'
 
 const PAGE_SIZE = 10
 
@@ -32,6 +31,7 @@ export function FraselijstTab(words: Props) {
   }, [activeTag, allTags])
 
   const sortLabels: Record<SortKey, string> = {
+    createdAt: 'Aangemaakt',
     updatedAt: 'Bijgewerkt',
     lastPracticedAt: 'Laatst geoefend',
     isFavorite: 'Favoriet',
@@ -86,52 +86,8 @@ export function FraselijstTab(words: Props) {
       </div>
 
       {words.showAddForm && (
-        <div className="border rounded p-4 bg-gray-50 mb-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Frase</label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={words.newWord}
-                onChange={(e) => words.setNewWord(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && words.handleAddWord()}
-                placeholder="bijv. gele koorts komt niet voor in Amerika"
-                className="flex-1 p-2 border rounded"
-              />
-              {words.newWord && (
-                <button
-                  onClick={() => words.setNewWord('')}
-                  className="text-gray-400 hover:text-gray-600 text-sm shrink-0"
-                  title="Wissen"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-          <MeaningsEditor
-            meanings={words.newMeanings}
-            onChange={words.setNewMeanings}
-            word={words.newWord}
-            onGenerateTranslation={(w, i) => words.generateAiTranslation(w, 'add', i)}
-            onGenerateExamples={(w, i) => words.generateAiExamples(w, 'add', i)}
-            translationLoading={words.aiTranslationLoading}
-            examplesLoading={words.aiExamplesLoading}
-          />
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-            <TagsSelect allTags={allTags} selected={words.newTags} onChange={words.setNewTags} />
-          </div>
-
-          {words.addError && <p className="text-sm text-red-600">{words.addError}</p>}
-          <button
-            onClick={words.handleAddWord}
-            disabled={words.addLoading || !words.newWord.trim() || !words.newMeanings.some(m => m.translation.trim())}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {words.addLoading ? 'Opslaan...' : 'Opslaan'}
-          </button>
+        <div className="border rounded p-4 bg-gray-50 mb-4">
+          <AddPhraseForm words={words} allTags={allTags} />
         </div>
       )}
 

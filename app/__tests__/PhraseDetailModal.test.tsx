@@ -45,6 +45,7 @@ function buildProps(overrides: Partial<Props> = {}): Props {
     aiExamplesLoading: false,
     aiTranslationLoading: false,
     loadWords: vi.fn(),
+    startAddWord: vi.fn(),
     handleAddWord: vi.fn(),
     handleDeleteWord: vi.fn(),
     startEdit: vi.fn(),

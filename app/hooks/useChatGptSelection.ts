@@ -5,6 +5,7 @@ export interface ChatGptLink {
   x: number
   y: number
   url: string
+  text: string
 }
 
 export function useChatGptSelection() {
@@ -25,7 +26,7 @@ export function useChatGptSelection() {
       setChatGptLink(null)
       return
     }
-    setChatGptLink({ x: e.clientX, y: e.clientY + 12, url: buildChatGptExplainUrl(selected) })
+    setChatGptLink({ x: e.clientX, y: e.clientY + 12, url: buildChatGptExplainUrl(selected), text: selected })
   }
 
   return { chatGptLink, handleTextSelection, closeChatGptLink: () => setChatGptLink(null) }

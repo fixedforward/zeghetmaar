@@ -4,19 +4,35 @@ import { openChatGptInBackground } from '../lib/chatgpt'
 interface Props {
   link: ChatGptLink | null
   onClose: () => void
+  onAddPhrase?: (text: string) => void
 }
 
-export function ChatGptSelectionLink({ link, onClose }: Props) {
+const buttonClass = 'px-3 py-1.5 text-sm text-blue-600 hover:bg-gray-50'
+
+export function ChatGptSelectionLink({ link, onClose, onAddPhrase }: Props) {
   if (!link) return null
   return (
-    <button
-      type="button"
+    <div
       data-chatgpt-link
-      onClick={() => { openChatGptInBackground(link.url); onClose() }}
-      className="fixed z-50 bg-white border border-gray-200 rounded shadow-lg px-3 py-1.5 text-sm text-blue-600 hover:bg-gray-50"
-      style={{ left: Math.min(link.x, window.innerWidth - 180), top: link.y }}
+      className="fixed z-50 flex bg-white border border-gray-200 rounded shadow-lg divide-x divide-gray-200"
+      style={{ left: Math.min(link.x, window.innerWidth - (onAddPhrase ? 300 : 180)), top: link.y }}
     >
-      Open in ChatGPT
-    </button>
+      <button
+        type="button"
+        onClick={() => { openChatGptInBackground(link.url); onClose() }}
+        className={buttonClass}
+      >
+        Open in ChatGPT
+      </button>
+      {onAddPhrase && (
+        <button
+          type="button"
+          onClick={() => { onAddPhrase(link.text); onClose() }}
+          className={buttonClass}
+        >
+          + Fraselijst
+        </button>
+      )}
+    </div>
   )
 }

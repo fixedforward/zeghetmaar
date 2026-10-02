@@ -1,15 +1,26 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { useArticles } from '../hooks/useArticles'
+import type { useWords } from '../hooks/useWords'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
+import { AddPhraseModal } from './AddPhraseModal'
 
 type Props = ReturnType<typeof useArticles> & {
   isLoggedIn: boolean
+  words: ReturnType<typeof useWords>
 }
 
 export function ArtikelenTab(articles: Props) {
   const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection()
-  const { isLoggedIn, loadRoot } = articles
+  const [addPhraseOpen, setAddPhraseOpen] = useState(false)
+  const closeAddPhrase = useCallback(() => setAddPhraseOpen(false), [])
+  const { isLoggedIn, loadRoot, words } = articles
+
+  const openAddPhrase = (text: string) => {
+    words.loadWords()
+    words.startAddWord(text)
+    setAddPhraseOpen(true)
+  }
 
   useEffect(() => {
     if (isLoggedIn) loadRoot()
@@ -50,7 +61,7 @@ export function ArtikelenTab(articles: Props) {
           </button>
         </div>
         <p className="text-xs text-gray-400 mb-3">
-          Tip: selecteer een woord of zin om uitleg te krijgen via ChatGPT.
+          Tip: selecteer een woord of zin om uitleg te krijgen via ChatGPT of om het aan je fraselijst toe te voegen.
         </p>
         {articles.articleLoading && <p className="text-sm text-gray-400">Artikel laden...</p>}
         {articles.articleError && <p className="text-sm text-red-500">{articles.articleError}</p>}
@@ -59,7 +70,8 @@ export function ArtikelenTab(articles: Props) {
             <p key={i}>{paragraph}</p>
           ))}
         </article>
-        <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} />
+        <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} onAddPhrase={openAddPhrase} />
+        <AddPhraseModal words={words} open={addPhraseOpen} onClose={closeAddPhrase} />
       </div>
     )
   }
