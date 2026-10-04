@@ -60,7 +60,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/components/TagsSelect.tsx` | Dropdown for picking existing tags (checkboxes) or creating a new one, used in the add form and `PhraseDetailModal` |
 | `app/components/TagsManageModal.tsx` | "Tags beheren" modal: rename or delete a tag across every phrase that has it, via `/api/tags` |
 | `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs; also exports `readDriveTextFileAsync` (Google Doc → plain-text export, other files → raw download) |
-| `app/lib/driveArticleStore.ts` | Lists article folders and reads articles for the Artikelen tab |
+| `app/lib/driveArticleStore.ts` | Lists article folders and reads articles for the Artikelen tab; folders come first by name, articles newest first by Drive `createdTime` |
 | `app/hooks/useArticles.ts` | Artikelen tab state: folder breadcrumb stack, open article |
 | `app/hooks/useChatGptSelection.ts` + `app/components/ChatGptSelectionLink.tsx` | Shared "select text → Open in ChatGPT" floating link, used by Quiz and Artikelen; an optional `onAddPhrase` prop adds a "+ Fraselijst" button (Artikelen only) |
 | `app/components/ArtikelenTab.tsx` | Artikelen tab: folder browser + article reader |

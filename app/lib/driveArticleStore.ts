@@ -18,16 +18,20 @@ export function parseArticleText(text: string): string[] {
     .filter((line) => line.length > 0)
 }
 
-export function toArticleItems(files: { id?: string | null; name?: string | null; mimeType?: string | null }[]): ArticleItem[] {
-  const items: ArticleItem[] = []
+type DriveFile = { id?: string | null; name?: string | null; mimeType?: string | null; createdTime?: string | null }
+
+export function toArticleItems(files: DriveFile[]): ArticleItem[] {
+  const folders: ArticleItem[] = []
+  const articles: (ArticleItem & { createdMs: number })[] = []
   for (const f of files) {
     if (!f.id || !f.name) continue
-    if (f.mimeType === FOLDER_MIME) items.push({ id: f.id, name: f.name, kind: 'folder' })
-    else if (f.mimeType === GOOGLE_DOC_MIME || f.name.toLowerCase().endsWith('.txt')) items.push({ id: f.id, name: f.name, kind: 'article' })
+    if (f.mimeType === FOLDER_MIME) folders.push({ id: f.id, name: f.name, kind: 'folder' })
+    else if (f.mimeType === GOOGLE_DOC_MIME || f.name.toLowerCase().endsWith('.txt'))
+      articles.push({ id: f.id, name: f.name, kind: 'article', createdMs: f.createdTime ? new Date(f.createdTime).getTime() : 0 })
   }
-  return items.sort((a, b) =>
-    a.kind === b.kind ? a.name.localeCompare(b.name, 'nl') : a.kind === 'folder' ? -1 : 1
-  )
+  folders.sort((a, b) => a.name.localeCompare(b.name, 'nl'))
+  articles.sort((a, b) => b.createdMs - a.createdMs || a.name.localeCompare(b.name, 'nl'))
+  return [...folders, ...articles.map(({ createdMs: _, ...item }) => item)]
 }
 
 export async function listArticleFolderAsync(folderId: string): Promise<ArticleFolder> {
@@ -35,7 +39,7 @@ export async function listArticleFolderAsync(folderId: string): Promise<ArticleF
   const [res, folderRes] = await Promise.all([
     drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
-      fields: 'files(id, name, mimeType)',
+      fields: 'files(id, name, mimeType, createdTime)',
       pageSize: 1000,
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,

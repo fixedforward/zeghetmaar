@@ -22,7 +22,7 @@ describe('parseArticleText', () => {
 })
 
 describe('toArticleItems', () => {
-  it('keeps folders, Google Docs and .txt files, folders first, sorted by name', () => {
+  it('keeps folders, Google Docs and .txt files, folders first sorted by name', () => {
     const items = toArticleItems([
       { id: '1', name: 'video.mp4', mimeType: 'video/mp4' },
       { id: '2', name: 'Zag moeder', mimeType: 'application/vnd.google-apps.document' },
@@ -40,6 +40,17 @@ describe('toArticleItems', () => {
       { id: '5', name: 'notes.txt', kind: 'article' },
       { id: '2', name: 'Zag moeder', kind: 'article' },
     ])
+  })
+
+  it('sorts articles by created time, newest first, with undated ones last', () => {
+    const items = toArticleItems([
+      { id: '1', name: 'Oud', mimeType: 'application/vnd.google-apps.document', createdTime: '2026-01-01T10:00:00Z' },
+      { id: '2', name: 'Zonder datum', mimeType: 'application/vnd.google-apps.document' },
+      { id: '3', name: 'Nieuw', mimeType: 'application/vnd.google-apps.document', createdTime: '2026-09-01T10:00:00Z' },
+      { id: '4', name: 'map', mimeType: 'application/vnd.google-apps.folder', createdTime: '2026-10-01T10:00:00Z' },
+    ])
+
+    expect(items.map(i => i.id)).toEqual(['4', '3', '1', '2'])
   })
 })
 
@@ -61,7 +72,7 @@ describe('listArticleFolderAsync', () => {
 
     const folder = await listArticleFolderAsync('f1')
 
-    expect(filesListMock).toHaveBeenCalledWith(expect.objectContaining({ q: "'f1' in parents and trashed = false" }))
+    expect(filesListMock).toHaveBeenCalledWith(expect.objectContaining({ q: "'f1' in parents and trashed = false", fields: 'files(id, name, mimeType, createdTime)' }))
     expect(folder).toEqual({ id: 'f1', name: 'articles', items: [{ id: 'd1', name: 'Bier', kind: 'article' }] })
   })
 
