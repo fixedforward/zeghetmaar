@@ -16,8 +16,8 @@ const PAGE_SIZE = 10
 export function FraselijstTab(words: Props) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('beheersing')
-  const [sortAsc, setSortAsc] = useState(true)
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt')
+  const [sortAsc, setSortAsc] = useState(false)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [manageTagsOpen, setManageTagsOpen] = useState(false)
