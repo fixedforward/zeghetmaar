@@ -144,7 +144,6 @@ export function ClozeTab(props: Props) {
 
       <div className="border rounded p-4 bg-white space-y-3">
         <p className="text-lg">{maskWord(question.sentence, question.word)}</p>
-        {question.translation && <p className="text-xs text-gray-400">{question.translation}</p>}
 
         <div className="relative">
           <div
@@ -185,6 +184,7 @@ export function ClozeTab(props: Props) {
             <p className={`text-sm ${isCorrect ? 'text-green-700' : 'text-red-600'}`}>
               {isCorrect ? '✓ Goed!' : `✗ Fout — het juiste woord was "${question.word}".`}
             </p>
+            {question.translation && <p className="text-xs text-gray-500">{question.translation}</p>}
             {currentEntry && (
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
