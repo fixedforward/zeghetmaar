@@ -35,6 +35,14 @@ export interface ListeningLink {
   title: string
   url: string
   createdAt: string
+  positionSeconds?: number
+  phrases?: ListeningPhrase[]
+}
+
+export interface ListeningPhrase {
+  id: string
+  text: string
+  imported: boolean
 }
 
 export interface Exercise {

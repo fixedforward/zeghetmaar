@@ -218,7 +218,7 @@ export default function HomeClient() {
           </ErrorBoundary>
         )}
         {activeTab === 'artikelen' && <ErrorBoundary><ArtikelenTab {...articles} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
-        {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab {...luisteren} isLoggedIn={!!session} /></ErrorBoundary>}
+        {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab {...luisteren} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (

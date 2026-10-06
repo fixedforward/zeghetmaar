@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry, Meaning, ListeningLink } from '../types'
+import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -165,12 +165,22 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : []
 }
 
+export function isListeningPhrase(x: unknown): x is ListeningPhrase {
+  const p = x as Partial<ListeningPhrase> | null
+  return !!p && typeof p.id === 'string' && typeof p.text === 'string' && typeof p.imported === 'boolean'
+}
+
 function toListeningLinks(value: unknown): ListeningLink[] {
   if (!Array.isArray(value)) return []
-  return value.filter((x): x is ListeningLink =>
-    !!x && typeof x.id === 'string' && typeof x.url === 'string' &&
-    typeof x.title === 'string' && typeof x.createdAt === 'string'
-  )
+  return value
+    .filter((x): x is ListeningLink =>
+      !!x && typeof x.id === 'string' && typeof x.url === 'string' &&
+      typeof x.title === 'string' && typeof x.createdAt === 'string' &&
+      (x.positionSeconds === undefined || typeof x.positionSeconds === 'number')
+    )
+    .map(l => l.phrases === undefined
+      ? l
+      : { ...l, phrases: Array.isArray(l.phrases) ? l.phrases.filter(isListeningPhrase) : [] })
 }
 
 async function driveReadRoot(): Promise<StoredRoot> {
@@ -433,6 +443,27 @@ export async function addListeningLinkAsync(title: string, url: string): Promise
   const root = await driveReadRoot()
   const link: ListeningLink = { id: randomUUID(), title, url, createdAt: new Date().toISOString() }
   const listeningLinks = [link, ...root.listeningLinks]
+  await driveWriteRoot({ ...root, listeningLinks })
+  return listeningLinks
+}
+
+export interface ListeningLinkUpdate {
+  positionSeconds?: number | null
+  phrases?: ListeningPhrase[]
+}
+
+// Only the fields present in the update change. A null position clears it;
+// JSON.stringify drops the undefined field on write.
+export async function updateListeningLinkAsync(id: string, update: ListeningLinkUpdate): Promise<ListeningLink[]> {
+  const root = await driveReadRoot()
+  if (!root.listeningLinks.some(l => l.id === id)) return root.listeningLinks
+  const listeningLinks = root.listeningLinks.map(l => {
+    if (l.id !== id) return l
+    const updated = { ...l }
+    if (update.positionSeconds !== undefined) updated.positionSeconds = update.positionSeconds ?? undefined
+    if (update.phrases !== undefined) updated.phrases = update.phrases
+    return updated
+  })
   await driveWriteRoot({ ...root, listeningLinks })
   return listeningLinks
 }

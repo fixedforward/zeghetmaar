@@ -25,7 +25,7 @@ vi.mock('googleapis', () => ({
   },
 }))
 
-import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, deleteListeningLinkAsync } from '../lib/driveStore'
+import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, updateListeningLinkAsync, deleteListeningLinkAsync } from '../lib/driveStore'
 import { encodeYearBitmap } from '../lib/practiceLog'
 import type { Phrase } from '../types'
 
@@ -211,6 +211,47 @@ describe('listening links', () => {
     expect(result[1]).toEqual(link)
     expect(writtenRoot()).toMatchObject({ preparedQuizFileIds: ['fileA'], listeningLinks: result })
     expect(writtenPhrases()).toHaveLength(1)
+  })
+
+  it('updateListeningLinkAsync stores the position on that link only', async () => {
+    const other = { ...link, id: 'l2' }
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [link, other] }) })
+
+    const result = await updateListeningLinkAsync('l1', { positionSeconds: 1043 })
+
+    expect(result).toEqual([{ ...link, positionSeconds: 1043 }, other])
+    expect(writtenRoot().listeningLinks).toEqual(result)
+  })
+
+  it('updateListeningLinkAsync with a null position clears it', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [{ ...link, positionSeconds: 1043 }] }) })
+
+    await updateListeningLinkAsync('l1', { positionSeconds: null })
+
+    expect(writtenRoot().listeningLinks).toEqual([link])
+  })
+
+  it('updateListeningLinkAsync does not write when the id is unknown', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [link] }) })
+
+    expect(await updateListeningLinkAsync('nope', { positionSeconds: 10 })).toEqual([link])
+    expect(filesUpdateMock).not.toHaveBeenCalled()
+  })
+
+  it('updateListeningLinkAsync replaces the phrases and keeps the position', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [{ ...link, positionSeconds: 1043 }] }) })
+    const phrases = [{ id: 'p1', text: 'gezellig', imported: false }]
+
+    await updateListeningLinkAsync('l1', { phrases })
+
+    expect(writtenRoot().listeningLinks).toEqual([{ ...link, positionSeconds: 1043, phrases }])
+  })
+
+  it('drops malformed phrases when reading', async () => {
+    const phrase = { id: 'p1', text: 'gezellig', imported: true }
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [{ ...link, phrases: [phrase, { id: 'x' }] }] }) })
+
+    expect(await getListeningLinksAsync()).toEqual([{ ...link, phrases: [phrase] }])
   })
 
   it('deleteListeningLinkAsync removes the link by id', async () => {

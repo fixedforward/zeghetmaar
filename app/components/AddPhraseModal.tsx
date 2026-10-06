@@ -6,9 +6,10 @@ interface Props {
   words: ReturnType<typeof useWords>
   open: boolean
   onClose: () => void
+  onAdded?: () => void
 }
 
-export function AddPhraseModal({ words, open, onClose }: Props) {
+export function AddPhraseModal({ words, open, onClose, onAdded }: Props) {
   const allTags = [...new Set(words.words.flatMap(w => w.tags ?? []))].sort((a, b) =>
     a.localeCompare(b)
   )
@@ -35,7 +36,7 @@ export function AddPhraseModal({ words, open, onClose }: Props) {
           <h2 className="font-semibold text-gray-900">Frase toevoegen</h2>
           <button onClick={onClose} title="Sluiten" className="text-gray-400 hover:text-gray-600 leading-none shrink-0">✕</button>
         </div>
-        <AddPhraseForm words={words} allTags={allTags} onAdded={onClose} />
+        <AddPhraseForm words={words} allTags={allTags} onAdded={() => { onAdded?.(); onClose() }} />
       </div>
     </div>
   )

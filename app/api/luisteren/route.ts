@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { addListeningLinkAsync, deleteListeningLinkAsync, getListeningLinksAsync } from '@/app/lib/driveStore'
+import {
+  addListeningLinkAsync,
+  deleteListeningLinkAsync,
+  getListeningLinksAsync,
+  isListeningPhrase,
+  updateListeningLinkAsync,
+  type ListeningLinkUpdate,
+} from '@/app/lib/driveStore'
 import { isYouTubeUrl } from '@/app/lib/youtube'
 
 const UNAUTHORIZED = { error: 'Login om feature te gebruiken.' }
@@ -40,6 +47,37 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[/api/luisteren] Failed to add link:', err)
     return NextResponse.json({ error: 'Kon link niet opslaan.' }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json(UNAUTHORIZED, { status: 401 })
+
+  const body = await readBody(req)
+  const id = typeof body.id === 'string' ? body.id : ''
+  if (!id) return NextResponse.json({ error: 'id is required.' }, { status: 400 })
+
+  const update: ListeningLinkUpdate = {}
+  if ('positionSeconds' in body) {
+    const positionSeconds = body.positionSeconds
+    if (positionSeconds !== null && !(Number.isInteger(positionSeconds) && (positionSeconds as number) >= 0)) {
+      return NextResponse.json({ error: 'positionSeconds must be a non-negative integer or null.' }, { status: 400 })
+    }
+    update.positionSeconds = positionSeconds as number | null
+  }
+  if ('phrases' in body) {
+    if (!Array.isArray(body.phrases) || !body.phrases.every(p => isListeningPhrase(p) && p.text.trim())) {
+      return NextResponse.json({ error: 'phrases must be a list of { id, text, imported }.' }, { status: 400 })
+    }
+    update.phrases = body.phrases
+  }
+
+  try {
+    return NextResponse.json({ links: await updateListeningLinkAsync(id, update) })
+  } catch (err) {
+    console.error('[/api/luisteren] Failed to update link:', err)
+    return NextResponse.json({ error: 'Kon link niet bijwerken.' }, { status: 500 })
   }
 }
 

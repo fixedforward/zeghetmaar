@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { ListeningLink } from '../types'
+import type { ListeningLink, ListeningPhrase } from '../types'
 
 const LUISTEREN_URL = '/api/luisteren'
 
@@ -31,7 +31,7 @@ export function useLuisteren() {
       .finally(() => setLoading(false))
   }, [loaded])
 
-  const saveAsync = async (method: 'POST' | 'DELETE', body: object, fallbackError: string): Promise<boolean> => {
+  const saveAsync = async (method: 'POST' | 'PUT' | 'DELETE', body: object, fallbackError: string): Promise<boolean> => {
     setSaving(true)
     setError(null)
     try {
@@ -53,7 +53,27 @@ export function useLuisteren() {
 
   const addLinkAsync = (url: string, title: string) => saveAsync('POST', { url, title }, 'Kon link niet opslaan.')
 
+  const setPositionAsync = (id: string, positionSeconds: number | null) =>
+    saveAsync('PUT', { id, positionSeconds }, 'Kon tijdstip niet opslaan.')
+
+  const setPhrasesAsync = (linkId: string, update: (phrases: ListeningPhrase[]) => ListeningPhrase[]) => {
+    const current = links.find(l => l.id === linkId)?.phrases ?? []
+    return saveAsync('PUT', { id: linkId, phrases: update(current) }, 'Kon woorden niet opslaan.')
+  }
+
+  const addPhraseAsync = (linkId: string, text: string) =>
+    setPhrasesAsync(linkId, phrases => [...phrases, { id: Date.now().toString(), text: text.trim(), imported: false }])
+
+  const deletePhraseAsync = (linkId: string, phraseId: string) =>
+    setPhrasesAsync(linkId, phrases => phrases.filter(p => p.id !== phraseId))
+
+  const markPhraseImportedAsync = (linkId: string, phraseId: string) =>
+    setPhrasesAsync(linkId, phrases => phrases.map(p => p.id === phraseId ? { ...p, imported: true } : p))
+
   const deleteLinkAsync = (id: string) => saveAsync('DELETE', { id }, 'Kon link niet verwijderen.')
 
-  return { links, loading, saving, error, loadLinks, addLinkAsync, deleteLinkAsync }
+  return {
+    links, loading, saving, error, loadLinks, addLinkAsync, setPositionAsync,
+    addPhraseAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync,
+  }
 }

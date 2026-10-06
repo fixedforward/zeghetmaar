@@ -51,11 +51,11 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/articles/[id]/route.ts` | GET handler: reads one article as plain text, split into paragraphs; login required |
 | `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie` or `quiz`, tracked independently) — DELETE undoes a check-in; login required |
 | `app/api/marked-files/[kind]/route.ts` | GET/POST/DELETE for ticked-off Drive files (`kind` is `quiz` → "voorbereid" quiz files, or `articles` → "gelezen" articles); POST marks, DELETE unmarks; login required |
-| `app/api/luisteren/route.ts` | GET/POST/DELETE for the Luisteren YouTube links (POST `{ url, title }` rejects non-YouTube URLs, DELETE `{ id }`); login required |
+| `app/api/luisteren/route.ts` | GET/POST/DELETE for the Luisteren YouTube links (POST `{ url, title }` rejects non-YouTube URLs, PUT `{ id, positionSeconds?, phrases? }` updates a link — where you left off (`null` clears it) and/or its noted phrases, DELETE `{ id }`); login required |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
 | `auth.ts` | NextAuth config: Google provider, allowed-email check, custom error redirect |
-| `app/lib/driveStore.ts` | Reads/writes the phrase list JSON on Google Drive; also holds `renameTag`/`deleteTag` for bulk tag edits, `getPracticedDatesAsync`/`markPracticedDateAsync` for the practice tracker, `getMarkedFileIdsAsync`/`setFileMarkedAsync` for the quiz/article checkboxes (stored as `preparedQuizFileIds` / `readArticleIds` on the same JSON root), and `get/add/deleteListeningLinkAsync` for the Luisteren links (`listeningLinks` on that root) |
+| `app/lib/driveStore.ts` | Reads/writes the phrase list JSON on Google Drive; also holds `renameTag`/`deleteTag` for bulk tag edits, `getPracticedDatesAsync`/`markPracticedDateAsync` for the practice tracker, `getMarkedFileIdsAsync`/`setFileMarkedAsync` for the quiz/article checkboxes (stored as `preparedQuizFileIds` / `readArticleIds` on the same JSON root), and `get/add/deleteListeningLinkAsync` + `updateListeningLinkAsync` for the Luisteren links (`listeningLinks` on that root) |
 | `app/lib/wordFilters.ts` + `app/components/DayRangeSelect.tsx` | "Toegevoegd" filter shared by Cloze, Quiz (Fraselijst) and Oefensessie: phrases added vandaag, 1–3, 3–7, 7–14 or 14–21 days ago (`from` inclusive, `to` exclusive), or alle; default 1–3 |
 | `app/lib/practiceLog.ts` | Pure helpers for the practice counters: log-type namespacing, ISO-date ↔ (year, day-of-year), per-year bitmap encode/decode |
 | `app/lib/date.ts` | `todayLocalIso()` — today's date as `YYYY-MM-DD` in the browser's local timezone |
@@ -68,11 +68,11 @@ Everything is served from a single Next.js process on a single port.
 | `app/hooks/useArticles.ts` | Artikelen tab state: folder breadcrumb stack, open article, read-article checkboxes |
 | `app/hooks/useMarkedFiles.ts` | Shared checkbox state for a `MarkedFileKind`: loads ids and optimistically toggles one via `/api/marked-files/[kind]`; used by `useQuiz` (voorbereid) and `useArticles` (gelezen) |
 | `app/hooks/useChatGptSelection.ts` + `app/components/ChatGptSelectionLink.tsx` | Shared "select text → Open in ChatGPT" floating link, used by Quiz and Artikelen; an optional `onAddPhrase` prop adds a "+ Fraselijst" button (Artikelen only) |
-| `app/hooks/useLuisteren.ts` + `app/components/LuisterenTab.tsx` | Luisteren tab: add a YouTube link (optional title), list them newest first, click to open the video in a new tab, delete with a confirm |
+| `app/hooks/useLuisteren.ts` + `app/components/LuisterenTab.tsx` | Luisteren tab: add a YouTube link (optional title), list them newest first, click to open the video in a new tab, a "where I left off" field per link (compact `mmss` like `1723` = 17:23, parsed by `parseCompactTimestamp` in `app/lib/youtube.ts`; the link opens at that point via `t=…s`), a collapsible "Woorden" list per link for words/phrases heard in that video (each can be sent to the Fraselijst via `AddPhraseModal` and is then marked ✓ `imported`), delete with a confirm |
 | `app/lib/youtube.ts` | `isYouTubeUrl()` — accepts youtube.com / youtu.be links only, used by both the tab form and the API |
 | `app/components/ArtikelenTab.tsx` | Artikelen tab: folder browser + article reader |
 | `app/components/AddPhraseForm.tsx` | Add-phrase form (phrase, meanings, tags) driven by `useWords`; used inline in Fraselijst and in `AddPhraseModal` |
-| `app/components/AddPhraseModal.tsx` | Modal around `AddPhraseForm`, opened from Artikelen's "+ Fraselijst" selection button |
+| `app/components/AddPhraseModal.tsx` | Modal around `AddPhraseForm`, opened from Artikelen's "+ Fraselijst" selection button and Luisteren's noted phrases; optional `onAdded` fires only when the phrase was actually saved |
 | `app/lib/chatgpt.ts` | Builds a ChatGPT explain-this-phrase URL for the "Open in ChatGPT" links |
 | `app/lib/shuffle.ts` | Generic Fisher–Yates `shuffleArray` helper |
 | `app/lib/raceModels.ts` | Races free OpenRouter models against each other with a timeout |
@@ -154,7 +154,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
 | **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, click "Comprehension controleren" to open ChatGPT with the whole article and a request for 7 comprehension questions, and select text to open a ChatGPT explanation (the whole article is sent along as context) or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
 | **Cloze** | Fill-in-the-blank on Fraselijst example sentences. Two separate sessions: "Start typen" (type the word, letter hints) and "Start kaarten" (Anki-style card: phrase on the front, click/Space flips it to its meanings, then self-mark Goed/Fout with 1/2; any phrase with a meaning qualifies), plus "Start kaarten: vertaling → frase" with the sides swapped (shares the `clozekaarten` counter). Each has its own daily counter (`cloze` / `clozekaarten`) |
-| **Luisteren** | Save YouTube links (stored on Drive, so they sync across devices) and click one to open the video; login required |
+| **Luisteren** | Save YouTube links (stored on Drive, so they sync across devices) and click one to open the video, starting where you left off if you filled that in; note words/phrases per video and import them into the Fraselijst; login required |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 
 ## Phrase Practice

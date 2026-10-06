@@ -53,6 +53,59 @@ describe('useLuisteren', () => {
     expect(result.current.links).toEqual([])
   })
 
+  it('setPositionAsync sends the id and seconds with PUT', async () => {
+    const updated = { ...link, positionSeconds: 1043 }
+    global.fetch = vi.fn().mockResolvedValue(ok({ links: [updated] }))
+    const { result } = renderHook(() => useLuisteren())
+
+    await act(async () => { await result.current.setPositionAsync('l1', 1043) })
+
+    expect(fetch).toHaveBeenCalledWith('/api/luisteren', expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({ id: 'l1', positionSeconds: 1043 }),
+    }))
+    expect(result.current.links).toEqual([updated])
+  })
+
+  describe('phrases', () => {
+    const phrase = { id: 'p1', text: 'gezellig', imported: false }
+    const withPhrase = { ...link, phrases: [phrase] }
+
+    const renderWithLinkAsync = async () => {
+      global.fetch = vi.fn().mockResolvedValue(ok({ links: [withPhrase] }))
+      const hook = renderHook(() => useLuisteren())
+      await act(async () => { hook.result.current.loadLinks() })
+      return hook
+    }
+
+    const sentPhrases = () => JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.lastCall![1].body).phrases
+
+    it('addPhraseAsync appends a trimmed, not-yet-imported phrase with PUT', async () => {
+      const { result } = await renderWithLinkAsync()
+
+      await act(async () => { await result.current.addPhraseAsync('l1', '  op de hoogte  ') })
+
+      expect((fetch as ReturnType<typeof vi.fn>).mock.lastCall![1].method).toBe('PUT')
+      expect(sentPhrases()).toEqual([phrase, expect.objectContaining({ text: 'op de hoogte', imported: false })])
+    })
+
+    it('markPhraseImportedAsync marks only that phrase as imported', async () => {
+      const { result } = await renderWithLinkAsync()
+
+      await act(async () => { await result.current.markPhraseImportedAsync('l1', 'p1') })
+
+      expect(sentPhrases()).toEqual([{ ...phrase, imported: true }])
+    })
+
+    it('deletePhraseAsync removes the phrase', async () => {
+      const { result } = await renderWithLinkAsync()
+
+      await act(async () => { await result.current.deletePhraseAsync('l1', 'p1') })
+
+      expect(sentPhrases()).toEqual([])
+    })
+  })
+
   it('deleteLinkAsync sends the id with DELETE', async () => {
     global.fetch = vi.fn().mockResolvedValue(ok({ links: [] }))
     const { result } = renderHook(() => useLuisteren())
