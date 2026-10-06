@@ -1,4 +1,5 @@
 import { explainPhrasePrompt, checkAnswerPrompt, comprehensionCheckPrompt } from './prompts'
+import { openPopupWindow } from './popup'
 
 export function buildChatGptExplainUrl(phrase: string, context?: string): string {
   return `https://chatgpt.com/?q=${encodeURIComponent(explainPhrasePrompt(phrase, context))}`
@@ -32,10 +33,6 @@ export function openChatGptInBackground(url: string): void {
   const left = originLeft + originWidth
   const top = originTop
 
-  window.open(
-    url,
-    'chatgpt-popup',
-    `popup=yes,noopener,noreferrer,width=${popupWidth},height=${popupHeight},left=${left},top=${top}`
-  )
+  openPopupWindow(url, 'chatgpt-popup', { width: popupWidth, height: popupHeight, left, top })
   window.focus()
 }

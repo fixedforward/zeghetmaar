@@ -167,7 +167,8 @@ function toStringArray(value: unknown): string[] {
 
 export function isListeningPhrase(x: unknown): x is ListeningPhrase {
   const p = x as Partial<ListeningPhrase> | null
-  return !!p && typeof p.id === 'string' && typeof p.text === 'string' && typeof p.imported === 'boolean'
+  return !!p && typeof p.id === 'string' && typeof p.text === 'string' && typeof p.imported === 'boolean' &&
+    (p.seconds === undefined || (Number.isInteger(p.seconds) && p.seconds >= 0))
 }
 
 function toListeningLinks(value: unknown): ListeningLink[] {

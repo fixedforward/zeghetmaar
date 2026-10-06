@@ -89,6 +89,24 @@ describe('useLuisteren', () => {
       expect(sentPhrases()).toEqual([phrase, expect.objectContaining({ text: 'op de hoogte', imported: false })])
     })
 
+    it('addPhraseAsync stores the time the phrase was said when given', async () => {
+      const { result } = await renderWithLinkAsync()
+
+      await act(async () => { await result.current.addPhraseAsync('l1', 'op de hoogte', 1043) })
+
+      expect(sentPhrases()[1]).toEqual(expect.objectContaining({ text: 'op de hoogte', seconds: 1043 }))
+    })
+
+    it('setPhraseSecondsAsync sets and clears the time of only that phrase', async () => {
+      const { result } = await renderWithLinkAsync()
+
+      await act(async () => { await result.current.setPhraseSecondsAsync('l1', 'p1', 1043) })
+      expect(sentPhrases()).toEqual([{ ...phrase, seconds: 1043 }])
+
+      await act(async () => { await result.current.setPhraseSecondsAsync('l1', 'p1', null) })
+      expect(sentPhrases()).toEqual([phrase])
+    })
+
     it('markPhraseImportedAsync marks only that phrase as imported', async () => {
       const { result } = await renderWithLinkAsync()
 

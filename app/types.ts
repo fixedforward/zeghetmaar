@@ -43,6 +43,7 @@ export interface ListeningPhrase {
   id: string
   text: string
   imported: boolean
+  seconds?: number
 }
 
 export interface Exercise {

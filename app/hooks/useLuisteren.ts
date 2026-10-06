@@ -61,8 +61,15 @@ export function useLuisteren() {
     return saveAsync('PUT', { id: linkId, phrases: update(current) }, 'Kon woorden niet opslaan.')
   }
 
-  const addPhraseAsync = (linkId: string, text: string) =>
-    setPhrasesAsync(linkId, phrases => [...phrases, { id: Date.now().toString(), text: text.trim(), imported: false }])
+  const addPhraseAsync = (linkId: string, text: string, seconds: number | null = null) =>
+    setPhrasesAsync(linkId, phrases => [
+      ...phrases,
+      { id: Date.now().toString(), text: text.trim(), imported: false, seconds: seconds ?? undefined },
+    ])
+
+  // null clears the time; JSON.stringify drops the undefined field.
+  const setPhraseSecondsAsync = (linkId: string, phraseId: string, seconds: number | null) =>
+    setPhrasesAsync(linkId, phrases => phrases.map(p => p.id === phraseId ? { ...p, seconds: seconds ?? undefined } : p))
 
   const deletePhraseAsync = (linkId: string, phraseId: string) =>
     setPhrasesAsync(linkId, phrases => phrases.filter(p => p.id !== phraseId))
@@ -74,6 +81,6 @@ export function useLuisteren() {
 
   return {
     links, loading, saving, error, loadLinks, addLinkAsync, setPositionAsync,
-    addPhraseAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync,
+    addPhraseAsync, setPhraseSecondsAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync,
   }
 }

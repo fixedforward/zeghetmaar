@@ -248,8 +248,9 @@ describe('listening links', () => {
   })
 
   it('drops malformed phrases when reading', async () => {
-    const phrase = { id: 'p1', text: 'gezellig', imported: true }
-    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [{ ...link, phrases: [phrase, { id: 'x' }] }] }) })
+    const phrase = { id: 'p1', text: 'gezellig', imported: true, seconds: 1043 }
+    const badSeconds = { id: 'p2', text: 'hoi', imported: false, seconds: -1 }
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [{ ...link, phrases: [phrase, { id: 'x' }, badSeconds] }] }) })
 
     expect(await getListeningLinksAsync()).toEqual([{ ...link, phrases: [phrase] }])
   })

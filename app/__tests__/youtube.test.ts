@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatClock, formatCompactTimestamp, isYouTubeUrl, parseCompactTimestamp, withStartTime } from '../lib/youtube'
+import { formatClock, formatCompactTimestamp, isYouTubeUrl, parseCompactTimestamp, startBefore, withStartTime } from '../lib/youtube'
 
 describe('isYouTubeUrl', () => {
   it.each([
@@ -52,6 +52,16 @@ describe('formatClock', () => {
   it('formats as m:ss, or h:mm:ss from an hour on', () => {
     expect(formatClock(17 * 60 + 23)).toBe('17:23')
     expect(formatClock(59 * 60 + 94)).toBe('1:00:34')
+  })
+})
+
+describe('startBefore', () => {
+  it('starts the lead time earlier', () => {
+    expect(startBefore(17 * 60 + 23, 5)).toBe(17 * 60 + 18)
+  })
+
+  it('never goes before the start of the video', () => {
+    expect(startBefore(3, 5)).toBe(0)
   })
 })
 

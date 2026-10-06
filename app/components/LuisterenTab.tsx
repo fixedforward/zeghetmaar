@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { useLuisteren } from '../hooks/useLuisteren'
 import type { useWords } from '../hooks/useWords'
-import type { ListeningLink } from '../types'
 import { formatDutchDate } from '../lib/date'
-import { formatClock, formatCompactTimestamp, isYouTubeUrl, parseCompactTimestamp, withStartTime } from '../lib/youtube'
+import { formatClock, formatCompactTimestamp, isYouTubeUrl, parseCompactTimestamp, startBefore, withStartTime } from '../lib/youtube'
 import { AddPhraseModal } from './AddPhraseModal'
+import { oppositeHalfOfScreen, openPopupWindow } from '../lib/popup'
+
+const PHRASE_LEAD_SECONDS = 5
 
 type Props = ReturnType<typeof useLuisteren> & {
   isLoggedIn: boolean
@@ -13,12 +15,14 @@ type Props = ReturnType<typeof useLuisteren> & {
 
 export function LuisterenTab({
   links, loading, saving, error, loadLinks, addLinkAsync, setPositionAsync,
-  addPhraseAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync, isLoggedIn, words,
+  addPhraseAsync, setPhraseSecondsAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync, isLoggedIn, words,
 }: Props) {
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-  const [positionDrafts, setPositionDrafts] = useState<Record<string, string>>({})
+  // Unsaved text of the compact time fields, keyed by link id (where you left
+  // off), phrase id (when the phrase was said) or `new:<link id>` (add form).
+  const [timeDrafts, setTimeDrafts] = useState<Record<string, string>>({})
   const [openPhrasesIds, setOpenPhrasesIds] = useState<Set<string>>(new Set())
   const [phraseInputs, setPhraseInputs] = useState<Record<string, string>>({})
   const [importing, setImporting] = useState<{ linkId: string; phraseId: string } | null>(null)
@@ -42,21 +46,54 @@ export function LuisterenTab({
     }
   }
 
-  const positionText = (link: ListeningLink) =>
-    positionDrafts[link.id] ?? (link.positionSeconds ? formatCompactTimestamp(link.positionSeconds) : '')
+  const timeText = (key: string, saved?: number) =>
+    timeDrafts[key] ?? (saved ? formatCompactTimestamp(saved) : '')
 
-  // An empty field clears the position; an unparseable one stays as a draft.
-  const draftSeconds = (link: ListeningLink): number | null | undefined => {
-    const text = positionText(link).trim()
+  // An empty field means no time (null); an unparseable one is undefined and stays as a draft.
+  const draftTime = (key: string, saved?: number): number | null | undefined => {
+    const text = timeText(key, saved).trim()
     return text ? parseCompactTimestamp(text) ?? undefined : null
   }
 
-  const commitPosition = async (link: ListeningLink) => {
-    if (!(link.id in positionDrafts)) return
-    const seconds = draftSeconds(link)
+  const clearTimeDraft = (key: string) => setTimeDrafts(({ [key]: _, ...rest }) => rest)
+
+  const commitTime = async (key: string, saved: number | undefined, saveAsync: (seconds: number | null) => Promise<boolean>) => {
+    if (!(key in timeDrafts)) return
+    const seconds = draftTime(key, saved)
     if (seconds === undefined) return
-    if (seconds !== (link.positionSeconds ?? null) && !(await setPositionAsync(link.id, seconds))) return
-    setPositionDrafts(({ [link.id]: _, ...rest }) => rest)
+    if (seconds !== (saved ?? null) && !(await saveAsync(seconds))) return
+    clearTimeDraft(key)
+  }
+
+  const timeInput = (key: string, saved: number | undefined, onCommit?: () => void, className = 'w-20') => (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={timeText(key, saved)}
+      onChange={(e) => setTimeDrafts(prev => ({ ...prev, [key]: e.target.value }))}
+      onBlur={onCommit}
+      onKeyDown={onCommit && ((e) => { if (e.key === 'Enter') onCommit() })}
+      placeholder="mmss"
+      title={draftTime(key, saved) ? formatClock(draftTime(key, saved)!) : 'Tijd als mmss, bijv. 1723 = 17:23'}
+      className={`${className} p-1 border rounded text-sm text-right ${draftTime(key, saved) === undefined ? 'border-red-400' : ''}`}
+    />
+  )
+
+  const openVideo = (url: string, seconds: number | null | undefined) =>
+    openPopupWindow(withStartTime(url, seconds), 'luisteren-video', oppositeHalfOfScreen())
+
+  const phraseJumpButton = (url: string, said: number | null | undefined) => {
+    const start = said ? startBefore(said, PHRASE_LEAD_SECONDS) : null
+    return (
+      <button
+        onClick={() => openVideo(url, start)}
+        disabled={!said}
+        title={start !== null ? `Open de video op ${formatClock(start)} (${PHRASE_LEAD_SECONDS} s ervoor)` : 'Vul eerst de tijd in'}
+        className="text-blue-600 hover:text-blue-800 disabled:text-gray-300 shrink-0"
+      >
+        ▶
+      </button>
+    )
   }
 
   const togglePhrases = (linkId: string) => setOpenPhrasesIds(prev => {
@@ -68,8 +105,12 @@ export function LuisterenTab({
 
   const handleAddPhrase = async (linkId: string) => {
     const text = (phraseInputs[linkId] ?? '').trim()
-    if (!text || saving) return
-    if (await addPhraseAsync(linkId, text)) setPhraseInputs(prev => ({ ...prev, [linkId]: '' }))
+    const seconds = draftTime(`new:${linkId}`)
+    if (!text || seconds === undefined || saving) return
+    if (await addPhraseAsync(linkId, text, seconds)) {
+      setPhraseInputs(prev => ({ ...prev, [linkId]: '' }))
+      clearTimeDraft(`new:${linkId}`)
+    }
   }
 
   const startImport = (linkId: string, phraseId: string, text: string) => {
@@ -80,7 +121,10 @@ export function LuisterenTab({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">Bewaar YouTube-video&apos;s om naar te luisteren. Klik op een link om de video te openen; vul ernaast in waar je gebleven bent (bijv. 1723 = 17:23) om daar verder te kijken.</p>
+      <p className="text-sm font-medium text-blue-800 bg-blue-50 border border-blue-100 rounded p-2">
+        🎧 Doel: luister elke dag minstens 5 minuten naar een YouTube-video.
+      </p>
+      <p className="text-sm text-gray-500">Bewaar YouTube-video&apos;s om naar te luisteren. Klik op een link om de video in een apart venster op de andere helft van je scherm te openen; vul ernaast in waar je gebleven bent (bijv. 1723 = 17:23) om daar verder te kijken.</p>
 
       <form
         onSubmit={(e) => { e.preventDefault(); handleAdd() }}
@@ -118,7 +162,7 @@ export function LuisterenTab({
 
       <ul className="space-y-2">
         {links.map((link) => {
-          const seconds = draftSeconds(link)
+          const seconds = draftTime(link.id, link.positionSeconds)
           const phrases = link.phrases ?? []
           return (
             <li key={link.id} className="border rounded p-3 bg-white space-y-2">
@@ -127,6 +171,10 @@ export function LuisterenTab({
                   href={withStartTime(link.url, seconds)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    openVideo(link.url, seconds)
+                  }}
                   className="flex-1 min-w-0 group"
                 >
                   <span className="block text-blue-600 group-hover:underline font-semibold truncate">
@@ -137,17 +185,7 @@ export function LuisterenTab({
                   </span>
                 </a>
                 <div className="flex flex-col items-end shrink-0">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={positionText(link)}
-                    onChange={(e) => setPositionDrafts(prev => ({ ...prev, [link.id]: e.target.value }))}
-                    onBlur={() => commitPosition(link)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') commitPosition(link) }}
-                    placeholder="mmss"
-                    title="Waar je gebleven bent, bijv. 1723 = 17:23"
-                    className={`w-20 p-1 border rounded text-sm text-right ${seconds === undefined ? 'border-red-400' : ''}`}
-                  />
+                  {timeInput(link.id, link.positionSeconds, () => commitTime(link.id, link.positionSeconds, s => setPositionAsync(link.id, s)))}
                   {!!seconds && <span className="text-xs text-gray-400">{formatClock(seconds)}</span>}
                 </div>
                 {deleteConfirmId === link.id ? (
@@ -187,6 +225,13 @@ export function LuisterenTab({
                       {phrases.map(phrase => (
                         <li key={phrase.id} className="flex items-center gap-2 text-sm">
                           <span className={`flex-1 min-w-0 ${phrase.imported ? 'text-gray-400' : 'text-gray-800'}`}>{phrase.text}</span>
+                          {timeInput(
+                            phrase.id,
+                            phrase.seconds,
+                            () => commitTime(phrase.id, phrase.seconds, s => setPhraseSecondsAsync(link.id, phrase.id, s)),
+                            'w-16 shrink-0',
+                          )}
+                          {phraseJumpButton(link.url, draftTime(phrase.id, phrase.seconds))}
                           {phrase.imported ? (
                             <span className="text-xs text-green-600 shrink-0">✓ In fraselijst</span>
                           ) : (
@@ -220,9 +265,10 @@ export function LuisterenTab({
                       placeholder="Woord of frase uit deze video"
                       className="flex-1 min-w-0 p-1.5 border rounded text-sm"
                     />
+                    {timeInput(`new:${link.id}`, undefined, undefined, 'w-16 shrink-0')}
                     <button
                       type="submit"
-                      disabled={!(phraseInputs[link.id] ?? '').trim() || saving}
+                      disabled={!(phraseInputs[link.id] ?? '').trim() || draftTime(`new:${link.id}`) === undefined || saving}
                       className="px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
                     >
                       Toevoegen
