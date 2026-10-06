@@ -148,7 +148,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
-| **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, and select text to open a ChatGPT explanation or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
+| **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, click "Comprehension controleren" to open ChatGPT with the whole article and a request for 7 comprehension questions, and select text to open a ChatGPT explanation (the whole article is sent along as context) or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
 | **Cloze** | Fill-in-the-blank on Fraselijst example sentences. Two separate sessions: "Start typen" (type the word, letter hints) and "Start kaarten" (Anki-style flip card, self-mark Goed/Fout; shortcuts Space/Enter, 1, 2). Each has its own daily counter (`cloze` / `clozekaarten`) |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, buildChatGptComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 
 describe('buildChatGptExplainUrl', () => {
   it('starts with the chatgpt.com prefilled-prompt URL', () => {
@@ -11,6 +11,20 @@ describe('buildChatGptExplainUrl', () => {
     const url = buildChatGptExplainUrl('tot ziens')
     const query = url.replace('https://chatgpt.com/?q=', '')
     expect(decodeURIComponent(query)).toContain('tot ziens')
+  })
+
+  it('includes the context text in the decoded prompt when given', () => {
+    const url = buildChatGptExplainUrl('tot ziens', 'Hij zei tot ziens en vertrok.')
+    const decoded = decodeURIComponent(url.replace('https://chatgpt.com/?q=', ''))
+    expect(decoded).toContain('Hij zei tot ziens en vertrok.')
+  })
+})
+
+describe('buildChatGptComprehensionUrl', () => {
+  it('builds a chatgpt.com prefilled-prompt URL containing the article text', () => {
+    const url = buildChatGptComprehensionUrl('Het weer is mooi vandaag.')
+    expect(url.startsWith('https://chatgpt.com/?q=')).toBe(true)
+    expect(decodeURIComponent(url.replace('https://chatgpt.com/?q=', ''))).toContain('Het weer is mooi vandaag.')
   })
 })
 

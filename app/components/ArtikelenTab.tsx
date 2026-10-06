@@ -3,6 +3,7 @@ import type { useArticles } from '../hooks/useArticles'
 import type { useWords } from '../hooks/useWords'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
+import { buildChatGptComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { AddPhraseModal } from './AddPhraseModal'
 
 type Props = ReturnType<typeof useArticles> & {
@@ -11,10 +12,11 @@ type Props = ReturnType<typeof useArticles> & {
 }
 
 export function ArtikelenTab(articles: Props) {
-  const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection()
+  const { isLoggedIn, loadRoot, loadReadArticleIds, words } = articles
+  const articleText = articles.article?.paragraphs.join('\n\n')
+  const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection(articleText)
   const [addPhraseOpen, setAddPhraseOpen] = useState(false)
   const closeAddPhrase = useCallback(() => setAddPhraseOpen(false), [])
-  const { isLoggedIn, loadRoot, loadReadArticleIds, words } = articles
 
   const openAddPhrase = (text: string) => {
     words.loadWords()
@@ -53,6 +55,7 @@ export function ArtikelenTab(articles: Props) {
   )
 
   if (articles.article) {
+    const comprehensionUrl = articleText && buildChatGptComprehensionUrl(`${articles.article.name}\n\n${articleText}`)
     return (
       <div>
         {breadcrumb}
@@ -62,6 +65,15 @@ export function ArtikelenTab(articles: Props) {
             ← Terug
           </button>
         </div>
+        {comprehensionUrl && (
+          <button
+            type="button"
+            onClick={() => openChatGptInBackground(comprehensionUrl)}
+            className="mb-2 px-3 py-1.5 text-sm border rounded text-blue-600 hover:bg-gray-50"
+          >
+            Comprehension controleren
+          </button>
+        )}
         <p className="text-xs text-gray-400 mb-3">
           Tip: selecteer een woord of zin om uitleg te krijgen via ChatGPT of om het aan je fraselijst toe te voegen.
         </p>

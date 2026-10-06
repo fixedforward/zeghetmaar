@@ -8,7 +8,7 @@ export interface ChatGptLink {
   text: string
 }
 
-export function useChatGptSelection() {
+export function useChatGptSelection(context?: string) {
   const [chatGptLink, setChatGptLink] = useState<ChatGptLink | null>(null)
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function useChatGptSelection() {
       setChatGptLink(null)
       return
     }
-    setChatGptLink({ x: e.clientX, y: e.clientY + 12, url: buildChatGptExplainUrl(selected), text: selected })
+    setChatGptLink({ x: e.clientX, y: e.clientY + 12, url: buildChatGptExplainUrl(selected, context), text: selected })
   }
 
   return { chatGptLink, handleTextSelection, closeChatGptLink: () => setChatGptLink(null) }

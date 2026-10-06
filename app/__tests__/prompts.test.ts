@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
+import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
 import type { WordEntry } from '../types'
 
 const basePhrase: WordEntry = {
@@ -80,6 +80,24 @@ describe('evaluateAnswerPrompt', () => {
 describe('explainPhrasePrompt', () => {
   it('includes the phrase', () => {
     expect(explainPhrasePrompt('tot ziens')).toContain('tot ziens')
+  })
+
+  it('leaves out the context section when no context is given', () => {
+    expect(explainPhrasePrompt('tot ziens')).not.toContain('context')
+  })
+
+  it('includes the context text when given', () => {
+    const prompt = explainPhrasePrompt('tot ziens', 'Hij zei tot ziens en vertrok.')
+    expect(prompt).toContain('tot ziens')
+    expect(prompt).toContain('Hij zei tot ziens en vertrok.')
+  })
+})
+
+describe('comprehensionCheckPrompt', () => {
+  it('asks for 7 questions and includes the whole article text', () => {
+    const prompt = comprehensionCheckPrompt('Eerste alinea.\n\nTweede alinea.')
+    expect(prompt).toContain('7 vragen')
+    expect(prompt).toContain('Eerste alinea.\n\nTweede alinea.')
   })
 })
 

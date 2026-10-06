@@ -51,8 +51,20 @@ Evaluatie: ...
 Suggestie: ...`
 }
 
-export function explainPhrasePrompt(phrase: string): string {
-  return `Leg dit Nederlandse woord of deze zin uit en hoe het wordt gebruikt: "${phrase}"`
+export function explainPhrasePrompt(phrase: string, context?: string): string {
+  const question = `Leg dit Nederlandse woord of deze zin uit en hoe het wordt gebruikt: "${phrase}"`
+  if (!context) return question
+  return `${question}\n\nHet komt uit deze tekst, gebruik die als context:\n\n${context}`
+}
+
+export function comprehensionCheckPrompt(articleText: string): string {
+  return [
+    `Ik leer Nederlands en heb de onderstaande tekst gelezen.`,
+    `Controleer mijn begrip van de tekst door mij 7 vragen erover te stellen, in het Nederlands.`,
+    `Stel de vragen één voor één: wacht op mijn antwoord, geef feedback (en verbeter mijn Nederlands), en stel dan pas de volgende vraag.`,
+    ``,
+    articleText,
+  ].join('\n')
 }
 
 export function checkAnswerPrompt(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {

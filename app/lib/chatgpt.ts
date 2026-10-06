@@ -1,7 +1,11 @@
-import { explainPhrasePrompt, checkAnswerPrompt } from './prompts'
+import { explainPhrasePrompt, checkAnswerPrompt, comprehensionCheckPrompt } from './prompts'
 
-export function buildChatGptExplainUrl(phrase: string): string {
-  return `https://chatgpt.com/?q=${encodeURIComponent(explainPhrasePrompt(phrase))}`
+export function buildChatGptExplainUrl(phrase: string, context?: string): string {
+  return `https://chatgpt.com/?q=${encodeURIComponent(explainPhrasePrompt(phrase, context))}`
+}
+
+export function buildChatGptComprehensionUrl(articleText: string): string {
+  return `https://chatgpt.com/?q=${encodeURIComponent(comprehensionCheckPrompt(articleText))}`
 }
 
 export function buildChatGptCheckAnswerUrl(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {
