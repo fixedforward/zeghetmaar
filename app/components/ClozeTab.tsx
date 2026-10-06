@@ -15,7 +15,7 @@ export function ClozeTab(props: Props) {
   const {
     words, wordsLoading, wordsError, isLoggedIn, trackers,
     startEdit, setBeheersing, beheersingLoadingId,
-    mode, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    mode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
   } = props
 
@@ -68,6 +68,7 @@ export function ClozeTab(props: Props) {
         <p className="text-sm text-gray-500">
           Typen: vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl.
           Kaarten: zie de frase, draai de kaart om naar de betekenis en kies zelf Goed/Fout — Anki-stijl.
+          Kaarten omgekeerd: zie de vertaling en bedenk de frase.
         </p>
         {wordsLoading && <p className="text-sm text-gray-400 italic">Fraselijst laden...</p>}
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
@@ -112,6 +113,12 @@ export function ClozeTab(props: Props) {
             >
               Start kaarten ({kaartenCount} frases)
             </button>
+            <button
+              onClick={() => start(filteredWords, 'kaarten', true)}
+              className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
+            >
+              Start kaarten: vertaling → frase ({kaartenCount} frases)
+            </button>
           </div>
         )}
       </div>
@@ -139,6 +146,7 @@ export function ClozeTab(props: Props) {
   const question = questions[currentIndex]
   const isCorrect = answers[currentIndex]
   const currentEntry = words.find(w => w.id === question.phraseId)
+  const meanings = currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]
 
   // How many letters the user already got right, starting from the front —
   // a wrong guess breaks the streak, same as the live red/green feedback above.
@@ -215,17 +223,31 @@ export function ClozeTab(props: Props) {
               className={`grid transition-transform duration-500 [transform-style:preserve-3d] ${checked ? '[transform:rotateY(180deg)]' : ''}`}
             >
               <div className="[grid-area:1/1] [backface-visibility:hidden] border rounded bg-white p-8 min-h-40 flex flex-col items-center justify-center gap-2">
-                <p className="text-2xl font-semibold text-gray-900">{question.word}</p>
+                {reversed
+                  ? meanings.map((m, i) => <p key={i} className="text-2xl font-semibold text-gray-900">{m.translation}</p>)
+                  : <p className="text-2xl font-semibold text-gray-900">{question.word}</p>}
                 <p className="text-xs text-gray-400">Klik om om te draaien (Spatie)</p>
               </div>
               <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] border rounded bg-blue-50 p-8 min-h-40 flex flex-col items-center justify-center gap-2 text-center">
-                <p className="text-sm text-gray-500">{question.word}</p>
-                {(currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]).map((m, i) => (
-                  <div key={i}>
-                    <p className="text-xl font-semibold text-gray-900">{m.translation}</p>
-                    {m.examples[0] && <p className="text-xs text-gray-500 italic">{m.examples[0]}</p>}
-                  </div>
-                ))}
+                {reversed ? (
+                  <>
+                    <p className="text-sm text-gray-500">{meanings.map(m => m.translation).join(' · ')}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{question.word}</p>
+                    {meanings.map((m, i) => m.examples[0] && (
+                      <p key={i} className="text-xs text-gray-500 italic">{m.examples[0]}</p>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-500">{question.word}</p>
+                    {meanings.map((m, i) => (
+                      <div key={i}>
+                        <p className="text-xl font-semibold text-gray-900">{m.translation}</p>
+                        {m.examples[0] && <p className="text-xs text-gray-500 italic">{m.examples[0]}</p>}
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           </button>
@@ -342,7 +364,7 @@ export function ClozeTab(props: Props) {
               >
                 <span className="text-gray-400 w-6 shrink-0">{i + 1}.</span>
                 <span className={answer === false ? 'text-red-600' : answer === true ? 'text-green-700' : 'text-gray-600'}>
-                  {q.word}
+                  {reversed ? q.translation : q.word}
                 </span>
                 {answer === true && <span className="ml-auto text-green-600 shrink-0">✓</span>}
                 {answer === false && <span className="ml-auto text-red-600 shrink-0">✗</span>}

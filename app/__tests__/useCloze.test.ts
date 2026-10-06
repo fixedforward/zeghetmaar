@@ -148,6 +148,31 @@ describe('useCloze', () => {
   })
 
   describe('kaarten mode', () => {
+    it('start() with kaarten is not reversed by default', () => {
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'kaarten') })
+
+      expect(result.current.reversed).toBe(false)
+    })
+
+    it('start() with kaarten and reversed sets reversed, keeping the kaarten mode', () => {
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'kaarten', true) })
+
+      expect(result.current.mode).toBe('kaarten')
+      expect(result.current.reversed).toBe(true)
+    })
+
+    it('start() with typen ignores reversed', () => {
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'typen', true) })
+
+      expect(result.current.reversed).toBe(false)
+    })
+
     it('start() with kaarten sets the mode', () => {
       const { result } = renderHook(() => useCloze())
 

@@ -4,11 +4,13 @@ import { shuffleArray } from '../lib/shuffle'
 import { buildClozeQuestions, buildFlashcards, type ClozeQuestion } from '../lib/cloze'
 
 // 'typen' is the Clozemaster-style session (type the missing word); 'kaarten'
-// is the Anki-style one (phrase on the front, flip to the meaning, self-mark Goed/Fout).
+// is the Anki-style one (phrase on the front, flip to the meaning, self-mark Goed/Fout;
+// `reversed` swaps the sides so the meaning is on the front).
 export type ClozeMode = 'typen' | 'kaarten'
 
 export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   const [mode, setMode] = useState<ClozeMode>('typen')
+  const [reversed, setReversed] = useState(false)
   const [questions, setQuestions] = useState<ClozeQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [userInput, setUserInput] = useState('')
@@ -23,9 +25,10 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
     incorrect: answers.filter(a => a === false).length,
   }
 
-  const start = useCallback((words: WordEntry[], sessionMode: ClozeMode = 'typen') => {
+  const start = useCallback((words: WordEntry[], sessionMode: ClozeMode = 'typen', reversedCards = false) => {
     const built = shuffleArray(sessionMode === 'kaarten' ? buildFlashcards(words) : buildClozeQuestions(words))
     setMode(sessionMode)
+    setReversed(sessionMode === 'kaarten' && reversedCards)
     setQuestions(built)
     setCurrentIndex(0)
     setUserInput('')
@@ -101,7 +104,7 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   }
 
   return {
-    mode, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    mode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
   }
 }
