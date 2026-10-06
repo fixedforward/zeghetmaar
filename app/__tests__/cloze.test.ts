@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildClozeQuestions, maskWord, splitAroundWord } from '../lib/cloze'
+import { buildClozeQuestions, buildFlashcards, maskWord } from '../lib/cloze'
 import type { WordEntry } from '../types'
 
 const makeWord = (examples: string[] = [], overrides: Partial<WordEntry> = {}): WordEntry => ({
@@ -19,16 +19,6 @@ describe('maskWord', () => {
 
   it('returns the sentence unchanged when the word is not present', () => {
     expect(maskWord('Dit is een zin.', 'hoewel')).toBe('Dit is een zin.')
-  })
-})
-
-describe('splitAroundWord', () => {
-  it('splits around the word, keeping its original casing', () => {
-    expect(splitAroundWord('Hoewel het regende.', 'hoewel')).toEqual(['', 'Hoewel', ' het regende.'])
-  })
-
-  it('returns null when the word is not present', () => {
-    expect(splitAroundWord('Dit is een zin.', 'hoewel')).toBeNull()
   })
 })
 
@@ -66,5 +56,23 @@ describe('buildClozeQuestions', () => {
     expect(buildClozeQuestions(words)).toEqual([
       { phraseId: '1', word: 'hoewel', translation: 'even though', sentence: 'Hoewel het laat was, bleven we.' },
     ])
+  })
+})
+
+describe('buildFlashcards', () => {
+  it('builds one card per phrase with all meanings, even without examples', () => {
+    const word = makeWord([], {
+      meanings: [
+        { translation: 'although', examples: [] },
+        { translation: 'even though', examples: ['Hoewel het regende.'] },
+      ],
+    })
+    expect(buildFlashcards([word])).toEqual([
+      { phraseId: '1', word: 'hoewel', translation: 'although · even though', sentence: 'Hoewel het regende.' },
+    ])
+  })
+
+  it('skips phrases without meanings', () => {
+    expect(buildFlashcards([makeWord([], { meanings: [] })])).toEqual([])
   })
 })

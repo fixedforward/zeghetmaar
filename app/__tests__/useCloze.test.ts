@@ -156,6 +156,16 @@ describe('useCloze', () => {
       expect(result.current.mode).toBe('kaarten')
     })
 
+    it('start() with kaarten builds phrase cards, including phrases without examples', () => {
+      const words = [makeWord('1', 'hallo', ['Hallo daar!']), makeWord('2', 'leeg', [])]
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start(words, 'kaarten') })
+
+      expect(result.current.questions.map(q => q.word).sort()).toEqual(['hallo', 'leeg'])
+      expect(result.current.questions.find(q => q.word === 'leeg')?.translation).toBe('translation-leeg')
+    })
+
     it('markAndNext() does nothing before the answer is revealed', () => {
       const onPractice = vi.fn()
       const { result } = renderHook(() => useCloze(onPractice))

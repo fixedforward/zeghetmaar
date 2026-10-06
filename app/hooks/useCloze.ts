@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react'
 import type { WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
-import { buildClozeQuestions, type ClozeQuestion } from '../lib/cloze'
+import { buildClozeQuestions, buildFlashcards, type ClozeQuestion } from '../lib/cloze'
 
 // 'typen' is the Clozemaster-style session (type the missing word); 'kaarten'
-// is the Anki-style one (reveal the word, then self-mark Goed/Fout).
+// is the Anki-style one (phrase on the front, flip to the meaning, self-mark Goed/Fout).
 export type ClozeMode = 'typen' | 'kaarten'
 
 export function useCloze(onPractice?: (mode: ClozeMode) => void) {
@@ -24,7 +24,7 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   }
 
   const start = useCallback((words: WordEntry[], sessionMode: ClozeMode = 'typen') => {
-    const built = shuffleArray(buildClozeQuestions(words))
+    const built = shuffleArray(sessionMode === 'kaarten' ? buildFlashcards(words) : buildClozeQuestions(words))
     setMode(sessionMode)
     setQuestions(built)
     setCurrentIndex(0)

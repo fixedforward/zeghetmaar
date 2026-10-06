@@ -11,15 +11,10 @@ function wordIndex(sentence: string, word: string): number {
   return sentence.toLowerCase().indexOf(word.toLowerCase())
 }
 
-export function splitAroundWord(sentence: string, word: string): [string, string, string] | null {
-  const index = wordIndex(sentence, word)
-  if (index === -1) return null
-  return [sentence.slice(0, index), sentence.slice(index, index + word.length), sentence.slice(index + word.length)]
-}
-
 export function maskWord(sentence: string, word: string): string {
-  const parts = splitAroundWord(sentence, word)
-  return parts ? `${parts[0]}____${parts[2]}` : sentence
+  const index = wordIndex(sentence, word)
+  if (index === -1) return sentence
+  return `${sentence.slice(0, index)}____${sentence.slice(index + word.length)}`
 }
 
 // Only phrases with an example sentence that actually contains the target
@@ -37,4 +32,17 @@ export function buildClozeQuestions(words: WordEntry[]): ClozeQuestion[] {
     }
   }
   return questions
+}
+
+// Anki-style cards: the phrase on the front, all its meanings on the back. Unlike
+// a cloze question, any phrase with a meaning qualifies — no example needed.
+export function buildFlashcards(words: WordEntry[]): ClozeQuestion[] {
+  return words
+    .filter(w => w.meanings.length > 0)
+    .map(w => ({
+      phraseId: w.id,
+      word: w.word,
+      translation: w.meanings.map(m => m.translation).join(' · '),
+      sentence: w.meanings.flatMap(m => m.examples)[0] ?? '',
+    }))
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import type { ClozeMode, useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
-import { buildClozeQuestions, maskWord, splitAroundWord } from '../lib/cloze'
+import { buildClozeQuestions, buildFlashcards, maskWord } from '../lib/cloze'
 import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
@@ -53,7 +53,8 @@ export function ClozeTab(props: Props) {
 
   if (!isActive) {
     const filteredWords = filterWordsByDaysSinceAdded(words, daysFilter)
-    const eligibleCount = buildClozeQuestions(filteredWords).length
+    const typenCount = buildClozeQuestions(filteredWords).length
+    const kaartenCount = buildFlashcards(filteredWords).length
     return (
       <div className="space-y-4">
         {isLoggedIn && (
@@ -65,8 +66,8 @@ export function ClozeTab(props: Props) {
           </div>
         )}
         <p className="text-sm text-gray-500">
-          Vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl (typen)
-          of als Anki-kaarten (antwoord tonen, zelf Goed/Fout kiezen).
+          Typen: vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl.
+          Kaarten: zie de frase, draai de kaart om naar de betekenis en kies zelf Goed/Fout — Anki-stijl.
         </p>
         {wordsLoading && <p className="text-sm text-gray-400 italic">Fraselijst laden...</p>}
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
@@ -92,22 +93,24 @@ export function ClozeTab(props: Props) {
             </label>
           </div>
         )}
-        {!wordsLoading && !wordsError && words.length > 0 && eligibleCount === 0 && (
-          <p className="text-sm text-gray-400">Geen frasen met een bruikbare voorbeeldzin gevonden voor deze filters.</p>
+        {!wordsLoading && !wordsError && words.length > 0 && kaartenCount === 0 && (
+          <p className="text-sm text-gray-400">Geen frasen gevonden voor deze filters.</p>
         )}
-        {!wordsLoading && !wordsError && eligibleCount > 0 && (
+        {!wordsLoading && !wordsError && kaartenCount > 0 && (
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => start(filteredWords, 'typen')}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+              disabled={typenCount === 0}
+              title={typenCount === 0 ? 'Geen frasen met een bruikbare voorbeeldzin voor deze filters.' : undefined}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
             >
-              Start typen ({eligibleCount} frases)
+              Start typen ({typenCount} frases)
             </button>
             <button
               onClick={() => start(filteredWords, 'kaarten')}
               className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
             >
-              Start kaarten ({eligibleCount} frases)
+              Start kaarten ({kaartenCount} frases)
             </button>
           </div>
         )}
@@ -147,7 +150,6 @@ export function ClozeTab(props: Props) {
     matchLen++
   }
   const hintExhausted = matchLen >= question.word.length
-  const revealedParts = splitAroundWord(question.sentence, question.word)
 
   // Reveals one more correct letter on top of that prefix, discarding any
   // wrong letters typed after it instead of leaving them in the middle.
@@ -182,7 +184,7 @@ export function ClozeTab(props: Props) {
     <div className="space-y-5">
       <div className="flex justify-between items-center">
         <span className="text-xs font-medium text-gray-500">
-          Zin {currentIndex + 1} van {total} · {score.correct} goed, {score.incorrect} fout
+          {mode === 'kaarten' ? 'Kaart' : 'Zin'} {currentIndex + 1} van {total} · {score.correct} goed, {score.incorrect} fout
         </span>
         <div className="flex items-center gap-3">
           {currentEntry && (
@@ -198,29 +200,39 @@ export function ClozeTab(props: Props) {
       </div>
 
       {mode === 'kaarten' ? (
-        <div className="border rounded p-4 bg-white space-y-3">
-          {!checked ? (
-            <>
-              <p className="text-lg">{maskWord(question.sentence, question.word)}</p>
-              <button
-                onClick={reveal}
-                title="Sneltoets: Spatie of Enter"
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-              >
-                Toon antwoord (Spatie)
-              </button>
-            </>
-          ) : (
+        <div className="space-y-3">
+          {/* Keyed by index so the next card mounts face-up instead of animating
+              back and briefly showing its meaning. */}
+          <button
+            key={currentIndex}
+            type="button"
+            onClick={reveal}
+            disabled={checked}
+            title="Klik of druk op Spatie om om te draaien"
+            className="block w-full [perspective:1000px] disabled:cursor-default"
+          >
+            <div
+              className={`grid transition-transform duration-500 [transform-style:preserve-3d] ${checked ? '[transform:rotateY(180deg)]' : ''}`}
+            >
+              <div className="[grid-area:1/1] [backface-visibility:hidden] border rounded bg-white p-8 min-h-40 flex flex-col items-center justify-center gap-2">
+                <p className="text-2xl font-semibold text-gray-900">{question.word}</p>
+                <p className="text-xs text-gray-400">Klik om om te draaien (Spatie)</p>
+              </div>
+              <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] border rounded bg-blue-50 p-8 min-h-40 flex flex-col items-center justify-center gap-2 text-center">
+                <p className="text-sm text-gray-500">{question.word}</p>
+                {(currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]).map((m, i) => (
+                  <div key={i}>
+                    <p className="text-xl font-semibold text-gray-900">{m.translation}</p>
+                    {m.examples[0] && <p className="text-xs text-gray-500 italic">{m.examples[0]}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </button>
+          {checked && (
             <div className="space-y-2">
-              <p className="text-lg">
-                {revealedParts
-                  ? <>{revealedParts[0]}<strong className="text-blue-700">{revealedParts[1]}</strong>{revealedParts[2]}</>
-                  : question.sentence}
-              </p>
-              <p className="text-sm font-medium text-gray-900">→ {question.word}</p>
-              {question.translation && <p className="text-xs text-gray-500">{question.translation}</p>}
               {beheersingButtons}
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2">
                 <button
                   onClick={() => markAndNext(false)}
                   title="Sneltoets: 1"
