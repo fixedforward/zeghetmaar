@@ -65,15 +65,6 @@ export function ArtikelenTab(articles: Props) {
             ← Terug
           </button>
         </div>
-        {comprehensionUrl && (
-          <button
-            type="button"
-            onClick={() => openChatGptInBackground(comprehensionUrl)}
-            className="mb-2 px-3 py-1.5 text-sm border rounded text-blue-600 hover:bg-gray-50"
-          >
-            Comprehension controleren
-          </button>
-        )}
         <p className="text-xs text-gray-400 mb-3">
           Tip: selecteer een woord of zin om uitleg te krijgen via ChatGPT of om het aan je fraselijst toe te voegen.
         </p>
@@ -84,6 +75,15 @@ export function ArtikelenTab(articles: Props) {
             <p key={i}>{paragraph}</p>
           ))}
         </article>
+        {comprehensionUrl && (
+          <button
+            type="button"
+            onClick={() => openChatGptInBackground(comprehensionUrl)}
+            className="mt-3 px-3 py-1.5 text-sm border rounded text-blue-600 hover:bg-gray-50"
+          >
+            Comprehension controleren
+          </button>
+        )}
         <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} onAddPhrase={openAddPhrase} />
         <AddPhraseModal words={words} open={addPhraseOpen} onClose={closeAddPhrase} />
       </div>
