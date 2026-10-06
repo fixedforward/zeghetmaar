@@ -9,25 +9,33 @@ const make = (id: string, createdAt?: string): WordEntry => ({
 describe('filterWordsByDaysSinceAdded', () => {
   const NOW = new Date('2024-01-10T00:00:00.000Z').getTime()
 
-  it('returns every word unchanged when days is null', () => {
+  it('returns every word unchanged when the range is null', () => {
     const words = [make('1', '2020-01-01T00:00:00.000Z'), make('2', undefined)]
     expect(filterWordsByDaysSinceAdded(words, null, NOW)).toEqual(words)
   })
 
-  it('keeps only words created within the last N days', () => {
-    const recent = make('1', '2024-01-09T00:00:00.000Z') // 1 day ago
-    const old = make('2', '2024-01-01T00:00:00.000Z') // 9 days ago
+  it('keeps only words added within the day range', () => {
+    const today = make('1', '2024-01-09T12:00:00.000Z') // half a day ago
+    const twoDaysAgo = make('2', '2024-01-08T00:00:00.000Z')
+    const nineDaysAgo = make('3', '2024-01-01T00:00:00.000Z')
 
-    expect(filterWordsByDaysSinceAdded([recent, old], 2, NOW)).toEqual([recent])
+    expect(filterWordsByDaysSinceAdded([today, twoDaysAgo, nineDaysAgo], { from: 1, to: 3 }, NOW)).toEqual([twoDaysAgo])
   })
 
-  it('includes a word created exactly at the cutoff', () => {
-    const atCutoff = make('1', '2024-01-08T00:00:00.000Z') // exactly 2 days ago
-    expect(filterWordsByDaysSinceAdded([atCutoff], 2, NOW)).toEqual([atCutoff])
+  it('puts a word exactly on a boundary in the later range only', () => {
+    const threeDaysAgo = make('1', '2024-01-07T00:00:00.000Z')
+
+    expect(filterWordsByDaysSinceAdded([threeDaysAgo], { from: 1, to: 3 }, NOW)).toEqual([])
+    expect(filterWordsByDaysSinceAdded([threeDaysAgo], { from: 3, to: 7 }, NOW)).toEqual([threeDaysAgo])
+  })
+
+  it('includes a word added just now in the vandaag range', () => {
+    const justNow = make('1', '2024-01-10T00:00:00.000Z')
+    expect(filterWordsByDaysSinceAdded([justNow], { from: 0, to: 1 }, NOW)).toEqual([justNow])
   })
 
   it('excludes a word with no createdAt once a filter is set', () => {
     const noDate = make('1', undefined)
-    expect(filterWordsByDaysSinceAdded([noDate], 7, NOW)).toEqual([])
+    expect(filterWordsByDaysSinceAdded([noDate], { from: 0, to: 7 }, NOW)).toEqual([])
   })
 })

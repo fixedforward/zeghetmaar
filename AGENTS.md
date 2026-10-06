@@ -55,6 +55,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
 | `auth.ts` | NextAuth config: Google provider, allowed-email check, custom error redirect |
 | `app/lib/driveStore.ts` | Reads/writes the phrase list JSON on Google Drive; also holds `renameTag`/`deleteTag` for bulk tag edits, `getPracticedDatesAsync`/`markPracticedDateAsync` for the practice tracker, and `getMarkedFileIdsAsync`/`setFileMarkedAsync` for the quiz/article checkboxes (stored as `preparedQuizFileIds` / `readArticleIds` on the same JSON root) |
+| `app/lib/wordFilters.ts` + `app/components/DayRangeSelect.tsx` | "Toegevoegd" filter shared by Cloze, Quiz (Fraselijst) and Oefensessie: phrases added vandaag, 1–3, 3–7, 7–14 or 14–21 days ago (`from` inclusive, `to` exclusive), or alle; default 1–3 |
 | `app/lib/practiceLog.ts` | Pure helpers for the practice counters: log-type namespacing, ISO-date ↔ (year, day-of-year), per-year bitmap encode/decode |
 | `app/lib/date.ts` | `todayLocalIso()` — today's date as `YYYY-MM-DD` in the browser's local timezone |
 | `app/hooks/usePracticeTracker.ts` | Client state for one practice counter (`oefensessie` or `quiz`): loads/marks practiced days, calls `/api/practice-log/[type]` |

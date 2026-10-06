@@ -3,10 +3,12 @@ import type { useQuiz } from '../hooks/useQuiz'
 import type { useWords } from '../hooks/useWords'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { filterWordsForQuiz } from '../lib/wordQuiz'
+import { DEFAULT_DAY_RANGE, type DayRange } from '../lib/wordFilters'
 import { groupQuizFilesByDate } from '../lib/quizFiles'
 import { formatDutchDate } from '../lib/date'
 import { PracticeCounter } from './PracticeCounter'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
+import { DayRangeSelect } from './DayRangeSelect'
 
 type Props = ReturnType<typeof useQuiz> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -21,7 +23,7 @@ export function QuizTab(quiz: Props) {
   const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection()
   const [notes, setNotes] = useState('')
   const [beheersingLevels, setBeheersingLevels] = useState<Set<1 | 2 | 3>>(new Set([1, 2, 3]))
-  const [daysFilter, setDaysFilter] = useState<number | null>(3)
+  const [daysFilter, setDaysFilter] = useState<DayRange | null>(DEFAULT_DAY_RANGE)
 
   const toggleBeheersingLevel = (level: 1 | 2 | 3) => {
     setBeheersingLevels(prev => {
@@ -91,21 +93,7 @@ export function QuizTab(quiz: Props) {
               </button>
             ))}
           </div>
-          <label className="flex items-center gap-1.5 text-xs text-gray-500">
-            Toegevoegd binnen laatste
-            <select
-              value={daysFilter ?? 'all'}
-              onChange={(e) => setDaysFilter(e.target.value === 'all' ? null : Number(e.target.value))}
-              className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
-            >
-              <option value="1">1 dag</option>
-              <option value="3">3 dagen</option>
-              <option value="7">7 dagen</option>
-              <option value="14">14 dagen</option>
-              <option value="30">30 dagen</option>
-              <option value="all">alle</option>
-            </select>
-          </label>
+          <DayRangeSelect value={daysFilter} onChange={setDaysFilter} />
         </div>
 
         <p className="text-sm text-gray-500 mb-4">

@@ -6,7 +6,8 @@ import { parseEvaluation } from '../lib/parseEvaluation'
 import { buildChatGptCheckAnswerUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { getAllTags } from '../lib/tags'
 import { joinMeanings } from '../lib/meanings'
-import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
+import { DEFAULT_DAY_RANGE, filterWordsByDaysSinceAdded, type DayRange } from '../lib/wordFilters'
+import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 
@@ -30,7 +31,7 @@ export function OefenSessieTab(props: Props) {
   const parsed = evaluation ? parseEvaluation(evaluation) : null
 
   const [activeTag, setActiveTag] = useState<string | null>(null)
-  const [daysFilter, setDaysFilter] = useState<number | null>(3)
+  const [daysFilter, setDaysFilter] = useState<DayRange | null>(DEFAULT_DAY_RANGE)
   const allTags = getAllTags(words)
   const tagFilteredWords = activeTag ? words.filter(w => w.tags?.includes(activeTag)) : words
   const filteredWords = filterWordsByDaysSinceAdded(tagFilteredWords, daysFilter)
@@ -41,7 +42,7 @@ export function OefenSessieTab(props: Props) {
     refreshPreview(filterWordsByDaysSinceAdded(pool, daysFilter))
   }
 
-  const changeDaysFilter = (value: number | null) => {
+  const changeDaysFilter = (value: DayRange | null) => {
     setDaysFilter(value)
     refreshPreview(filterWordsByDaysSinceAdded(tagFilteredWords, value))
   }
@@ -66,21 +67,7 @@ export function OefenSessieTab(props: Props) {
         )}
         {!wordsLoading && !wordsError && words.length > 0 && (
           <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-1.5 text-xs text-gray-500">
-              Toegevoegd binnen laatste
-              <select
-                value={daysFilter ?? 'all'}
-                onChange={(e) => changeDaysFilter(e.target.value === 'all' ? null : Number(e.target.value))}
-                className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
-              >
-                <option value="1">1 dag</option>
-                <option value="3">3 dagen</option>
-                <option value="7">7 dagen</option>
-                <option value="14">14 dagen</option>
-                <option value="30">30 dagen</option>
-                <option value="all">alle</option>
-              </select>
-            </label>
+            <DayRangeSelect value={daysFilter} onChange={changeDaysFilter} />
           </div>
         )}
         {!wordsLoading && !wordsError && allTags.length > 0 && (

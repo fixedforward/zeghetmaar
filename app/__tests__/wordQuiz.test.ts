@@ -55,13 +55,13 @@ describe('filterWordsForQuiz', () => {
     expect(result).toHaveLength(2)
   })
 
-  it('keeps only words added within the last N days when daysFilter is set', () => {
+  it('keeps only words added within the day range when daysFilter is set', () => {
     const words = [
       make('1', 1, daysAgo(1)),
       make('2', 1, daysAgo(10)),
     ]
 
-    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1, 2, 3]), daysFilter: 3 })
+    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1, 2, 3]), daysFilter: { from: 0, to: 3 } })
 
     expect(result.map(w => w.id)).toEqual(['1'])
   })
@@ -73,7 +73,7 @@ describe('filterWordsForQuiz', () => {
       make('3', 1, daysAgo(10)),
     ]
 
-    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1]), daysFilter: 3 })
+    const result = filterWordsForQuiz(words, { beheersingLevels: new Set([1]), daysFilter: { from: 0, to: 3 } })
 
     expect(result.map(w => w.id)).toEqual(['2'])
   })

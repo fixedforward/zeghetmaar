@@ -1,5 +1,5 @@
 import type { WordEntry, QuizPair } from '../types'
-import { filterWordsByDaysSinceAdded } from './wordFilters'
+import { filterWordsByDaysSinceAdded, type DayRange } from './wordFilters'
 
 // One quiz pair per meaning, so a phrase with several distinct senses (e.g.
 // "toekennen" = to assign / to award) gets reviewed on each of them.
@@ -9,8 +9,8 @@ export function buildQuizPairsFromWords(words: WordEntry[]): QuizPair[] {
 
 export interface WordQuizFilters {
   beheersingLevels: Set<1 | 2 | 3>
-  // null = no limit; otherwise keep only words added within the last N days.
-  daysFilter: number | null
+  // null = no limit; otherwise keep only words added within this range of days ago.
+  daysFilter: DayRange | null
 }
 
 // A word without a beheersing level counts as level 1 (weak), matching the

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import type { ClozeMode, useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
 import { buildClozeQuestions, buildFlashcards, maskWord } from '../lib/cloze'
-import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
+import { DEFAULT_DAY_RANGE, filterWordsByDaysSinceAdded, type DayRange } from '../lib/wordFilters'
+import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 
@@ -23,7 +24,7 @@ export function ClozeTab(props: Props) {
   const total = questions.length
   const done = isActive && currentIndex >= total
 
-  const [daysFilter, setDaysFilter] = useState<number | null>(3)
+  const [daysFilter, setDaysFilter] = useState<DayRange | null>(DEFAULT_DAY_RANGE)
 
   // Keeps typing uninterrupted across questions — refocuses whenever a new
   // question loads, whether that's via Enter, the "Volgende" button, or a
@@ -77,21 +78,7 @@ export function ClozeTab(props: Props) {
         )}
         {!wordsLoading && !wordsError && words.length > 0 && (
           <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-1.5 text-xs text-gray-500">
-              Toegevoegd binnen laatste
-              <select
-                value={daysFilter ?? 'all'}
-                onChange={(e) => setDaysFilter(e.target.value === 'all' ? null : Number(e.target.value))}
-                className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
-              >
-                <option value="1">1 dag</option>
-                <option value="3">3 dagen</option>
-                <option value="7">7 dagen</option>
-                <option value="14">14 dagen</option>
-                <option value="30">30 dagen</option>
-                <option value="all">alle</option>
-              </select>
-            </label>
+            <DayRangeSelect value={daysFilter} onChange={setDaysFilter} />
           </div>
         )}
         {!wordsLoading && !wordsError && words.length > 0 && kaartenCount === 0 && (
