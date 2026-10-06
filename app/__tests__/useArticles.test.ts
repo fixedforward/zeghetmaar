@@ -59,4 +59,20 @@ describe('useArticles', () => {
     expect(result.current.article).toBeNull()
     expect(result.current.folderStack.map(f => f.id)).toEqual(['root'])
   })
+
+  it('loads read article ids and toggles one via /api/marked-files/articles', async () => {
+    global.fetch = vi.fn().mockResolvedValue(ok({ fileIds: ['d1'] }))
+    const { result } = renderHook(() => useArticles())
+
+    await act(async () => { result.current.loadReadArticleIds() })
+    expect(fetch).toHaveBeenCalledWith('/api/marked-files/articles')
+    expect(result.current.readArticleIds).toEqual(new Set(['d1']))
+
+    act(() => { result.current.toggleArticleRead('d1') })
+    expect(result.current.readArticleIds.has('d1')).toBe(false)
+    expect(fetch).toHaveBeenLastCalledWith('/api/marked-files/articles', expect.objectContaining({
+      method: 'DELETE',
+      body: JSON.stringify({ fileId: 'd1' }),
+    }))
+  })
 })

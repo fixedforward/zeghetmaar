@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import type { Article, ArticleFolder, ArticleItem } from '../types'
+import { useMarkedFiles } from './useMarkedFiles'
 
 async function fetchJsonAsync<T>(url: string, fallbackError: string): Promise<T> {
   const res = await fetch(url)
@@ -18,6 +19,7 @@ export function useArticles() {
   const [articleError, setArticleError] = useState<string | null>(null)
 
   const rootRequested = useRef(false)
+  const { markedIds: readArticleIds, loadMarkedIds: loadReadArticleIds, toggleMarked: toggleArticleRead } = useMarkedFiles('articles')
 
   const currentFolder = folderStack[folderStack.length - 1] ?? null
 
@@ -83,5 +85,8 @@ export function useArticles() {
     goToFolderIndex,
     openItemAsync,
     closeArticle,
+    readArticleIds,
+    loadReadArticleIds,
+    toggleArticleRead,
   }
 }

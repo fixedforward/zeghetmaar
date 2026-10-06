@@ -149,13 +149,18 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 
 // The file's root used to just be the phrases array. It's now
-// { phrases, preparedQuizFileIds } so a second, unrelated concern (which quiz
-// files the user has marked as prepared) can live in the same file without a
-// new Drive file (service accounts can't create one). A legacy array-shaped
-// root is still read correctly (preparedQuizFileIds defaults to empty).
+// { phrases, preparedQuizFileIds, readArticleIds } so other, unrelated concerns
+// (which quiz files / articles the user has ticked off) can live in the same
+// file without a new Drive file (service accounts can't create one). A legacy
+// array-shaped root is still read correctly (the id lists default to empty).
 interface StoredRoot {
   phrases: Phrase[]
   preparedQuizFileIds: string[]
+  readArticleIds: string[]
+}
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : []
 }
 
 async function driveReadRoot(): Promise<StoredRoot> {
@@ -167,20 +172,25 @@ async function driveReadRoot(): Promise<StoredRoot> {
   const parsed = JSON.parse(res.data as string) as unknown
 
   if (Array.isArray(parsed)) {
-    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [] }
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [] }
   }
 
   const obj = (parsed ?? {}) as Record<string, unknown>
   const phrases = Array.isArray(obj.phrases) ? (obj.phrases as Record<string, unknown>[]) : []
-  const preparedQuizFileIds = Array.isArray(obj.preparedQuizFileIds)
-    ? obj.preparedQuizFileIds.filter((x): x is string => typeof x === 'string')
-    : []
-  return { phrases: migrate(phrases), preparedQuizFileIds }
+  return {
+    phrases: migrate(phrases),
+    preparedQuizFileIds: toStringArray(obj.preparedQuizFileIds),
+    readArticleIds: toStringArray(obj.readArticleIds),
+  }
 }
 
 async function driveWriteRoot(root: StoredRoot): Promise<void> {
   const drive = getDriveClient()
-  const body = JSON.stringify({ phrases: root.phrases, preparedQuizFileIds: root.preparedQuizFileIds }, null, 2) + '\n'
+  const body = JSON.stringify(
+    { phrases: root.phrases, preparedQuizFileIds: root.preparedQuizFileIds, readArticleIds: root.readArticleIds },
+    null,
+    2
+  ) + '\n'
   await drive.files.update({
     fileId: FILE_ID,
     media: { mimeType: 'application/json', body: Readable.from([body]) },
@@ -189,7 +199,7 @@ async function driveWriteRoot(root: StoredRoot): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Unified read / write — phrase-only callers use these; callers that also
-// need to preserve preparedQuizFileIds across a write use driveReadRoot /
+// need to preserve the marked-file id lists across a write use driveReadRoot /
 // driveWriteRoot directly instead (see the CRUD functions below).
 // ---------------------------------------------------------------------------
 async function readAll(): Promise<Phrase[]> {
@@ -360,24 +370,37 @@ export async function deleteTag(tag: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// Prepared quiz files — which Drive quiz .txt files the user has marked as
-// prepared/reviewed. A plain array on the same file's root (see StoredRoot)
-// rather than an appProperties bitmap, since these are arbitrary Drive file
-// IDs, not dates — there's no fixed-size encoding for an open-ended set of ids.
+// Marked files — which Drive quiz files the user has marked as prepared, and
+// which articles they've marked as read. Plain arrays on the same file's root
+// (see StoredRoot) rather than an appProperties bitmap, since these are
+// arbitrary Drive file IDs, not dates — there's no fixed-size encoding for an
+// open-ended set of ids.
 // ---------------------------------------------------------------------------
-export async function getPreparedQuizFileIdsAsync(): Promise<string[]> {
-  return (await driveReadRoot()).preparedQuizFileIds
+const MARKED_FILE_FIELDS = {
+  quiz: 'preparedQuizFileIds',
+  articles: 'readArticleIds',
+} as const satisfies Record<string, keyof StoredRoot>
+
+export type MarkedFileKind = keyof typeof MARKED_FILE_FIELDS
+
+export function isMarkedFileKind(value: string): value is MarkedFileKind {
+  return Object.hasOwn(MARKED_FILE_FIELDS, value)
 }
 
-export async function setQuizFilePreparedAsync(fileId: string, prepared: boolean): Promise<string[]> {
+export async function getMarkedFileIdsAsync(kind: MarkedFileKind): Promise<string[]> {
+  return (await driveReadRoot())[MARKED_FILE_FIELDS[kind]]
+}
+
+export async function setFileMarkedAsync(kind: MarkedFileKind, fileId: string, marked: boolean): Promise<string[]> {
   const root = await driveReadRoot()
-  const set = new Set(root.preparedQuizFileIds)
-  if (prepared) {
+  const field = MARKED_FILE_FIELDS[kind]
+  const set = new Set(root[field])
+  if (marked) {
     set.add(fileId)
   } else {
     set.delete(fileId)
   }
-  const preparedQuizFileIds = [...set]
-  await driveWriteRoot({ ...root, preparedQuizFileIds })
-  return preparedQuizFileIds
+  const fileIds = [...set]
+  await driveWriteRoot({ ...root, [field]: fileIds })
+  return fileIds
 }

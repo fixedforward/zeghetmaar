@@ -280,7 +280,7 @@ describe('useQuiz', () => {
     await act(async () => { result.current.loadPreparedFileIds() })
 
     expect(result.current.preparedFileIds).toEqual(new Set(['f1', 'f2']))
-    expect(fetch).toHaveBeenCalledWith('/api/quiz/prepared')
+    expect(fetch).toHaveBeenCalledWith('/api/marked-files/quiz')
   })
 
   it('toggleFilePrepared() optimistically marks/unmarks and calls the API', () => {
@@ -289,14 +289,14 @@ describe('useQuiz', () => {
 
     act(() => { result.current.toggleFilePrepared('f1') })
     expect(result.current.preparedFileIds.has('f1')).toBe(true)
-    expect(fetch).toHaveBeenCalledWith('/api/quiz/prepared', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith('/api/marked-files/quiz', expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ fileId: 'f1' }),
     }))
 
     act(() => { result.current.toggleFilePrepared('f1') })
     expect(result.current.preparedFileIds.has('f1')).toBe(false)
-    expect(fetch).toHaveBeenCalledWith('/api/quiz/prepared', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith('/api/marked-files/quiz', expect.objectContaining({
       method: 'DELETE',
       body: JSON.stringify({ fileId: 'f1' }),
     }))

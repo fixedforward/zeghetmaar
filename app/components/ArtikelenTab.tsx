@@ -14,7 +14,7 @@ export function ArtikelenTab(articles: Props) {
   const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection()
   const [addPhraseOpen, setAddPhraseOpen] = useState(false)
   const closeAddPhrase = useCallback(() => setAddPhraseOpen(false), [])
-  const { isLoggedIn, loadRoot, words } = articles
+  const { isLoggedIn, loadRoot, loadReadArticleIds, words } = articles
 
   const openAddPhrase = (text: string) => {
     words.loadWords()
@@ -23,8 +23,10 @@ export function ArtikelenTab(articles: Props) {
   }
 
   useEffect(() => {
-    if (isLoggedIn) loadRoot()
-  }, [isLoggedIn, loadRoot])
+    if (!isLoggedIn) return
+    loadRoot()
+    loadReadArticleIds()
+  }, [isLoggedIn, loadRoot, loadReadArticleIds])
 
   if (!isLoggedIn) {
     return <p className="text-sm text-gray-500">Log in om artikelen te lezen.</p>
@@ -88,11 +90,20 @@ export function ArtikelenTab(articles: Props) {
       )}
       <ul className="space-y-2">
         {items.map((item) => (
-          <li key={item.id}>
+          <li key={item.id} className="flex items-center gap-3">
+            {item.kind === 'article' && (
+              <input
+                type="checkbox"
+                checked={articles.readArticleIds.has(item.id)}
+                onChange={() => articles.toggleArticleRead(item.id)}
+                title="Gemarkeerd als gelezen"
+                className="shrink-0"
+              />
+            )}
             <button
               onClick={() => articles.openItemAsync(item)}
               disabled={articles.foldersLoading}
-              className="w-full text-left border rounded p-3 bg-white hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+              className="flex-1 min-w-0 text-left border rounded p-3 bg-white hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
             >
               <span className="shrink-0">{item.kind === 'folder' ? '📁' : '📄'}</span>
               <span className="truncate min-w-0">{item.name}</span>

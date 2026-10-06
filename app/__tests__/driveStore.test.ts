@@ -25,19 +25,19 @@ vi.mock('googleapis', () => ({
   },
 }))
 
-import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getPreparedQuizFileIdsAsync, setQuizFilePreparedAsync } from '../lib/driveStore'
+import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync } from '../lib/driveStore'
 import { encodeYearBitmap } from '../lib/practiceLog'
 import type { Phrase } from '../types'
 
 // Legacy on-disk shape was just the phrases array; the current shape is
-// { phrases, preparedQuizFileIds }. mockStoredPhrases keeps testing the
+// { phrases, preparedQuizFileIds, readArticleIds }. mockStoredPhrases keeps testing the
 // legacy array shape (backward compat), writtenPhrases reads the current one.
 function mockStoredPhrases(docs: Partial<Phrase>[]) {
   filesGetMock.mockResolvedValue({ data: JSON.stringify(docs) })
 }
 
-function mockStoredRoot(docs: Partial<Phrase>[], preparedQuizFileIds: string[] = []) {
-  filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: docs, preparedQuizFileIds }) })
+function mockStoredRoot(docs: Partial<Phrase>[], preparedQuizFileIds: string[] = [], readArticleIds: string[] = []) {
+  filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: docs, preparedQuizFileIds, readArticleIds }) })
 }
 
 function writtenPhrases(): Phrase[] {
@@ -45,9 +45,13 @@ function writtenPhrases(): Phrase[] {
   return JSON.parse(body).phrases
 }
 
-function writtenPreparedQuizFileIds(): string[] {
+function writtenRoot(): { preparedQuizFileIds: string[]; readArticleIds: string[] } {
   const body = filesUpdateMock.mock.calls[0][0].media.body[0] as string
-  return JSON.parse(body).preparedQuizFileIds
+  return JSON.parse(body)
+}
+
+function writtenPreparedQuizFileIds(): string[] {
+  return writtenRoot().preparedQuizFileIds
 }
 
 const base = { normalizedWord: '', meanings: [{ translation: '', examples: [] }], createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }
@@ -97,7 +101,7 @@ describe('getAllWords — meanings migration', () => {
   })
 })
 
-describe('root document shape (phrases + preparedQuizFileIds)', () => {
+describe('root document shape (phrases + marked file ids)', () => {
   beforeEach(() => {
     filesGetMock.mockReset()
     filesUpdateMock.mockReset()
@@ -108,7 +112,7 @@ describe('root document shape (phrases + preparedQuizFileIds)', () => {
     mockStoredPhrases([{ ...base, id: '1', word: 'a' }])
 
     const words = await getAllWords()
-    const prepared = await getPreparedQuizFileIdsAsync()
+    const prepared = await getMarkedFileIdsAsync('quiz')
 
     expect(words).toHaveLength(1)
     expect(prepared).toEqual([])
@@ -118,45 +122,60 @@ describe('root document shape (phrases + preparedQuizFileIds)', () => {
     mockStoredRoot([{ ...base, id: '1', word: 'a' }], ['fileA', 'fileB'])
 
     const words = await getAllWords()
-    const prepared = await getPreparedQuizFileIdsAsync()
+    const prepared = await getMarkedFileIdsAsync('quiz')
 
     expect(words).toHaveLength(1)
     expect(prepared).toEqual(['fileA', 'fileB'])
   })
 
-  it('setQuizFilePreparedAsync adds a file id without touching phrases', async () => {
+  it('setFileMarkedAsync adds a file id without touching phrases', async () => {
     mockStoredRoot([{ ...base, id: '1', word: 'a' }], ['fileA'])
 
-    const result = await setQuizFilePreparedAsync('fileB', true)
+    const result = await setFileMarkedAsync('quiz', 'fileB', true)
 
     expect(result).toEqual(['fileA', 'fileB'])
     expect(writtenPreparedQuizFileIds()).toEqual(['fileA', 'fileB'])
     expect(writtenPhrases()).toHaveLength(1)
   })
 
-  it('setQuizFilePreparedAsync removes a file id', async () => {
+  it('setFileMarkedAsync removes a file id', async () => {
     mockStoredRoot([], ['fileA', 'fileB'])
 
-    const result = await setQuizFilePreparedAsync('fileA', false)
+    const result = await setFileMarkedAsync('quiz', 'fileA', false)
 
     expect(result).toEqual(['fileB'])
     expect(writtenPreparedQuizFileIds()).toEqual(['fileB'])
   })
 
-  it('setQuizFilePreparedAsync is idempotent when marking an already-prepared id', async () => {
+  it('setFileMarkedAsync is idempotent when marking an already-prepared id', async () => {
     mockStoredRoot([], ['fileA'])
 
-    const result = await setQuizFilePreparedAsync('fileA', true)
+    const result = await setFileMarkedAsync('quiz', 'fileA', true)
 
     expect(result).toEqual(['fileA'])
   })
 
-  it('a phrase write (insertWord via renameTag path) preserves preparedQuizFileIds', async () => {
-    mockStoredRoot([{ ...base, id: '1', word: 'a', tags: ['werk'] }], ['fileA'])
+  it('setFileMarkedAsync for articles writes readArticleIds and leaves quiz ids alone', async () => {
+    mockStoredRoot([], ['fileA'], ['art1'])
+
+    const result = await setFileMarkedAsync('articles', 'art2', true)
+
+    expect(result).toEqual(['art1', 'art2'])
+    expect(writtenRoot()).toMatchObject({ preparedQuizFileIds: ['fileA'], readArticleIds: ['art1', 'art2'] })
+  })
+
+  it('getMarkedFileIdsAsync reads readArticleIds, defaulting to empty on a root without them', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], preparedQuizFileIds: ['fileA'] }) })
+
+    expect(await getMarkedFileIdsAsync('articles')).toEqual([])
+  })
+
+  it('a phrase write (insertWord via renameTag path) preserves the marked file ids', async () => {
+    mockStoredRoot([{ ...base, id: '1', word: 'a', tags: ['werk'] }], ['fileA'], ['art1'])
 
     await renameTag('werk', 'kantoor')
 
-    expect(writtenPreparedQuizFileIds()).toEqual(['fileA'])
+    expect(writtenRoot()).toMatchObject({ preparedQuizFileIds: ['fileA'], readArticleIds: ['art1'] })
     expect(writtenPhrases()[0].tags).toEqual(['kantoor'])
   })
 })

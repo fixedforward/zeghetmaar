@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import type { QuizFile, QuizPair, WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
 import { buildQuizPairsFromWords } from '../lib/wordQuiz'
+import { useMarkedFiles } from './useMarkedFiles'
 
 // A synthetic "file" id for reviewing Fraselijst directly, so it can reuse
 // the exact same selectedFile/pairs flow as a real Drive quiz file.
@@ -26,8 +27,7 @@ export function useQuiz(onPractice?: () => void) {
   const [revealed, setRevealed] = useState(false)
   const [answers, setAnswers] = useState<(boolean | null)[]>([])
 
-  const [preparedFileIds, setPreparedFileIds] = useState<Set<string>>(new Set())
-  const [preparedLoaded, setPreparedLoaded] = useState(false)
+  const { markedIds: preparedFileIds, loadMarkedIds: loadPreparedFileIds, toggleMarked: toggleFilePrepared } = useMarkedFiles('quiz')
 
   // Derived from answers, not tracked separately — this way jumping back to an
   // already-answered question and re-marking it updates the score correctly
@@ -113,32 +113,6 @@ export function useQuiz(onPractice?: () => void) {
     setCurrentIndex(0)
     setRevealed(false)
     setAnswers(new Array(pairs.length).fill(null))
-  }
-
-  const loadPreparedFileIds = useCallback((force = false) => {
-    if (!force && preparedLoaded) return
-    setPreparedLoaded(true)
-    fetch('/api/quiz/prepared')
-      .then(res => {
-        if (!res.ok) throw new Error('Kon voorbereide bestanden niet laden.')
-        return res.json()
-      })
-      .then((data: { fileIds: string[] }) => setPreparedFileIds(new Set(data.fileIds)))
-      .catch(err => console.error('[useQuiz]', err instanceof Error ? err.message : err))
-  }, [preparedLoaded])
-
-  const toggleFilePrepared = (fileId: string) => {
-    const isPrepared = preparedFileIds.has(fileId)
-    setPreparedFileIds(prev => {
-      const next = new Set(prev)
-      isPrepared ? next.delete(fileId) : next.add(fileId)
-      return next
-    })
-    fetch('/api/quiz/prepared', {
-      method: isPrepared ? 'DELETE' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileId }),
-    }).catch(err => console.error('[useQuiz] Failed to save prepared state —', err))
   }
 
   const backToFiles = () => {

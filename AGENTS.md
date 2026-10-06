@@ -49,10 +49,11 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/articles/route.ts` | GET handler: lists subfolders + articles (Google Docs / `.txt`) in a Drive folder (`?folderId=`, defaults to the configured root); login required |
 | `app/api/articles/[id]/route.ts` | GET handler: reads one article as plain text, split into paragraphs; login required |
 | `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie` or `quiz`, tracked independently) — DELETE undoes a check-in; login required |
+| `app/api/marked-files/[kind]/route.ts` | GET/POST/DELETE for ticked-off Drive files (`kind` is `quiz` → "voorbereid" quiz files, or `articles` → "gelezen" articles); POST marks, DELETE unmarks; login required |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
 | `auth.ts` | NextAuth config: Google provider, allowed-email check, custom error redirect |
-| `app/lib/driveStore.ts` | Reads/writes the phrase list JSON on Google Drive; also holds `renameTag`/`deleteTag` for bulk tag edits, and `getPracticedDatesAsync`/`markPracticedDateAsync` for the practice tracker |
+| `app/lib/driveStore.ts` | Reads/writes the phrase list JSON on Google Drive; also holds `renameTag`/`deleteTag` for bulk tag edits, `getPracticedDatesAsync`/`markPracticedDateAsync` for the practice tracker, and `getMarkedFileIdsAsync`/`setFileMarkedAsync` for the quiz/article checkboxes (stored as `preparedQuizFileIds` / `readArticleIds` on the same JSON root) |
 | `app/lib/practiceLog.ts` | Pure helpers for the practice counters: log-type namespacing, ISO-date ↔ (year, day-of-year), per-year bitmap encode/decode |
 | `app/lib/date.ts` | `todayLocalIso()` — today's date as `YYYY-MM-DD` in the browser's local timezone |
 | `app/hooks/usePracticeTracker.ts` | Client state for one practice counter (`oefensessie` or `quiz`): loads/marks practiced days, calls `/api/practice-log/[type]` |
@@ -61,7 +62,8 @@ Everything is served from a single Next.js process on a single port.
 | `app/components/TagsManageModal.tsx` | "Tags beheren" modal: rename or delete a tag across every phrase that has it, via `/api/tags` |
 | `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs; also exports `readDriveTextFileAsync` (Google Doc → plain-text export, other files → raw download) |
 | `app/lib/driveArticleStore.ts` | Lists article folders and reads articles for the Artikelen tab; folders come first by name, articles newest first by Drive `createdTime` |
-| `app/hooks/useArticles.ts` | Artikelen tab state: folder breadcrumb stack, open article |
+| `app/hooks/useArticles.ts` | Artikelen tab state: folder breadcrumb stack, open article, read-article checkboxes |
+| `app/hooks/useMarkedFiles.ts` | Shared checkbox state for a `MarkedFileKind`: loads ids and optimistically toggles one via `/api/marked-files/[kind]`; used by `useQuiz` (voorbereid) and `useArticles` (gelezen) |
 | `app/hooks/useChatGptSelection.ts` + `app/components/ChatGptSelectionLink.tsx` | Shared "select text → Open in ChatGPT" floating link, used by Quiz and Artikelen; an optional `onAddPhrase` prop adds a "+ Fraselijst" button (Artikelen only) |
 | `app/components/ArtikelenTab.tsx` | Artikelen tab: folder browser + article reader |
 | `app/components/AddPhraseForm.tsx` | Add-phrase form (phrase, meanings, tags) driven by `useWords`; used inline in Fraselijst and in `AddPhraseModal` |
