@@ -144,5 +144,64 @@ describe('useCloze', () => {
     act(() => { result.current.checkAnswer() })
 
     expect(onPractice).toHaveBeenCalledTimes(1)
+    expect(onPractice).toHaveBeenCalledWith('typen')
+  })
+
+  describe('kaarten mode', () => {
+    it('start() with kaarten sets the mode', () => {
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'kaarten') })
+
+      expect(result.current.mode).toBe('kaarten')
+    })
+
+    it('markAndNext() does nothing before the answer is revealed', () => {
+      const onPractice = vi.fn()
+      const { result } = renderHook(() => useCloze(onPractice))
+
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'kaarten') })
+      act(() => { result.current.markAndNext(true) })
+
+      expect(result.current.currentIndex).toBe(0)
+      expect(result.current.answers).toEqual([null])
+      expect(onPractice).not.toHaveBeenCalled()
+    })
+
+    it('reveal() then markAndNext(true) marks Goed, advances and reports kaarten practice', () => {
+      const onPractice = vi.fn()
+      const words = [makeWord('1', 'hallo', ['Hallo daar!']), makeWord('2', 'dag', ['Dag allemaal.'])]
+      const { result } = renderHook(() => useCloze(onPractice))
+
+      act(() => { result.current.start(words, 'kaarten') })
+      act(() => { result.current.reveal() })
+      expect(result.current.checked).toBe(true)
+      act(() => { result.current.markAndNext(true) })
+
+      expect(result.current.answers).toEqual([true, null])
+      expect(result.current.currentIndex).toBe(1)
+      expect(result.current.checked).toBe(false)
+      expect(result.current.questions).toHaveLength(2)
+      expect(onPractice).toHaveBeenCalledWith('kaarten')
+    })
+
+    it('markAndNext(false) requeues the card 2-5 cards later', () => {
+      const words = Array.from({ length: 10 }, (_, i) => makeWord(`${i}`, `woord${i}`, [`Dit is woord${i} in een zin.`]))
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start(words, 'kaarten') })
+      const missedQuestion = result.current.questions[0]
+      act(() => { result.current.reveal() })
+      act(() => { result.current.markAndNext(false) })
+
+      expect(result.current.questions).toHaveLength(11)
+      expect(result.current.questions[3]).toEqual(missedQuestion)
+      expect(result.current.answers[0]).toBe(false)
+      expect(result.current.answers[3]).toBeNull()
+      expect(result.current.score).toEqual({ correct: 0, incorrect: 1 })
+
+      randomSpy.mockRestore()
+    })
   })
 })

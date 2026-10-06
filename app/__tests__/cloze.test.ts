@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildClozeQuestions, maskWord } from '../lib/cloze'
+import { buildClozeQuestions, maskWord, splitAroundWord } from '../lib/cloze'
 import type { WordEntry } from '../types'
 
 const makeWord = (examples: string[] = [], overrides: Partial<WordEntry> = {}): WordEntry => ({
@@ -19,6 +19,16 @@ describe('maskWord', () => {
 
   it('returns the sentence unchanged when the word is not present', () => {
     expect(maskWord('Dit is een zin.', 'hoewel')).toBe('Dit is een zin.')
+  })
+})
+
+describe('splitAroundWord', () => {
+  it('splits around the word, keeping its original casing', () => {
+    expect(splitAroundWord('Hoewel het regende.', 'hoewel')).toEqual(['', 'Hoewel', ' het regende.'])
+  })
+
+  it('returns null when the word is not present', () => {
+    expect(splitAroundWord('Dit is een zin.', 'hoewel')).toBeNull()
   })
 })
 

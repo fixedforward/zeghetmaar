@@ -36,6 +36,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/hooks/usePhrasePractice.ts` | Practice modal state: generates a prompt, evaluates the user's answer |
 | `app/hooks/useOefenSessie.ts` | Oefensessie tab state: preview/session phrases, navigation, and a prompt cache (`Map` keyed by phrase id, in-flight fetches deduped) that prefetches every previewed phrase's prompt in the background as soon as the preview loads |
 | `app/hooks/useExercises.ts` | Extra Oefeningen state, persisted to `localStorage` |
+| `app/hooks/useCloze.ts` | Cloze tab state, two session modes sharing one question queue: `typen` (type the missing word, Clozemaster-style) and `kaarten` (Anki-style: `reveal()` then `markAndNext(correct)`); a wrong answer is requeued 2–5 cards later in both |
 | `app/hooks/useQuiz.ts` | Quiz tab state: file list, pairs, current question, derived score, `jumpTo` |
 | `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `OefeningenTab`, `QuizTab`) |
 | `app/components/PracticeModal.tsx` | Modal for the phrase-practice flow |
@@ -148,6 +149,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
 | **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, and select text to open a ChatGPT explanation or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
+| **Cloze** | Fill-in-the-blank on Fraselijst example sentences. Two separate sessions: "Start typen" (type the word, letter hints) and "Start kaarten" (Anki-style flip card, self-mark Goed/Fout; shortcuts Space/Enter, 1, 2). Each has its own daily counter (`cloze` / `clozekaarten`) |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 
 ## Phrase Practice

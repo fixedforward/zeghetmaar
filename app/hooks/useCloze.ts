@@ -3,7 +3,12 @@ import type { WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
 import { buildClozeQuestions, type ClozeQuestion } from '../lib/cloze'
 
-export function useCloze(onPractice?: () => void) {
+// 'typen' is the Clozemaster-style session (type the missing word); 'kaarten'
+// is the Anki-style one (reveal the word, then self-mark Goed/Fout).
+export type ClozeMode = 'typen' | 'kaarten'
+
+export function useCloze(onPractice?: (mode: ClozeMode) => void) {
+  const [mode, setMode] = useState<ClozeMode>('typen')
   const [questions, setQuestions] = useState<ClozeQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [userInput, setUserInput] = useState('')
@@ -18,8 +23,9 @@ export function useCloze(onPractice?: () => void) {
     incorrect: answers.filter(a => a === false).length,
   }
 
-  const start = useCallback((words: WordEntry[]) => {
+  const start = useCallback((words: WordEntry[], sessionMode: ClozeMode = 'typen') => {
     const built = shuffleArray(buildClozeQuestions(words))
+    setMode(sessionMode)
     setQuestions(built)
     setCurrentIndex(0)
     setUserInput('')
@@ -38,15 +44,14 @@ export function useCloze(onPractice?: () => void) {
   const checkAnswer = useCallback(() => {
     const question = questions[currentIndex]
     if (checked || !question || !userInput.trim()) return
-    onPractice?.()
+    onPractice?.(mode)
     const correct = userInput.trim().toLowerCase() === question.word.trim().toLowerCase()
     setAnswers(prev => prev.map((a, i) => i === currentIndex ? correct : a))
     setChecked(true)
-  }, [checked, questions, currentIndex, userInput, onPractice])
+  }, [checked, questions, currentIndex, userInput, onPractice, mode])
 
-  const nextQuestion = useCallback(() => {
+  const advance = useCallback((wasCorrect: boolean | null) => {
     const answeredIndex = currentIndex
-    const wasCorrect = answers[answeredIndex]
     setChecked(false)
     setUserInput('')
     setCurrentIndex(prev => prev + 1)
@@ -64,7 +69,22 @@ export function useCloze(onPractice?: () => void) {
         return [...prev.slice(0, insertAt), null, ...prev.slice(insertAt)]
       })
     }
-  }, [currentIndex, answers])
+  }, [currentIndex])
+
+  const nextQuestion = useCallback(() => {
+    advance(answers[currentIndex])
+  }, [advance, answers, currentIndex])
+
+  const reveal = useCallback(() => {
+    if (questions[currentIndex]) setChecked(true)
+  }, [questions, currentIndex])
+
+  const markAndNext = useCallback((correct: boolean) => {
+    if (!checked) return
+    onPractice?.(mode)
+    setAnswers(prev => prev.map((a, i) => i === currentIndex ? correct : a))
+    advance(correct)
+  }, [checked, onPractice, mode, currentIndex, advance])
 
   const jumpTo = (index: number) => {
     if (index < 0 || index >= questions.length) return
@@ -81,7 +101,7 @@ export function useCloze(onPractice?: () => void) {
   }
 
   return {
-    questions, currentIndex, userInput, setUserInput, checked, answers, score,
-    start, stop, checkAnswer, nextQuestion, jumpTo, restart,
+    mode, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
   }
 }

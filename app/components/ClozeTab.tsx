@@ -1,24 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
-import type { useCloze } from '../hooks/useCloze'
+import { useEffect, useRef, useState, type ComponentProps } from 'react'
+import type { ClozeMode, useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
-import { buildClozeQuestions, maskWord } from '../lib/cloze'
+import { buildClozeQuestions, maskWord, splitAroundWord } from '../lib/cloze'
 import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 
 type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
-  practicedDates: Set<string>
-  onCheckIn: () => void
-  onCancelCheckIn: () => void
+  trackers: Record<ClozeMode, ComponentProps<typeof PracticeCounter>>
 }
 
 export function ClozeTab(props: Props) {
   const {
-    words, wordsLoading, wordsError, isLoggedIn, practicedDates, onCheckIn, onCancelCheckIn,
+    words, wordsLoading, wordsError, isLoggedIn, trackers,
     startEdit, setBeheersing, beheersingLoadingId,
-    questions, currentIndex, userInput, setUserInput, checked, answers, score,
-    start, stop, checkAnswer, nextQuestion, jumpTo, restart,
+    mode, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
   } = props
 
   const isActive = questions.length > 0
@@ -35,14 +33,40 @@ export function ClozeTab(props: Props) {
     inputRef.current?.focus()
   }, [currentIndex])
 
+  // Anki-style shortcuts: Space/Enter reveals, then 1 = Fout and 2 = Goed.
+  const kaartenActive = mode === 'kaarten' && isActive && !done
+  useEffect(() => {
+    if (!kaartenActive) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (!checked && (e.key === ' ' || e.key === 'Enter')) {
+        e.preventDefault()
+        reveal()
+      } else if (checked && (e.key === '1' || e.key === '2')) {
+        markAndNext(e.key === '2')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [kaartenActive, checked, reveal, markAndNext])
+
   if (!isActive) {
     const filteredWords = filterWordsByDaysSinceAdded(words, daysFilter)
     const eligibleCount = buildClozeQuestions(filteredWords).length
     return (
       <div className="space-y-4">
-        {isLoggedIn && <PracticeCounter practicedDates={practicedDates} onCheckIn={onCheckIn} onCancelCheckIn={onCancelCheckIn} />}
+        {isLoggedIn && (
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1">Typen</p>
+            <PracticeCounter {...trackers.typen} />
+            <p className="text-xs font-medium text-gray-600 mb-1">Kaarten</p>
+            <PracticeCounter {...trackers.kaarten} />
+          </div>
+        )}
         <p className="text-sm text-gray-500">
-          Vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl.
+          Vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl (typen)
+          of als Anki-kaarten (antwoord tonen, zelf Goed/Fout kiezen).
         </p>
         {wordsLoading && <p className="text-sm text-gray-400 italic">Fraselijst laden...</p>}
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
@@ -72,12 +96,20 @@ export function ClozeTab(props: Props) {
           <p className="text-sm text-gray-400">Geen frasen met een bruikbare voorbeeldzin gevonden voor deze filters.</p>
         )}
         {!wordsLoading && !wordsError && eligibleCount > 0 && (
-          <button
-            onClick={() => start(filteredWords)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-          >
-            Start Cloze-oefening ({eligibleCount} frases)
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => start(filteredWords, 'typen')}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+            >
+              Start typen ({eligibleCount} frases)
+            </button>
+            <button
+              onClick={() => start(filteredWords, 'kaarten')}
+              className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
+            >
+              Start kaarten ({eligibleCount} frases)
+            </button>
+          </div>
         )}
       </div>
     )
@@ -86,7 +118,7 @@ export function ClozeTab(props: Props) {
   if (done) {
     return (
       <div className="space-y-4 text-center py-8">
-        {isLoggedIn && <div className="flex justify-center"><PracticeCounter practicedDates={practicedDates} onCheckIn={onCheckIn} onCancelCheckIn={onCancelCheckIn} /></div>}
+        {isLoggedIn && <div className="flex justify-center"><PracticeCounter {...trackers[mode]} /></div>}
         <p className="text-lg font-semibold text-gray-900">Klaar! 🎉</p>
         <p className="text-sm text-gray-600">{score.correct} goed, {score.incorrect} fout van {total}.</p>
         <div className="flex justify-center gap-2">
@@ -115,6 +147,7 @@ export function ClozeTab(props: Props) {
     matchLen++
   }
   const hintExhausted = matchLen >= question.word.length
+  const revealedParts = splitAroundWord(question.sentence, question.word)
 
   // Reveals one more correct letter on top of that prefix, discarding any
   // wrong letters typed after it instead of leaving them in the middle.
@@ -122,6 +155,28 @@ export function ClozeTab(props: Props) {
     if (hintExhausted) return
     setUserInput(question.word.slice(0, matchLen + 1))
   }
+
+  const beheersingButtons = currentEntry && (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
+      {([1, 2, 3] as const).map(n => (
+        <button
+          key={n}
+          onClick={() => setBeheersing(currentEntry.id, n)}
+          disabled={beheersingLoadingId === currentEntry.id}
+          title={`Beheersing ${n}`}
+          className={[
+            'w-6 h-6 rounded text-xs font-bold transition-colors disabled:opacity-50',
+            currentEntry.beheersing === n
+              ? n === 1 ? 'bg-red-400 text-white' : n === 2 ? 'bg-yellow-400 text-white' : 'bg-green-500 text-white'
+              : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
+          ].join(' ')}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="space-y-5">
@@ -142,100 +197,124 @@ export function ClozeTab(props: Props) {
         </div>
       </div>
 
-      <div className="border rounded p-4 bg-white space-y-3">
-        <p className="text-lg">{maskWord(question.sentence, question.word)}</p>
-
-        <div className="relative">
-          <div
-            aria-hidden
-            className="absolute inset-0 flex items-center px-2 py-2 border border-transparent text-sm font-mono whitespace-pre pointer-events-none"
-          >
-            {userInput.split('').map((ch, i) => {
-              const target = question.word[i]
-              const letterCorrect = !!target && ch.toLowerCase() === target.toLowerCase()
-              return (
-                <span key={i} className={letterCorrect ? 'text-green-600' : 'text-red-600'}>
-                  {ch}
-                </span>
-              )
-            })}
-          </div>
-          <input
-            ref={inputRef}
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                checked ? nextQuestion() : checkAnswer()
-              } else if (e.key === 'Tab' && !checked && !hintExhausted) {
-                e.preventDefault()
-                revealHint()
-              }
-            }}
-            placeholder="Typ het ontbrekende woord..."
-            readOnly={checked}
-            className={`relative w-full p-2 border rounded text-sm font-mono bg-transparent text-transparent caret-gray-800 placeholder:text-gray-400 ${checked ? 'bg-gray-50' : ''}`}
-          />
-        </div>
-
-        {checked && (
-          <div className="space-y-2">
-            <p className={`text-sm ${isCorrect ? 'text-green-700' : 'text-red-600'}`}>
-              {isCorrect ? '✓ Goed!' : `✗ Fout — het juiste woord was "${question.word}".`}
-            </p>
-            {question.translation && <p className="text-xs text-gray-500">{question.translation}</p>}
-            {currentEntry && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
-                {([1, 2, 3] as const).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setBeheersing(currentEntry.id, n)}
-                    disabled={beheersingLoadingId === currentEntry.id}
-                    title={`Beheersing ${n}`}
-                    className={[
-                      'w-6 h-6 rounded text-xs font-bold transition-colors disabled:opacity-50',
-                      currentEntry.beheersing === n
-                        ? n === 1 ? 'bg-red-400 text-white' : n === 2 ? 'bg-yellow-400 text-white' : 'bg-green-500 text-white'
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200',
-                    ].join(' ')}
-                  >
-                    {n}
-                  </button>
-                ))}
+      {mode === 'kaarten' ? (
+        <div className="border rounded p-4 bg-white space-y-3">
+          {!checked ? (
+            <>
+              <p className="text-lg">{maskWord(question.sentence, question.word)}</p>
+              <button
+                onClick={reveal}
+                title="Sneltoets: Spatie of Enter"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+              >
+                Toon antwoord (Spatie)
+              </button>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-lg">
+                {revealedParts
+                  ? <>{revealedParts[0]}<strong className="text-blue-700">{revealedParts[1]}</strong>{revealedParts[2]}</>
+                  : question.sentence}
+              </p>
+              <p className="text-sm font-medium text-gray-900">→ {question.word}</p>
+              {question.translation && <p className="text-xs text-gray-500">{question.translation}</p>}
+              {beheersingButtons}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => markAndNext(false)}
+                  title="Sneltoets: 1"
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                >
+                  ✗ Fout (1)
+                </button>
+                <button
+                  onClick={() => markAndNext(true)}
+                  title="Sneltoets: 2"
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                >
+                  ✓ Goed (2)
+                </button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="border rounded p-4 bg-white space-y-3">
+          <p className="text-lg">{maskWord(question.sentence, question.word)}</p>
 
-        {!checked ? (
-          <div className="flex gap-2">
-            <button
-              onClick={checkAnswer}
-              disabled={!userInput.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+          <div className="relative">
+            <div
+              aria-hidden
+              className="absolute inset-0 flex items-center px-2 py-2 border border-transparent text-sm font-mono whitespace-pre pointer-events-none"
             >
-              Controleer
-            </button>
-            <button
-              onClick={revealHint}
-              disabled={hintExhausted}
-              title="Sneltoets: Tab"
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
-            >
-              💡 Hint (Tab)
-            </button>
+              {userInput.split('').map((ch, i) => {
+                const target = question.word[i]
+                const letterCorrect = !!target && ch.toLowerCase() === target.toLowerCase()
+                return (
+                  <span key={i} className={letterCorrect ? 'text-green-600' : 'text-red-600'}>
+                    {ch}
+                  </span>
+                )
+              })}
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  checked ? nextQuestion() : checkAnswer()
+                } else if (e.key === 'Tab' && !checked && !hintExhausted) {
+                  e.preventDefault()
+                  revealHint()
+                }
+              }}
+              placeholder="Typ het ontbrekende woord..."
+              readOnly={checked}
+              className={`relative w-full p-2 border rounded text-sm font-mono bg-transparent text-transparent caret-gray-800 placeholder:text-gray-400 ${checked ? 'bg-gray-50' : ''}`}
+            />
           </div>
-        ) : (
-          <button
-            onClick={nextQuestion}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-          >
-            {currentIndex + 1 === total ? 'Afronden →' : 'Volgende →'}
-          </button>
-        )}
-      </div>
+
+          {checked && (
+            <div className="space-y-2">
+              <p className={`text-sm ${isCorrect ? 'text-green-700' : 'text-red-600'}`}>
+                {isCorrect ? '✓ Goed!' : `✗ Fout — het juiste woord was "${question.word}".`}
+              </p>
+              {question.translation && <p className="text-xs text-gray-500">{question.translation}</p>}
+              {beheersingButtons}
+            </div>
+          )}
+
+          {!checked ? (
+            <div className="flex gap-2">
+              <button
+                onClick={checkAnswer}
+                disabled={!userInput.trim()}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+              >
+                Controleer
+              </button>
+              <button
+                onClick={revealHint}
+                disabled={hintExhausted}
+                title="Sneltoets: Tab"
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
+              >
+                💡 Hint (Tab)
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={nextQuestion}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+            >
+              {currentIndex + 1 === total ? 'Afronden →' : 'Volgende →'}
+            </button>
+          )}
+        </div>
+      )}
 
       <div>
         <p className="text-xs text-gray-400 mb-1">Overzicht</p>

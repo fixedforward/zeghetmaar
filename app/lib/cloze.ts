@@ -11,10 +11,15 @@ function wordIndex(sentence: string, word: string): number {
   return sentence.toLowerCase().indexOf(word.toLowerCase())
 }
 
-export function maskWord(sentence: string, word: string): string {
+export function splitAroundWord(sentence: string, word: string): [string, string, string] | null {
   const index = wordIndex(sentence, word)
-  if (index === -1) return sentence
-  return `${sentence.slice(0, index)}____${sentence.slice(index + word.length)}`
+  if (index === -1) return null
+  return [sentence.slice(0, index), sentence.slice(index, index + word.length), sentence.slice(index + word.length)]
+}
+
+export function maskWord(sentence: string, word: string): string {
+  const parts = splitAroundWord(sentence, word)
+  return parts ? `${parts[0]}____${parts[2]}` : sentence
 }
 
 // Only phrases with an example sentence that actually contains the target
