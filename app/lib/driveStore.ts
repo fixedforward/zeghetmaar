@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry, Meaning } from '../types'
+import type { Phrase, WordEntry, Meaning, ListeningLink } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -149,18 +149,28 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 
 // The file's root used to just be the phrases array. It's now
-// { phrases, preparedQuizFileIds, readArticleIds } so other, unrelated concerns
-// (which quiz files / articles the user has ticked off) can live in the same
+// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks } so other, unrelated
+// concerns (which quiz files / articles the user has ticked off, the Luisteren
+// YouTube links) can live in the same
 // file without a new Drive file (service accounts can't create one). A legacy
 // array-shaped root is still read correctly (the id lists default to empty).
 interface StoredRoot {
   phrases: Phrase[]
   preparedQuizFileIds: string[]
   readArticleIds: string[]
+  listeningLinks: ListeningLink[]
 }
 
 function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : []
+}
+
+function toListeningLinks(value: unknown): ListeningLink[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((x): x is ListeningLink =>
+    !!x && typeof x.id === 'string' && typeof x.url === 'string' &&
+    typeof x.title === 'string' && typeof x.createdAt === 'string'
+  )
 }
 
 async function driveReadRoot(): Promise<StoredRoot> {
@@ -172,7 +182,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
   const parsed = JSON.parse(res.data as string) as unknown
 
   if (Array.isArray(parsed)) {
-    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [] }
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [] }
   }
 
   const obj = (parsed ?? {}) as Record<string, unknown>
@@ -181,13 +191,19 @@ async function driveReadRoot(): Promise<StoredRoot> {
     phrases: migrate(phrases),
     preparedQuizFileIds: toStringArray(obj.preparedQuizFileIds),
     readArticleIds: toStringArray(obj.readArticleIds),
+    listeningLinks: toListeningLinks(obj.listeningLinks),
   }
 }
 
 async function driveWriteRoot(root: StoredRoot): Promise<void> {
   const drive = getDriveClient()
   const body = JSON.stringify(
-    { phrases: root.phrases, preparedQuizFileIds: root.preparedQuizFileIds, readArticleIds: root.readArticleIds },
+    {
+      phrases: root.phrases,
+      preparedQuizFileIds: root.preparedQuizFileIds,
+      readArticleIds: root.readArticleIds,
+      listeningLinks: root.listeningLinks,
+    },
     null,
     2
   ) + '\n'
@@ -403,4 +419,27 @@ export async function setFileMarkedAsync(kind: MarkedFileKind, fileId: string, m
   const fileIds = [...set]
   await driveWriteRoot({ ...root, [field]: fileIds })
   return fileIds
+}
+
+// ---------------------------------------------------------------------------
+// Luisteren links — YouTube links stored on the same root (see StoredRoot),
+// newest first.
+// ---------------------------------------------------------------------------
+export async function getListeningLinksAsync(): Promise<ListeningLink[]> {
+  return (await driveReadRoot()).listeningLinks
+}
+
+export async function addListeningLinkAsync(title: string, url: string): Promise<ListeningLink[]> {
+  const root = await driveReadRoot()
+  const link: ListeningLink = { id: randomUUID(), title, url, createdAt: new Date().toISOString() }
+  const listeningLinks = [link, ...root.listeningLinks]
+  await driveWriteRoot({ ...root, listeningLinks })
+  return listeningLinks
+}
+
+export async function deleteListeningLinkAsync(id: string): Promise<ListeningLink[]> {
+  const root = await driveReadRoot()
+  const listeningLinks = root.listeningLinks.filter(l => l.id !== id)
+  if (listeningLinks.length !== root.listeningLinks.length) await driveWriteRoot({ ...root, listeningLinks })
+  return listeningLinks
 }

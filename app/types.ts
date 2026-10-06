@@ -1,4 +1,4 @@
-export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen'
+export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren'
 
 export interface QuizFile {
   id: string
@@ -28,6 +28,13 @@ export interface WordEntry {
   isFavorite?: boolean
   createdAt?: string
   updatedAt: string
+}
+
+export interface ListeningLink {
+  id: string
+  title: string
+  url: string
+  createdAt: string
 }
 
 export interface Exercise {

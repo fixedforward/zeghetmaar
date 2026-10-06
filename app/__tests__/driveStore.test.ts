@@ -25,7 +25,7 @@ vi.mock('googleapis', () => ({
   },
 }))
 
-import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync } from '../lib/driveStore'
+import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, deleteListeningLinkAsync } from '../lib/driveStore'
 import { encodeYearBitmap } from '../lib/practiceLog'
 import type { Phrase } from '../types'
 
@@ -45,7 +45,7 @@ function writtenPhrases(): Phrase[] {
   return JSON.parse(body).phrases
 }
 
-function writtenRoot(): { preparedQuizFileIds: string[]; readArticleIds: string[] } {
+function writtenRoot(): { preparedQuizFileIds: string[]; readArticleIds: string[]; listeningLinks: unknown[] } {
   const body = filesUpdateMock.mock.calls[0][0].media.body[0] as string
   return JSON.parse(body)
 }
@@ -177,6 +177,62 @@ describe('root document shape (phrases + marked file ids)', () => {
 
     expect(writtenRoot()).toMatchObject({ preparedQuizFileIds: ['fileA'], readArticleIds: ['art1'] })
     expect(writtenPhrases()[0].tags).toEqual(['kantoor'])
+  })
+})
+
+describe('listening links', () => {
+  const link = { id: 'l1', title: 'Journaal', url: 'https://youtu.be/a', createdAt: '2024-01-01T00:00:00.000Z' }
+
+  beforeEach(() => {
+    filesGetMock.mockReset()
+    filesUpdateMock.mockReset()
+    filesUpdateMock.mockResolvedValue({})
+  })
+
+  it('defaults to an empty list on a root without listeningLinks', async () => {
+    mockStoredRoot([])
+
+    expect(await getListeningLinksAsync()).toEqual([])
+  })
+
+  it('drops malformed entries when reading', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [link, { id: 'x' }, null] }) })
+
+    expect(await getListeningLinksAsync()).toEqual([link])
+  })
+
+  it('addListeningLinkAsync puts the new link first and keeps phrases and marked ids', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [{ ...base, id: '1', word: 'a' }], preparedQuizFileIds: ['fileA'], readArticleIds: [], listeningLinks: [link] }) })
+
+    const result = await addListeningLinkAsync('Podcast', 'https://www.youtube.com/watch?v=b')
+
+    expect(result).toHaveLength(2)
+    expect(result[0]).toMatchObject({ title: 'Podcast', url: 'https://www.youtube.com/watch?v=b' })
+    expect(result[1]).toEqual(link)
+    expect(writtenRoot()).toMatchObject({ preparedQuizFileIds: ['fileA'], listeningLinks: result })
+    expect(writtenPhrases()).toHaveLength(1)
+  })
+
+  it('deleteListeningLinkAsync removes the link by id', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [link] }) })
+
+    expect(await deleteListeningLinkAsync('l1')).toEqual([])
+    expect(writtenRoot().listeningLinks).toEqual([])
+  })
+
+  it('deleteListeningLinkAsync does not write when the id is unknown', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], listeningLinks: [link] }) })
+
+    expect(await deleteListeningLinkAsync('nope')).toEqual([link])
+    expect(filesUpdateMock).not.toHaveBeenCalled()
+  })
+
+  it('a phrase write preserves the listening links', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [{ ...base, id: '1', word: 'a', tags: ['werk'] }], listeningLinks: [link] }) })
+
+    await renameTag('werk', 'kantoor')
+
+    expect(writtenRoot().listeningLinks).toEqual([link])
   })
 })
 
