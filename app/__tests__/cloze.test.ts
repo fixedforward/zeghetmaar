@@ -46,7 +46,7 @@ describe('buildClozeQuestions', () => {
     expect(buildClozeQuestions(words)[0].sentence).toBe('Hoewel het laat was, bleven we.')
   })
 
-  it('picks the first meaning with a matching example when meanings differ', () => {
+  it('skips meanings without a matching example', () => {
     const words = [makeWord([], {
       meanings: [
         { translation: 'although', examples: ['Geen match hier.'] },
@@ -54,6 +54,19 @@ describe('buildClozeQuestions', () => {
       ],
     })]
     expect(buildClozeQuestions(words)).toEqual([
+      { phraseId: '1', word: 'hoewel', translation: 'even though', sentence: 'Hoewel het laat was, bleven we.' },
+    ])
+  })
+
+  it('builds one question per meaning that has a matching example', () => {
+    const words = [makeWord([], {
+      meanings: [
+        { translation: 'although', examples: ['Hoewel het regende, gingen we wandelen.'] },
+        { translation: 'even though', examples: ['Hoewel het laat was, bleven we.'] },
+      ],
+    })]
+    expect(buildClozeQuestions(words)).toEqual([
+      { phraseId: '1', word: 'hoewel', translation: 'although', sentence: 'Hoewel het regende, gingen we wandelen.' },
       { phraseId: '1', word: 'hoewel', translation: 'even though', sentence: 'Hoewel het laat was, bleven we.' },
     ])
   })

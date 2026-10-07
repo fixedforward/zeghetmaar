@@ -92,7 +92,7 @@ export function ClozeTab(props: Props) {
               title={typenCount === 0 ? 'Geen frasen met een bruikbare voorbeeldzin voor deze filters.' : undefined}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
             >
-              Start typen ({typenCount} frases)
+              Start typen ({typenCount} vragen)
             </button>
             <button
               onClick={() => start(filteredWords, 'kaarten')}

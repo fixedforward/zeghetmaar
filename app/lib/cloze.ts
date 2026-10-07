@@ -19,8 +19,8 @@ export function maskWord(sentence: string, word: string): string {
 
 // Only phrases with an example sentence that actually contains the target
 // word can become a cloze question — otherwise there's nothing to blank out.
-// One question per phrase, from the first meaning with a matching example, so
-// the shown translation always matches the sentence it came from.
+// One question per meaning with a matching example, so the shown translation
+// always matches the sentence it came from.
 export function buildClozeQuestions(words: WordEntry[]): ClozeQuestion[] {
   const questions: ClozeQuestion[] = []
   for (const w of words) {
@@ -28,7 +28,6 @@ export function buildClozeQuestions(words: WordEntry[]): ClozeQuestion[] {
       const example = meaning.examples.find(e => wordIndex(e, w.word) !== -1)
       if (!example) continue
       questions.push({ phraseId: w.id, word: w.word, translation: meaning.translation, sentence: example })
-      break
     }
   }
   return questions
