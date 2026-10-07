@@ -344,8 +344,8 @@ export function ClozeTab(props: Props) {
         </div>
       )}
 
-      <div>
-        <p className="text-xs text-gray-400 mb-1">Overzicht</p>
+      <details>
+        <summary className="text-xs text-gray-400 mb-1 cursor-pointer select-none">Overzicht</summary>
         <ul className="space-y-1 max-h-64 overflow-y-auto border rounded p-2 bg-white">
           {questions.map((q, i) => {
             const answer = answers[i]
@@ -366,7 +366,7 @@ export function ClozeTab(props: Props) {
             )
           })}
         </ul>
-      </div>
+      </details>
 
       <PhraseDetailModal {...props} />
     </div>

@@ -270,8 +270,8 @@ export function QuizTab(quiz: Props) {
         </div>
       )}
 
-      <div className="mt-4">
-        <p className="text-xs text-gray-400 mb-1">Overzicht</p>
+      <details className="mt-4">
+        <summary className="text-xs text-gray-400 mb-1 cursor-pointer select-none">Overzicht</summary>
         <ul className="space-y-1 max-h-64 overflow-y-auto border rounded p-2 bg-white">
           {quiz.pairs.map((pair, i) => {
             const answer = quiz.answers[i]
@@ -292,7 +292,7 @@ export function QuizTab(quiz: Props) {
             )
           })}
         </ul>
-      </div>
+      </details>
 
       <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} />
     </div>
