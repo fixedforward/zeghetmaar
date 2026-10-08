@@ -27,6 +27,10 @@
     "googleArticlesFolder": {
       "_comment": "optional — enables the Artikelen tab; folder (with optional subfolders) holding Google Docs / .txt articles, readable by the service account above",
       "folderId": "<drive-folder-id>"
+    },
+    "googleListeningFolder": {
+      "_comment": "optional — enables the Luisteren tab's Drive tree; folder (with optional subfolders) holding .mp3/.mp4 files, each with a .srt of the same name next to it, readable by the service account above",
+      "folderId": "<drive-folder-id>"
     }
   },
   "auth": {

@@ -90,3 +90,32 @@ export interface Article {
   name: string
   paragraphs: string[]
 }
+
+export interface TranscriptCue {
+  start: number
+  end: number
+  text: string
+}
+
+export interface ListeningLesson {
+  id: string
+  name: string
+  mediaFileId: string
+  // The .srt that belongs to the media file: same name, same folder.
+  subtitleFileName: string
+  subtitlesFound: boolean
+  cues: TranscriptCue[]
+}
+
+export interface ListeningTreeFile {
+  id: string
+  name: string
+  hasSubtitles: boolean
+}
+
+export interface ListeningTreeFolder {
+  id: string
+  name: string
+  folders: ListeningTreeFolder[]
+  files: ListeningTreeFile[]
+}

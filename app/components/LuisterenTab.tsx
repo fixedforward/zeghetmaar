@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { useLuisteren } from '../hooks/useLuisteren'
+import type { useListeningTree } from '../hooks/useListeningTree'
 import type { useWords } from '../hooks/useWords'
 import { formatDutchDate } from '../lib/date'
 import { formatClock, formatCompactTimestamp, isYouTubeUrl, parseCompactTimestamp, startBefore, withStartTime } from '../lib/youtube'
 import { AddPhraseModal } from './AddPhraseModal'
+import { ListeningTree } from './ListeningTree'
 import { oppositeHalfOfScreen, openPopupWindow } from '../lib/popup'
 
 const PHRASE_LEAD_SECONDS = 5
@@ -11,11 +13,12 @@ const PHRASE_LEAD_SECONDS = 5
 type Props = ReturnType<typeof useLuisteren> & {
   isLoggedIn: boolean
   words: ReturnType<typeof useWords>
+  listeningTree: ReturnType<typeof useListeningTree>
 }
 
 export function LuisterenTab({
   links, loading, saving, error, loadLinks, addLinkAsync, setPositionAsync,
-  addPhraseAsync, setPhraseSecondsAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync, isLoggedIn, words,
+  addPhraseAsync, setPhraseSecondsAsync, deletePhraseAsync, markPhraseImportedAsync, deleteLinkAsync, isLoggedIn, words, listeningTree,
 }: Props) {
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -28,9 +31,12 @@ export function LuisterenTab({
   const [importing, setImporting] = useState<{ linkId: string; phraseId: string } | null>(null)
   const closeImport = useCallback(() => setImporting(null), [])
 
+  const { loadTree } = listeningTree
   useEffect(() => {
-    if (isLoggedIn) loadLinks()
-  }, [isLoggedIn, loadLinks])
+    if (!isLoggedIn) return
+    loadLinks()
+    loadTree()
+  }, [isLoggedIn, loadLinks, loadTree])
 
   if (!isLoggedIn) {
     return <p className="text-sm text-gray-500">Log in om je luisterlinks te zien.</p>
@@ -124,6 +130,15 @@ export function LuisterenTab({
       <p className="text-sm font-medium text-blue-800 bg-blue-50 border border-blue-100 rounded p-2">
         🎧 Doel: luister elke dag minstens 5 minuten naar een YouTube-video.
       </p>
+
+      <section className="border rounded p-3 bg-white space-y-2">
+        <h2 className="text-sm font-medium text-gray-700">Video&apos;s en audio uit Drive</h2>
+        {listeningTree.loading && <p className="text-sm text-gray-400">Laden...</p>}
+        {listeningTree.error && <p className="text-sm text-red-500">{listeningTree.error}</p>}
+        {listeningTree.tree && (listeningTree.tree.folders.length > 0 || listeningTree.tree.files.length > 0
+          ? <ListeningTree folder={listeningTree.tree} />
+          : <p className="text-sm text-gray-400">Geen .mp3- of .mp4-bestanden gevonden.</p>)}
+      </section>
       <p className="text-sm text-gray-500">Bewaar YouTube-video&apos;s om naar te luisteren. Klik op een link om de video in een apart venster op de andere helft van je scherm te openen; vul ernaast in waar je gebleven bent (bijv. 1723 = 17:23) om daar verder te kijken.</p>
 
       <form

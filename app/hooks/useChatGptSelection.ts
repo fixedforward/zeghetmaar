@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { buildChatGptExplainUrl } from '../lib/chatgpt'
+import { explainPhrasePrompt } from '../lib/prompts'
 
 export interface ChatGptLink {
   x: number
   y: number
-  url: string
+  prompt: string
   text: string
 }
 
-export function useChatGptSelection(context?: string) {
+// context: a fixed text, or a function that picks it for the current selection.
+export function useChatGptSelection(context?: string | ((selection: Selection) => string | undefined)) {
   const [chatGptLink, setChatGptLink] = useState<ChatGptLink | null>(null)
 
   useEffect(() => {
@@ -21,12 +22,14 @@ export function useChatGptSelection(context?: string) {
   }, [chatGptLink])
 
   const handleTextSelection = (e: React.MouseEvent) => {
-    const selected = window.getSelection()?.toString().trim()
-    if (!selected) {
+    const selection = window.getSelection()
+    const selected = selection?.toString().trim()
+    if (!selection || !selected) {
       setChatGptLink(null)
       return
     }
-    setChatGptLink({ x: e.clientX, y: e.clientY + 12, url: buildChatGptExplainUrl(selected, context), text: selected })
+    const contextText = typeof context === 'function' ? context(selection) : context
+    setChatGptLink({ x: e.clientX, y: e.clientY + 12, prompt: explainPhrasePrompt(selected, contextText), text: selected })
   }
 
   return { chatGptLink, handleTextSelection, closeChatGptLink: () => setChatGptLink(null) }

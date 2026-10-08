@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { getArticlesRootFolderId, listArticleFolderAsync } from '@/app/lib/driveArticleStore'
+import { getArticlesRootFolderId, isDriveId, listArticleFolderAsync } from '@/app/lib/driveArticleStore'
 
 export async function GET(request: NextRequest) {
   const session = await auth()
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   const folderId = request.nextUrl.searchParams.get('folderId') ?? rootFolderId
-  if (!/^[A-Za-z0-9_-]+$/.test(folderId)) {
+  if (!isDriveId(folderId)) {
     return NextResponse.json({ error: 'Ongeldige map.' }, { status: 400 })
   }
 
