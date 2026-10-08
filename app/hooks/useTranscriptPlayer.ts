@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ListeningLesson } from '../types'
 import { findActiveCueIndex, sentencesAroundCues } from '../lib/srt'
-import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, buildChatGptListeningComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { isModalOpen, isTypingTarget } from '../lib/keyboard'
 
 const CONTEXT_SENTENCES = 3
@@ -13,7 +13,7 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
   const [lesson, setLesson] = useState<ListeningLesson | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(-1)
-  const [subtitlesOn, setSubtitlesOn] = useState(true)
+  const [subtitlesOn, setSubtitlesOn] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -72,6 +72,8 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
     else media.pause()
   }, [])
 
+  const pause = useCallback(() => mediaRef.current?.pause(), [])
+
   const skipBy = useCallback((seconds: number) => {
     const media = mediaRef.current
     if (media) media.currentTime = Math.max(0, media.currentTime + seconds)
@@ -106,8 +108,13 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
     openChatGptInBackground(buildChatGptExplainUrl(sentence, contextAroundCues(index, index)))
   }, [lesson, contextAroundCues])
 
+  const checkComprehensionInChatGpt = useCallback(() => {
+    if (!lesson?.subtitleFileId) return
+    openChatGptInBackground(buildChatGptListeningComprehensionUrl(lesson.name, lesson.subtitleFileId))
+  }, [lesson])
+
   return {
     mediaRef, lesson, error, activeIndex, subtitlesOn,
-    syncActiveCue, seekTo, togglePlay, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt,
+    syncActiveCue, seekTo, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
   }
 }

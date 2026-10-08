@@ -1,4 +1,4 @@
-import { explainPhrasePrompt, checkAnswerPrompt, comprehensionCheckPrompt } from './prompts'
+import { explainPhrasePrompt, checkAnswerPrompt, comprehensionCheckPrompt, listeningComprehensionPrompt } from './prompts'
 import { openPopupWindow } from './popup'
 
 export function buildChatGptExplainUrl(phrase: string, context?: string): string {
@@ -7,6 +7,16 @@ export function buildChatGptExplainUrl(phrase: string, context?: string): string
 
 export function buildChatGptComprehensionUrl(articleText: string): string {
   return `https://chatgpt.com/?q=${encodeURIComponent(comprehensionCheckPrompt(articleText))}`
+}
+
+// The normal "anyone with the link" share link: ChatGPT said it couldn't open the
+// uc?export=download link and asked for this one instead.
+export function driveShareUrl(fileId: string): string {
+  return `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view?usp=sharing`
+}
+
+export function buildChatGptListeningComprehensionUrl(title: string, subtitleFileId: string): string {
+  return `https://chatgpt.com/?q=${encodeURIComponent(listeningComprehensionPrompt(title, driveShareUrl(subtitleFileId)))}`
 }
 
 export function buildChatGptCheckAnswerUrl(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {

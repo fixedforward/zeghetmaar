@@ -101,9 +101,10 @@ export interface ListeningLesson {
   id: string
   name: string
   mediaFileId: string
-  // The .srt that belongs to the media file: same name, same folder.
+  isAudio?: boolean
+  // The .srt that belongs to the media file: same name, same folder; its id is null when missing.
   subtitleFileName: string
-  subtitlesFound: boolean
+  subtitleFileId: string | null
   cues: TranscriptCue[]
 }
 

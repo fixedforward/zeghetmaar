@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor, fireEvent } from '@testing-library/react'
 import { useTranscriptPlayer } from '../hooks/useTranscriptPlayer'
-import { buildChatGptExplainUrl } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, buildChatGptListeningComprehensionUrl } from '../lib/chatgpt'
 
 const lesson = {
   id: 'f1',
   name: 'Les 14',
   mediaFileId: 'v1',
   subtitleFileName: 'Les 14.srt',
-  subtitlesFound: true,
+  subtitleFileId: 's1',
   cues: [
     { start: 1, end: 2, text: 'Een.' },
     { start: 2, end: 4, text: 'Twee.' },
@@ -183,6 +183,16 @@ describe('useTranscriptPlayer', () => {
     dialog.remove()
   })
 
+  it('pauses the video', async () => {
+    const { result } = await renderLoadedAsync()
+    const media = fakeMedia(0, false)
+    result.current.mediaRef.current = media as unknown as HTMLVideoElement
+
+    act(() => result.current.pause())
+
+    expect(media.pause).toHaveBeenCalled()
+  })
+
   it('skips back and forward, never before the start', async () => {
     const { result } = await renderLoadedAsync()
     const media = fakeMedia(3)
@@ -210,6 +220,16 @@ describe('useTranscriptPlayer', () => {
     act(() => result.current.explainCueInChatGpt(1))
 
     expect(openSpy.mock.calls[0][0]).toBe(buildChatGptExplainUrl('Twee.', 'Een. Twee. Drie.'))
+  })
+
+  it('opens a ChatGPT comprehension check with a link to the transcript', async () => {
+    const { result } = await renderLoadedAsync()
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+    vi.spyOn(window, 'focus').mockImplementation(() => {})
+
+    act(() => result.current.checkComprehensionInChatGpt())
+
+    expect(openSpy.mock.calls[0][0]).toBe(buildChatGptListeningComprehensionUrl('Les 14', 's1'))
   })
 
   describe('subtitles on the video', () => {
@@ -242,12 +262,12 @@ describe('useTranscriptPlayer', () => {
     })
 
     it('adds no track when the subtitles were not found', async () => {
-      global.fetch = vi.fn().mockResolvedValue(ok({ ...lesson, subtitlesFound: false, cues: [] }))
+      global.fetch = vi.fn().mockResolvedValue(ok({ ...lesson, subtitleFileId: null, cues: [] }))
       const media = fakeMedia()
       const { result } = renderHook(() => useTranscriptPlayer('f1', 'v1'))
       result.current.mediaRef.current = media as unknown as HTMLVideoElement
 
-      await waitFor(() => expect(result.current.lesson?.subtitlesFound).toBe(false))
+      await waitFor(() => expect(result.current.lesson?.subtitleFileId).toBeNull())
 
       expect(media.addTextTrack).not.toHaveBeenCalled()
     })
