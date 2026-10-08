@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, buildChatGptComprehensionUrl, openChatGptInBackground, openChatGptWithPromptAsync } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, buildChatGptComprehensionUrl, buildChatGptListeningComprehensionUrl, driveShareUrl, openChatGptInBackground, openChatGptWithPromptAsync } from '../lib/chatgpt'
 
 describe('buildChatGptExplainUrl', () => {
   it('starts with the chatgpt.com prefilled-prompt URL', () => {
@@ -25,6 +25,23 @@ describe('buildChatGptComprehensionUrl', () => {
     const url = buildChatGptComprehensionUrl('Het weer is mooi vandaag.')
     expect(url.startsWith('https://chatgpt.com/?q=')).toBe(true)
     expect(decodeURIComponent(url.replace('https://chatgpt.com/?q=', ''))).toContain('Het weer is mooi vandaag.')
+  })
+})
+
+describe('driveShareUrl', () => {
+  it('builds the normal Drive share link', () => {
+    expect(driveShareUrl('abc_123-X')).toBe('https://drive.google.com/file/d/abc_123-X/view?usp=sharing')
+  })
+})
+
+describe('buildChatGptListeningComprehensionUrl', () => {
+  it('puts a link to the transcript in the prompt instead of the transcript itself', () => {
+    const url = buildChatGptListeningComprehensionUrl('Les 14', 's1')
+    const decoded = decodeURIComponent(url.replace('https://chatgpt.com/?q=', ''))
+
+    expect(url.startsWith('https://chatgpt.com/?q=')).toBe(true)
+    expect(decoded).toContain('https://drive.google.com/file/d/s1/view?usp=sharing')
+    expect(decoded).toContain('"Les 14"')
   })
 })
 

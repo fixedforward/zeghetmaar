@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
+import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
 import type { WordEntry } from '../types'
 
 const basePhrase: WordEntry = {
@@ -98,6 +98,18 @@ describe('comprehensionCheckPrompt', () => {
     const prompt = comprehensionCheckPrompt('Eerste alinea.\n\nTweede alinea.')
     expect(prompt).toContain('7 vragen')
     expect(prompt).toContain('Eerste alinea.\n\nTweede alinea.')
+  })
+})
+
+describe('listeningComprehensionPrompt', () => {
+  it('asks for 7 questions one at a time about the transcript behind the link', () => {
+    const prompt = listeningComprehensionPrompt('Les 14', 'https://drive.google.com/file/d/s1/view?usp=sharing')
+
+    expect(prompt).toContain('"Les 14"')
+    expect(prompt).toContain('https://drive.google.com/file/d/s1/view?usp=sharing')
+    expect(prompt).toContain('7 vragen')
+    expect(prompt).toContain('één voor één')
+    expect(prompt).toContain('Kun je de link niet openen?')
   })
 })
 

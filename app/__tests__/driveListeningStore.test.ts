@@ -108,7 +108,7 @@ describe('getListeningLessonAsync', () => {
       name: 'Les 14',
       mediaFileId: 'v1',
       subtitleFileName: 'Les 14.srt',
-      subtitlesFound: true,
+      subtitleFileId: 's1',
       cues: [{ start: 1, end: 2, text: 'Hallo.' }],
     })
   })
@@ -118,7 +118,7 @@ describe('getListeningLessonAsync', () => {
 
     const lesson = await getListeningLessonAsync('f1', 'v1')
 
-    expect(lesson).toMatchObject({ subtitleFileName: 'Les 14.srt', subtitlesFound: false, cues: [] })
+    expect(lesson).toMatchObject({ subtitleFileName: 'Les 14.srt', subtitleFileId: null, cues: [] })
     expect(filesGetMock).not.toHaveBeenCalled()
   })
 

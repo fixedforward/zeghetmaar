@@ -12,7 +12,6 @@ import { useOefenSessie } from './hooks/useOefenSessie'
 import { useQuiz } from './hooks/useQuiz'
 import { useCloze } from './hooks/useCloze'
 import { useArticles } from './hooks/useArticles'
-import { useLuisteren } from './hooks/useLuisteren'
 import { useListeningTree } from './hooks/useListeningTree'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
@@ -67,7 +66,6 @@ export default function HomeClient() {
   const quiz = useQuiz(quizTracker.markPracticedToday)
   const cloze = useCloze(mode => (mode === 'kaarten' ? clozeKaartenTracker : clozeTracker).markPracticedToday())
   const articles = useArticles()
-  const luisteren = useLuisteren()
   const listeningTree = useListeningTree()
   const tabSettings = useTabSettings()
 
@@ -224,7 +222,7 @@ export default function HomeClient() {
           </ErrorBoundary>
         )}
         {activeTab === 'artikelen' && <ErrorBoundary><ArtikelenTab {...articles} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
-        {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab {...luisteren} isLoggedIn={!!session} words={words} listeningTree={listeningTree} /></ErrorBoundary>}
+        {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab isLoggedIn={!!session} listeningTree={listeningTree} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (

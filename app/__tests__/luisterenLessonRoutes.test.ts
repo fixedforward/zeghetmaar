@@ -129,7 +129,7 @@ describe('GET /api/luisteren/lessons/[folderId]', () => {
       name: 'Les 14',
       mediaFileId: 'v1',
       subtitleFileName: 'Les 14.srt',
-      subtitlesFound: true,
+      subtitleFileId: 's1',
       cues: [{ start: 1, end: 2.5, text: 'Hallo daar.' }],
     })
   })
@@ -143,7 +143,7 @@ describe('GET /api/luisteren/lessons/[folderId]', () => {
     const res = await lessonRequest('f1', 'v1')
 
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ subtitleFileName: 'Les 14.srt', subtitlesFound: false, cues: [] })
+    expect(await res.json()).toMatchObject({ subtitleFileName: 'Les 14.srt', subtitleFileId: null, cues: [] })
   })
 
   it('returns 404 when the file is not in the folder', async () => {

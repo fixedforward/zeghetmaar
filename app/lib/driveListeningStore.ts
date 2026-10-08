@@ -75,8 +75,9 @@ export async function getListeningLessonAsync(folderId: string, mediaFileId: str
     id: folderId,
     name: baseName(media.name),
     mediaFileId: media.id,
+    isAudio: /^audio\//i.test(media.mimeType ?? '') || /\.mp3$/i.test(media.name),
     subtitleFileName: subtitleFileName(media.name),
-    subtitlesFound: !!srt,
+    subtitleFileId: srt?.id ?? null,
     cues: srt ? parseSrt(await readDriveTextFileAsync(srt.id)) : [],
   }
 }

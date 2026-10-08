@@ -57,13 +57,26 @@ export function explainPhrasePrompt(phrase: string, context?: string): string {
   return `${question}\n\nHet komt uit deze tekst, gebruik die als context:\n\n${context}`
 }
 
+const ONE_QUESTION_AT_A_TIME = `Stel de vragen één voor één: wacht op mijn antwoord, geef feedback (en verbeter mijn Nederlands), en stel dan pas de volgende vraag.`
+
 export function comprehensionCheckPrompt(articleText: string): string {
   return [
     `Ik leer Nederlands en heb de onderstaande tekst gelezen.`,
     `Controleer mijn begrip van de tekst door mij 7 vragen erover te stellen, in het Nederlands.`,
-    `Stel de vragen één voor één: wacht op mijn antwoord, geef feedback (en verbeter mijn Nederlands), en stel dan pas de volgende vraag.`,
+    ONE_QUESTION_AT_A_TIME,
     ``,
     articleText,
+  ].join('\n')
+}
+
+// Links to the transcript instead of pasting it: a whole transcript is too long for a URL.
+export function listeningComprehensionPrompt(title: string, transcriptUrl: string): string {
+  return [
+    `Ik leer Nederlands en heb net naar "${title}" geluisterd.`,
+    `Het transcript (een .srt-bestand) staat hier: ${transcriptUrl}`,
+    `Open het transcript en controleer mijn begrip door mij 7 vragen over de inhoud te stellen, in het Nederlands.`,
+    ONE_QUESTION_AT_A_TIME,
+    `Kun je de link niet openen? Zeg dat dan meteen, in plaats van te raden wat erin staat.`,
   ].join('\n')
 }
 
