@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, buildChatGptComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { buildChatGptExplainUrl, buildChatGptCheckAnswerUrl, buildChatGptComprehensionUrl, openChatGptInBackground, openChatGptWithPromptAsync } from '../lib/chatgpt'
 
 describe('buildChatGptExplainUrl', () => {
   it('starts with the chatgpt.com prefilled-prompt URL', () => {
@@ -91,5 +91,36 @@ describe('openChatGptInBackground', () => {
       'chatgpt-popup',
       'popup=yes,noopener,noreferrer,width=480,height=720,left=0,top=0'
     )
+  })
+})
+
+describe('openChatGptWithPromptAsync', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('puts a short prompt in the URL', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+    vi.spyOn(window, 'focus').mockImplementation(() => {})
+
+    const via = await openChatGptWithPromptAsync('Wat betekent "op de hoogte"?')
+
+    expect(via).toBe('url')
+    expect(openSpy.mock.calls[0][0]).toBe(`https://chatgpt.com/?q=${encodeURIComponent('Wat betekent "op de hoogte"?')}`)
+  })
+
+  it('copies a prompt too long for a URL and opens an empty chat', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+    vi.spyOn(window, 'focus').mockImplementation(() => {})
+    const prompt = 'Leg uit.\n\n' + 'Een zin uit het transcript.\n'.repeat(2000)
+
+    const via = await openChatGptWithPromptAsync(prompt)
+
+    expect(via).toBe('clipboard')
+    expect(writeText).toHaveBeenCalledWith(prompt)
+    expect(openSpy.mock.calls[0][0]).toBe('https://chatgpt.com/')
   })
 })

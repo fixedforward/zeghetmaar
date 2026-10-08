@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import type { useArticles } from '../hooks/useArticles'
 import type { useWords } from '../hooks/useWords'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
+import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { buildChatGptComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { AddPhraseModal } from './AddPhraseModal'
@@ -15,14 +16,7 @@ export function ArtikelenTab(articles: Props) {
   const { isLoggedIn, loadRoot, loadReadArticleIds, words } = articles
   const articleText = articles.article?.paragraphs.join('\n\n')
   const { chatGptLink, handleTextSelection, closeChatGptLink } = useChatGptSelection(articleText)
-  const [addPhraseOpen, setAddPhraseOpen] = useState(false)
-  const closeAddPhrase = useCallback(() => setAddPhraseOpen(false), [])
-
-  const openAddPhrase = (text: string) => {
-    words.loadWords()
-    words.startAddWord(text)
-    setAddPhraseOpen(true)
-  }
+  const addPhrase = useAddPhraseModal(words)
 
   useEffect(() => {
     if (!isLoggedIn) return
@@ -84,8 +78,8 @@ export function ArtikelenTab(articles: Props) {
             Comprehension controleren
           </button>
         )}
-        <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} onAddPhrase={openAddPhrase} />
-        <AddPhraseModal words={words} open={addPhraseOpen} onClose={closeAddPhrase} />
+        <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} onAddPhrase={addPhrase.openWith} />
+        <AddPhraseModal words={words} open={addPhrase.open} onClose={addPhrase.close} />
       </div>
     )
   }

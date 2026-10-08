@@ -13,9 +13,10 @@ import { useQuiz } from './hooks/useQuiz'
 import { useCloze } from './hooks/useCloze'
 import { useArticles } from './hooks/useArticles'
 import { useLuisteren } from './hooks/useLuisteren'
+import { useListeningTree } from './hooks/useListeningTree'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
-import { TAB_LABELS } from './config/tabs'
+import { ALL_TABS, TAB_LABELS } from './config/tabs'
 import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
@@ -67,6 +68,7 @@ export default function HomeClient() {
   const cloze = useCloze(mode => (mode === 'kaarten' ? clozeKaartenTracker : clozeTracker).markPracticedToday())
   const articles = useArticles()
   const luisteren = useLuisteren()
+  const listeningTree = useListeningTree()
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {
@@ -82,9 +84,13 @@ export default function HomeClient() {
 
     const params = new URLSearchParams(window.location.search)
     const error = params.get('error')
-    if (error) {
-      setAuthError(AUTH_ERROR_MESSAGES[error] ?? DEFAULT_AUTH_ERROR_MESSAGE)
+    if (error) setAuthError(AUTH_ERROR_MESSAGES[error] ?? DEFAULT_AUTH_ERROR_MESSAGE)
+    // e.g. /?tab=luisteren from the "← Luisteren" link on the player page.
+    const tab = params.get('tab')
+    if (tab && (ALL_TABS as string[]).includes(tab)) selectTab(tab as Tab)
+    if (error || tab) {
       params.delete('error')
+      params.delete('tab')
       const query = params.toString()
       window.history.replaceState({}, '', query ? `?${query}` : window.location.pathname)
     }
@@ -218,7 +224,7 @@ export default function HomeClient() {
           </ErrorBoundary>
         )}
         {activeTab === 'artikelen' && <ErrorBoundary><ArtikelenTab {...articles} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
-        {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab {...luisteren} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
+        {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab {...luisteren} isLoggedIn={!!session} words={words} listeningTree={listeningTree} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (

@@ -19,6 +19,9 @@ interface AppConfig {
     googleArticlesFolder?: {
       folderId: string
     }
+    googleListeningFolder?: {
+      folderId: string
+    }
   }
   auth: {
     nextAuthSecret: string

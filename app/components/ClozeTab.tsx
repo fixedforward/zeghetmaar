@@ -3,6 +3,7 @@ import type { ClozeMode, useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
 import { buildClozeQuestions, buildFlashcards, maskWord } from '../lib/cloze'
 import { DEFAULT_DAY_RANGE, filterWordsByDaysSinceAdded, type DayRange } from '../lib/wordFilters'
+import { isTypingTarget } from '../lib/keyboard'
 import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
@@ -39,8 +40,7 @@ export function ClozeTab(props: Props) {
   useEffect(() => {
     if (!kaartenActive) return
     const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (isTypingTarget(e.target)) return
       if (!checked && (e.key === ' ' || e.key === 'Enter')) {
         e.preventDefault()
         reveal()

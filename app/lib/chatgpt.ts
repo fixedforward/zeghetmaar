@@ -36,3 +36,18 @@ export function openChatGptInBackground(url: string): void {
   openPopupWindow(url, 'chatgpt-popup', { width: popupWidth, height: popupHeight, left, top })
   window.focus()
 }
+
+// chatgpt.com still loaded a 64 KB URL but not a 125 KB one (a whole podcast transcript is
+// ~120 KB encoded), so a longer prompt goes via the clipboard and ChatGPT opens empty.
+const MAX_PROMPT_URL_LENGTH = 30_000
+
+export async function openChatGptWithPromptAsync(prompt: string): Promise<'url' | 'clipboard'> {
+  const url = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`
+  if (url.length <= MAX_PROMPT_URL_LENGTH) {
+    openChatGptInBackground(url)
+    return 'url'
+  }
+  await navigator.clipboard.writeText(prompt)
+  openChatGptInBackground('https://chatgpt.com/')
+  return 'clipboard'
+}
