@@ -1,8 +1,16 @@
 export type SwipeDirection = -1 | 1
+export type TapZone = 'left' | 'middle' | 'right'
 
 const SWIPE_MIN_DISTANCE = 40
 const WHEEL_SWIPE_MIN_DISTANCE = 60
 const WHEEL_SWIPE_IDLE_MS = 300
+
+// Which third of the element a tap landed in; `fraction` is 0 at the left edge, 1 at the right.
+export function tapZone(fraction: number): TapZone {
+  if (fraction < 1 / 3) return 'left'
+  if (fraction > 2 / 3) return 'right'
+  return 'middle'
+}
 
 // -1 for a swipe to the left, 1 to the right, 0 for a tap or a mostly vertical move.
 export function swipeDirection(dx: number, dy: number): SwipeDirection | 0 {
