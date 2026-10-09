@@ -107,10 +107,17 @@ describe('getListeningLessonAsync', () => {
       id: 'f1',
       name: 'Les 14',
       mediaFileId: 'v1',
+      isAudio: false,
       subtitleFileName: 'Les 14.srt',
       subtitleFileId: 's1',
       cues: [{ start: 1, end: 2, text: 'Hallo.' }],
     })
+  })
+
+  it('marks an mp3 as audio', async () => {
+    mockDrive({ f1: [file('a1', 'podcast.mp3', 'audio/mpeg')] })
+
+    expect(await getListeningLessonAsync('f1', 'a1')).toMatchObject({ isAudio: true })
   })
 
   it('says the subtitles are missing when no .srt has the same name', async () => {

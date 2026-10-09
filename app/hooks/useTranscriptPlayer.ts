@@ -74,6 +74,15 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
 
   const pause = useCallback(() => mediaRef.current?.pause(), [])
 
+  // step -1 = previous subtitle, 1 = next. The highlight moves right away, so pressing again
+  // before the video catches up goes one further instead of to the same line.
+  const seekToCueBy = useCallback((step: number) => {
+    if (!lesson?.cues.length) return
+    const index = Math.min(lesson.cues.length - 1, Math.max(0, activeIndex + step))
+    setActiveIndex(index)
+    seekTo(lesson.cues[index].start)
+  }, [lesson, activeIndex, seekTo])
+
   const skipBy = useCallback((seconds: number) => {
     const media = mediaRef.current
     if (media) media.currentTime = Math.max(0, media.currentTime + seconds)
@@ -115,6 +124,6 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
 
   return {
     mediaRef, lesson, error, activeIndex, subtitlesOn,
-    syncActiveCue, seekTo, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
+    syncActiveCue, seekTo, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
   }
 }

@@ -128,6 +128,7 @@ describe('GET /api/luisteren/lessons/[folderId]', () => {
       id: 'f1',
       name: 'Les 14',
       mediaFileId: 'v1',
+      isAudio: false,
       subtitleFileName: 'Les 14.srt',
       subtitleFileId: 's1',
       cues: [{ start: 1, end: 2.5, text: 'Hallo daar.' }],

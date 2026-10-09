@@ -193,6 +193,27 @@ describe('useTranscriptPlayer', () => {
     expect(media.pause).toHaveBeenCalled()
   })
 
+  it('jumps to the next and previous subtitle, staying within the transcript', async () => {
+    const { result } = await renderLoadedAsync()
+    const media = fakeMedia(0)
+    result.current.mediaRef.current = media as unknown as HTMLVideoElement
+
+    act(() => result.current.seekToCueBy(1))
+    expect(result.current.activeIndex).toBe(0)
+    expect(media.currentTime).toBe(1)
+
+    act(() => result.current.seekToCueBy(1))
+    act(() => result.current.seekToCueBy(1))
+    act(() => result.current.seekToCueBy(1))
+    expect(result.current.activeIndex).toBe(2)
+    expect(media.currentTime).toBe(6)
+
+    act(() => result.current.seekToCueBy(-1))
+    expect(result.current.activeIndex).toBe(1)
+    expect(media.currentTime).toBe(2)
+    expect(media.play).toHaveBeenCalled()
+  })
+
   it('skips back and forward, never before the start', async () => {
     const { result } = await renderLoadedAsync()
     const media = fakeMedia(3)
@@ -242,23 +263,24 @@ describe('useTranscriptPlayer', () => {
       return { ...hook, media }
     }
 
-    it('adds a Dutch subtitle track with every cue and shows it', async () => {
-      const { media } = await renderWithMediaAsync()
+    it('adds a Dutch subtitle track with every cue, hidden by default', async () => {
+      const { result, media } = await renderWithMediaAsync()
 
       expect(media.addTextTrack).toHaveBeenCalledWith('subtitles', 'Nederlands', 'nl')
       expect(media.track.addCue.mock.calls.map(([cue]) => cue)).toEqual(lesson.cues.map(c => new FakeVTTCue(c.start, c.end, c.text)))
-      expect(media.track.mode).toBe('showing')
+      expect(result.current.subtitlesOn).toBe(false)
+      expect(media.track.mode).toBe('hidden')
     })
 
-    it('hides and shows the subtitles', async () => {
+    it('shows and hides the subtitles on the video', async () => {
       const { result, media } = await renderWithMediaAsync()
 
       act(() => result.current.toggleSubtitles())
-      expect(result.current.subtitlesOn).toBe(false)
-      expect(media.track.mode).toBe('hidden')
+      expect(result.current.subtitlesOn).toBe(true)
+      expect(media.track.mode).toBe('showing')
 
       act(() => result.current.toggleSubtitles())
-      expect(media.track.mode).toBe('showing')
+      expect(media.track.mode).toBe('hidden')
     })
 
     it('adds no track when the subtitles were not found', async () => {

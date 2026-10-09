@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { swipeDirection, createWheelSwipeTracker } from '../lib/swipe'
+import { swipeDirection, createWheelSwipeTracker, tapZone } from '../lib/swipe'
+
+describe('tapZone', () => {
+  it('splits the element into a left, middle and right third', () => {
+    expect(tapZone(0.1)).toBe('left')
+    expect(tapZone(0.5)).toBe('middle')
+    expect(tapZone(0.9)).toBe('right')
+  })
+})
 
 describe('swipeDirection', () => {
   it('reads a long horizontal move as a swipe left or right', () => {

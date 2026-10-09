@@ -10,7 +10,7 @@ import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
 import { DEFAULT_MODEL } from '../config/models'
 import { formatClock } from '../lib/youtube'
-import type { SwipeDirection } from '../lib/swipe'
+import type { SwipeDirection, TapZone } from '../lib/swipe'
 
 function cueIndexOf(node: Node | null): number {
   const element = node instanceof Element ? node : node?.parentElement
@@ -32,21 +32,27 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   // This page has no model picker, so AI help in the add form uses the default model.
   const words = useWords(DEFAULT_MODEL)
   const addPhrase = useAddPhraseModal(words)
-  const { skipBy } = player
+  const { skipBy, togglePlay } = player
   const skipBySwipe = useCallback((direction: SwipeDirection) => skipBy(direction * SKIP_SECONDS), [skipBy])
-  const gestures = useSwipeGestures(player.togglePlay, skipBySwipe)
+  // Double-tap: left third 5 s back, middle play/pause, right third 5 s forward.
+  const onDoubleTap = useCallback((zone: TapZone) => {
+    if (zone === 'middle') togglePlay()
+    else skipBy(zone === 'left' ? -SKIP_SECONDS : SKIP_SECONDS)
+  }, [skipBy, togglePlay])
+  const gestures = useSwipeGestures(onDoubleTap, skipBySwipe)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const activeCueRef = useRef<HTMLDivElement>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [transcriptOpen, setTranscriptOpen] = useState(false)
 
-  // Scroll only the transcript list, not the whole page, so the video stays in view.
+  // Keeps the current line at the top of the transcript list, also right after opening it.
+  // Scrolls only the list, not the whole page, so the video stays in view.
   useEffect(() => {
     const container = transcriptRef.current
     const cue = activeCueRef.current
-    if (!container || !cue) return
-    container.scrollTo({ top: cue.offsetTop - container.clientHeight / 2 + cue.clientHeight / 2, behavior: 'smooth' })
-  }, [player.activeIndex])
+    if (!container || !cue || !transcriptOpen) return
+    container.scrollTo({ top: cue.offsetTop, behavior: 'smooth' })
+  }, [player.activeIndex, transcriptOpen])
 
   if (player.error) return <p className="text-sm text-red-500">{player.error}</p>
   if (!player.lesson) return <p className="text-sm text-gray-400">Laden...</p>
@@ -91,7 +97,8 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
           />
         </div>
         {subtitlesFound && (
-          <div className="rounded border border-gray-200 bg-gray-50 p-3" onMouseUp={handleTextSelection}>
+          // Touching the subtitle pauses, so the line stays put while you read, select or use a button.
+          <div className="rounded border border-gray-200 bg-gray-50 p-3" onPointerDown={player.pause} onMouseUp={handleTextSelection}>
             <p className="min-h-6 text-gray-800" aria-live="polite">
               <span data-cue-index={player.activeIndex}>{currentCue?.text ?? '—'}</span>
             </p>
@@ -112,6 +119,16 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
           <button onClick={() => player.skipBy(SKIP_SECONDS)} title="5 seconden vooruit" className={toggleClass(false)}>
             +{SKIP_SECONDS}s
           </button>
+          {subtitlesFound && (
+            <>
+              <button onClick={() => player.seekToCueBy(-1)} title="Naar de vorige ondertitel" className={toggleClass(false)}>
+                ⏮ Vorige
+              </button>
+              <button onClick={() => player.seekToCueBy(1)} title="Naar de volgende ondertitel" className={toggleClass(false)}>
+                Volgende ⏭
+              </button>
+            </>
+          )}
           {subtitlesFound && <button
             type="button"
             onClick={() => setTranscriptOpen(open => !open)}
@@ -141,8 +158,8 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
         )}
         {helpOpen && (
           <p className="text-xs text-gray-500 p-2 rounded border border-gray-200 bg-gray-50">
-            Klik op de video of druk op spatie om te starten/stoppen. Swipe naar links/rechts of druk op ←/→ of a/d voor 5 s terug/vooruit.
-            {subtitlesFound && ' "+ Fraselijst" zet de huidige ondertitel in de Fraselijst (de video pauzeert even). Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
+            Tik twee keer midden op de video (of druk op spatie) om te starten/stoppen, twee keer links voor 5 s terug en twee keer rechts voor 5 s vooruit. Swipen naar links/rechts en ←/→ of a/d werken ook.
+            {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
           </p>
         )}
       </div>
