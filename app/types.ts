@@ -26,6 +26,8 @@ export interface WordEntry {
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string
   isFavorite?: boolean
+  // Drive file id of an image in the configured pictures folder.
+  picture?: string
   createdAt?: string
   updatedAt: string
 }
@@ -69,8 +71,14 @@ export interface Phrase {
   beheersing?: 1 | 2 | 3
   lastPracticedAt?: string
   isFavorite?: boolean
+  picture?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface PictureFile {
+  id: string
+  name: string
 }
 
 export interface ArticleItem {

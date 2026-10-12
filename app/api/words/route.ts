@@ -13,6 +13,7 @@ import {
   normalizeMeanings,
   isValidObjectId,
 } from '@/app/lib/driveStore'
+import { isDriveId } from '@/app/lib/driveArticleStore'
 
 export async function GET() {
   try {
@@ -86,7 +87,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Login om feature te gebruiken.' }, { status: 401 })
 
-  let body: { id?: unknown; word?: unknown; meanings?: unknown; tags?: unknown; beheersing?: unknown; lastPracticedAt?: unknown; isFavorite?: unknown }
+  let body: { id?: unknown; word?: unknown; meanings?: unknown; tags?: unknown; beheersing?: unknown; lastPracticedAt?: unknown; isFavorite?: unknown; picture?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -143,6 +144,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'isFavorite must be a boolean.' }, { status: 400 })
     }
     update.isFavorite = body.isFavorite
+  }
+
+  if (body.picture !== undefined) {
+    if (body.picture !== null && (typeof body.picture !== 'string' || !isDriveId(body.picture))) {
+      return NextResponse.json({ error: 'picture must be a Drive file id or null.' }, { status: 400 })
+    }
+    update.picture = body.picture ?? undefined
   }
 
   try {

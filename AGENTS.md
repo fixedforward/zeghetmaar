@@ -55,6 +55,8 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/luisteren/lessons/[folderId]/route.ts` | GET handler (`?file=<mediaFileId>`): one listening lesson = an .mp3/.mp4 in that Drive folder plus the `.srt` with the **same name** next to it; returns the media file id, the expected `.srt` name, the `.srt`'s file id (`subtitleFileId`, null when missing) and the parsed cues (empty when the `.srt` is missing), 404 if the file isn't a playable file in that folder; login required. The folder id is passed in because Drive doesn't return `parents` for link-shared files |
 | `app/api/luisteren/tree/route.ts` | GET handler: the whole `googleListeningFolder` tree in one response (recursive, max 5 levels deep), keeping only .mp3/.mp4 files (each with `hasSubtitles`) and the folders that hold one; 501 if the folder isn't configured; login required |
 | `app/api/luisteren/media/[id]/route.ts` | GET handler: streams a Drive video/audio file to `<video>`, passing the browser's `Range` header on to Drive (206 Partial Content) so seeking only downloads what's needed; refuses non-media files (415); login required |
+| `app/api/pictures/route.ts` | GET handler: lists the images (`image/*`) in the `googlePicturesFolder` Drive folder, sorted by name; 501 if the folder isn't configured; login required |
+| `app/api/pictures/[id]/route.ts` | GET handler: streams one Drive image to `<img>` (refuses non-images with 415); login required |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
 | `auth.ts` | NextAuth config: Google provider, allowed-email check, custom error redirect |
@@ -85,6 +87,8 @@ Everything is served from a single Next.js process on a single port.
 | `app/lib/keyboard.ts` | `isTypingTarget` (key went to a text field) and `isModalOpen` (an `aria-modal` dialog is open), used to keep page shortcuts out of the way (Cloze cards, the Luisteren player) |
 | `app/lib/chatgpt.ts` | Builds a ChatGPT explain-this-phrase URL for the "Open in ChatGPT" links; `openChatGptWithPromptAsync` opens a prompt via `?q=` when the URL stays under ~30 KB, otherwise via the clipboard (chatgpt.com loaded a 64 KB URL but not a 125 KB one); `driveShareUrl` gives a Drive file's normal share link (`/file/d/<id>/view?usp=sharing`), which ChatGPT asked for after it couldn't open the `uc?export=download` link |
 | `app/lib/popup.ts` | `openPopupWindow` (sized, positioned `window.open` popup, used by ChatGPT links and Luisteren videos) and `oppositeHalfOfScreen` (half the screen, on the side the app window isn't on) |
+| `app/lib/drivePictureStore.ts` + `app/lib/pictures.ts` | Phrase pictures: a phrase's optional `picture` field is the Drive file id of an image in `googlePicturesFolder`. `listPicturesAsync` lists the folder; `pictureUrl` builds the `/api/pictures/<id>` URL; `findPictureForPhrase` finds an image named after the phrase (`fiets.png` for "fiets") to suggest |
+| `app/hooks/usePictures.ts` + `app/components/PicturePicker.tsx` + `app/components/PhrasePicture.tsx` | Picture dropdown in `PhraseDetailModal` (with a "Gebruik <naam>" suggestion and a preview; logged out it only shows the saved picture), saved via `useWords`'s `editPicture` (`null` removes it); `PhrasePicture` hides itself when the image fails to load. Cloze kaarten show the picture on the meaning side of the card (back normally, front when reversed) |
 | `app/lib/shuffle.ts` | Generic Fisher–Yates `shuffleArray` helper |
 | `app/lib/raceModels.ts` | Races free OpenRouter models against each other with a timeout |
 | `app/lib/apiClient.ts` | Shared `chatRequest` helper for calling `/api/chat` |
@@ -128,6 +132,9 @@ Optional:
   .mp3/.mp4 files, each with a `.srt` of the same name next to it, readable by the same
   service account. Enables the Luisteren tab's Drive tree; if unset, `/api/luisteren/tree`
   returns a "not configured" error.
+- `database.googlePicturesFolder.folderId` — Drive folder holding the phrase pictures,
+  readable by the same service account. Pictures are uploaded there by hand (the service
+  account can't create files); if unset, `/api/pictures` returns a "not configured" error.
 
 See `app/config.example.json` for the full shape. The default selectable model is set in
 `app/config/models.ts` (`DEFAULT_MODEL`), not via config.

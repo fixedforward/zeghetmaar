@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { PhraseDetailModal } from '../components/PhraseDetailModal'
 import type { useWords } from '../hooks/useWords'
 import type { WordEntry } from '../types'
@@ -41,6 +41,8 @@ function buildProps(overrides: Partial<Props> = {}): Props {
     setEditMeanings: vi.fn(),
     editTags: ['sfeer'],
     setEditTags: vi.fn(),
+    editPicture: null,
+    setEditPicture: vi.fn(),
     editLoading: false,
     aiExamplesLoading: false,
     aiTranslationLoading: false,
@@ -62,9 +64,15 @@ function buildProps(overrides: Partial<Props> = {}): Props {
   }
 }
 
+const pictures = [
+  { id: 'pic1', name: 'fiets.png' },
+  { id: 'pic2', name: 'gezellig.jpg' },
+]
+
 describe('PhraseDetailModal', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(pictures) } as Response)
   })
 
   it('renders nothing when editId matches no entry', () => {
@@ -145,5 +153,43 @@ describe('PhraseDetailModal', () => {
 
     fireEvent.click(screen.getByTitle('Beheersing 3'))
     expect(props.setBeheersing).toHaveBeenCalledWith('1', 3)
+  })
+
+  it('lists the Drive pictures and calls setEditPicture when one is picked', async () => {
+    const props = buildProps()
+    render(<PhraseDetailModal {...props} />)
+
+    await waitFor(() => expect(screen.getByRole('option', { name: 'fiets.png' })).toBeInTheDocument())
+    expect(global.fetch).toHaveBeenCalledWith('/api/pictures')
+
+    fireEvent.change(screen.getByLabelText('Afbeelding'), { target: { value: 'pic1' } })
+    expect(props.setEditPicture).toHaveBeenCalledWith('pic1')
+
+    fireEvent.change(screen.getByLabelText('Afbeelding'), { target: { value: '' } })
+    expect(props.setEditPicture).toHaveBeenCalledWith(null)
+  })
+
+  it('suggests the picture named after the phrase', async () => {
+    const props = buildProps()
+    render(<PhraseDetailModal {...props} />)
+
+    fireEvent.click(await screen.findByText('Gebruik gezellig.jpg'))
+    expect(props.setEditPicture).toHaveBeenCalledWith('pic2')
+  })
+
+  it('shows the chosen picture', async () => {
+    render(<PhraseDetailModal {...buildProps({ editPicture: 'pic1' })} />)
+
+    expect(screen.getByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic1')
+    await waitFor(() => expect(screen.getByLabelText('Afbeelding')).toHaveValue('pic1'))
+    expect(screen.queryByText(/^Gebruik /)).not.toBeInTheDocument()
+  })
+
+  it('shows the saved picture without a picker when logged out', () => {
+    render(<PhraseDetailModal {...buildProps({ isLoggedIn: false, words: [{ ...entry, picture: 'pic1' }] })} />)
+
+    expect(screen.getByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic1')
+    expect(screen.queryByLabelText('Afbeelding')).not.toBeInTheDocument()
+    expect(global.fetch).not.toHaveBeenCalled()
   })
 })

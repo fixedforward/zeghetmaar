@@ -7,6 +7,7 @@ import { isTypingTarget } from '../lib/keyboard'
 import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
+import { PhrasePicture } from './PhrasePicture'
 
 type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -134,6 +135,8 @@ export function ClozeTab(props: Props) {
   const isCorrect = answers[currentIndex]
   const currentEntry = words.find(w => w.id === question.phraseId)
   const meanings = currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]
+  // Shown on the meaning side of the card: the back normally, the front when reversed.
+  const picture = currentEntry?.picture && <PhrasePicture fileId={currentEntry.picture} alt={question.word} />
 
   // How many letters the user already got right, starting from the front —
   // a wrong guess breaks the streak, same as the live red/green feedback above.
@@ -211,7 +214,12 @@ export function ClozeTab(props: Props) {
             >
               <div className="[grid-area:1/1] [backface-visibility:hidden] border rounded bg-white p-8 min-h-40 flex flex-col items-center justify-center gap-2">
                 {reversed
-                  ? meanings.map((m, i) => <p key={i} className="text-2xl font-semibold text-gray-900">{m.translation}</p>)
+                  ? (
+                    <>
+                      {picture}
+                      {meanings.map((m, i) => <p key={i} className="text-2xl font-semibold text-gray-900">{m.translation}</p>)}
+                    </>
+                  )
                   : (
                     <>
                       <p className="text-2xl font-semibold text-gray-900">{question.word}</p>
@@ -223,6 +231,7 @@ export function ClozeTab(props: Props) {
                 <p className="text-xs text-gray-400">Klik om om te draaien (Spatie)</p>
               </div>
               <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] border rounded bg-blue-50 p-8 min-h-40 flex flex-col items-center justify-center gap-2 text-center">
+                {picture}
                 {reversed ? (
                   <>
                     <p className="text-sm text-gray-500">{meanings.map(m => m.translation).join(' · ')}</p>

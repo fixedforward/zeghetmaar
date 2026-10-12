@@ -22,6 +22,9 @@ interface AppConfig {
     googleListeningFolder?: {
       folderId: string
     }
+    googlePicturesFolder?: {
+      folderId: string
+    }
   }
   auth: {
     nextAuthSecret: string

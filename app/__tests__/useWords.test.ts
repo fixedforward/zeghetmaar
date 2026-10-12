@@ -92,6 +92,44 @@ describe('useWords', () => {
     expect(JSON.parse(options.body)).toMatchObject({ id: '1', tags: ['vakantie'] })
   })
 
+  it('startEdit loads the picture and handleEditWord sends the changed picture', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) } as Response)
+    const { result } = renderHook(() => useWords('gpt-4o-mini'))
+    const entry = { id: '1', word: 'fiets', meanings: [{ translation: 'bike', examples: [] }], picture: 'pic1', updatedAt: '2024-01-01T00:00:00.000Z' }
+
+    act(() => {
+      result.current.startEdit(entry)
+    })
+    expect(result.current.editPicture).toBe('pic1')
+
+    act(() => {
+      result.current.setEditPicture('pic2')
+    })
+    await act(async () => {
+      result.current.handleEditWord()
+    })
+
+    const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(JSON.parse(options.body)).toMatchObject({ id: '1', picture: 'pic2' })
+  })
+
+  it('handleEditWord sends picture null to remove it', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) } as Response)
+    const { result } = renderHook(() => useWords('gpt-4o-mini'))
+
+    act(() => {
+      result.current.startEdit({ id: '1', word: 'fiets', meanings: [{ translation: 'bike', examples: [] }], updatedAt: '2024-01-01T00:00:00.000Z' })
+    })
+    expect(result.current.editPicture).toBeNull()
+
+    await act(async () => {
+      result.current.handleEditWord()
+    })
+
+    const [, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(JSON.parse(options.body).picture).toBeNull()
+  })
+
   it('startAddWord prefills the phrase and resets meanings and tags', () => {
     const { result } = renderHook(() => useWords('gpt-4o-mini'))
 
