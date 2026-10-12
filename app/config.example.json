@@ -31,6 +31,10 @@
     "googleListeningFolder": {
       "_comment": "optional — enables the Luisteren tab's Drive tree; folder (with optional subfolders) holding .mp3/.mp4 files, each with a .srt of the same name next to it, readable by the service account above",
       "folderId": "<drive-folder-id>"
+    },
+    "googlePicturesFolder": {
+      "_comment": "optional — folder holding the phrase pictures (Fraselijst edit modal, Cloze kaarten), readable by the service account above",
+      "folderId": "<drive-folder-id>"
     }
   },
   "auth": {

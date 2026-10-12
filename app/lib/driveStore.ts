@@ -52,6 +52,7 @@ export function toApiEntry(doc: Phrase): WordEntry {
     ...(doc.beheersing !== undefined && { beheersing: doc.beheersing }),
     ...(doc.lastPracticedAt !== undefined && { lastPracticedAt: doc.lastPracticedAt }),
     ...(doc.isFavorite !== undefined && { isFavorite: doc.isFavorite }),
+    ...(doc.picture !== undefined && { picture: doc.picture }),
   }
 }
 
@@ -135,6 +136,9 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
     }
     if (typeof entry.isFavorite === 'boolean') {
       raw.isFavorite = entry.isFavorite
+    }
+    if (typeof entry.picture === 'string' && entry.picture) {
+      raw.picture = entry.picture
     }
     if (Array.isArray(entry.tags)) {
       const tags = normalizeTags(entry.tags.map(String))

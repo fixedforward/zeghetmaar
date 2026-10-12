@@ -25,6 +25,7 @@ export function useWords(selectedModel: string) {
   const [editWord, setEditWord] = useState('')
   const [editMeanings, setEditMeanings] = useState<Meaning[]>([])
   const [editTags, setEditTags] = useState<string[]>([])
+  const [editPicture, setEditPicture] = useState<string | null>(null)
   const [editLoading, setEditLoading] = useState(false)
 
   const [aiExamplesLoading, setAiExamplesLoading] = useState(false)
@@ -116,6 +117,7 @@ export function useWords(selectedModel: string) {
     setEditWord(entry.word)
     setEditMeanings(entry.meanings.map(m => ({ translation: m.translation, examples: [...m.examples] })))
     setEditTags(entry.tags ?? [])
+    setEditPicture(entry.picture ?? null)
   }
 
   const cancelEdit = () => {
@@ -123,6 +125,7 @@ export function useWords(selectedModel: string) {
     setEditWord('')
     setEditMeanings([])
     setEditTags([])
+    setEditPicture(null)
   }
 
   const handleEditWord = () => {
@@ -139,6 +142,7 @@ export function useWords(selectedModel: string) {
         word: editWord,
         meanings,
         tags: editTags,
+        picture: editPicture,
       }),
     })
       .then(res => {
@@ -221,6 +225,7 @@ export function useWords(selectedModel: string) {
     editWord, setEditWord,
     editMeanings, setEditMeanings,
     editTags, setEditTags,
+    editPicture, setEditPicture,
     editLoading,
     aiExamplesLoading,
     aiTranslationLoading,

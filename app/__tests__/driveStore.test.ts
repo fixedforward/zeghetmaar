@@ -25,7 +25,7 @@ vi.mock('googleapis', () => ({
   },
 }))
 
-import { renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, updateListeningLinkAsync, deleteListeningLinkAsync } from '../lib/driveStore'
+import { toApiEntry, renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, updateListeningLinkAsync, deleteListeningLinkAsync } from '../lib/driveStore'
 import { encodeYearBitmap } from '../lib/practiceLog'
 import type { Phrase } from '../types'
 
@@ -98,6 +98,33 @@ describe('getAllWords — meanings migration', () => {
     const [doc] = await getAllWords()
 
     expect(doc.meanings).toEqual([{ translation: '', examples: [] }])
+  })
+})
+
+describe('picture field', () => {
+  beforeEach(() => {
+    filesGetMock.mockReset()
+  })
+
+  it('keeps a stored picture id and passes it to the API entry', async () => {
+    mockStoredPhrases([{ ...base, id: '1', word: 'fiets', picture: 'pic1' }])
+
+    const [doc] = await getAllWords()
+
+    expect(doc.picture).toBe('pic1')
+    expect(toApiEntry(doc).picture).toBe('pic1')
+  })
+
+  it('leaves picture out when it is missing or not a string', async () => {
+    mockStoredPhrases([
+      { ...base, id: '1', word: 'a' },
+      { ...base, id: '2', word: 'b', picture: 42 } as unknown as Partial<Phrase>,
+    ])
+
+    const docs = await getAllWords()
+
+    expect(docs.map(d => 'picture' in d)).toEqual([false, false])
+    expect('picture' in toApiEntry(docs[0])).toBe(false)
   })
 })
 
