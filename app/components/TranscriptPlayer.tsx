@@ -6,10 +6,12 @@ import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { useWords } from '../hooks/useWords'
 import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
 import { useSwipeGestures } from '../hooks/useSwipeGestures'
+import { useVideoSize } from '../hooks/useVideoSize'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
 import { DEFAULT_MODEL } from '../config/models'
 import { formatClock } from '../lib/youtube'
+import { VIDEO_SIZES, type VideoSize } from '../lib/videoSize'
 import type { SwipeDirection, TapZone } from '../lib/swipe'
 
 function cueIndexOf(node: Node | null): number {
@@ -44,6 +46,8 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   const activeCueRef = useRef<HTMLDivElement>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [transcriptOpen, setTranscriptOpen] = useState(false)
+  const { size, setSize } = useVideoSize()
+  const sizeClasses = VIDEO_SIZES[size]
 
   // Keeps the current line at the top of the transcript list, also right after opening it.
   // Scrolls only the list, not the whole page, so the video stays in view.
@@ -74,9 +78,19 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
     addPhrase.openWith(currentCue.text)
   }
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      <div className="lg:w-2/3 space-y-3">
-        <h1 className="text-lg font-semibold text-gray-800">{lesson.name}</h1>
+    <div className={`flex flex-col gap-6 ${sizeClasses.layout}`}>
+      <div className={`${sizeClasses.column} space-y-3`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-lg font-semibold text-gray-800">{lesson.name}</h1>
+          <div role="group" aria-label="Videogrootte" className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 mr-1">Grootte:</span>
+            {(Object.keys(VIDEO_SIZES) as VideoSize[]).map(key => (
+              <button key={key} type="button" onClick={() => setSize(key)} aria-pressed={size === key} className={toggleClass(size === key)}>
+                {VIDEO_SIZES[key].label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="relative">
           <video
             ref={player.mediaRef}
@@ -85,7 +99,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
             playsInline
             preload="metadata"
             onTimeUpdate={player.syncActiveCue}
-            className={`w-full rounded bg-black ${lesson.isAudio ? 'aspect-video' : 'max-h-[70vh]'}`}
+            className={`w-full rounded bg-black ${lesson.isAudio ? 'aspect-video' : sizeClasses.maxHeight}`}
           />
           {/* Catches clicks and swipes on the picture; subtitles are shown below the controls. */}
           <div
@@ -158,13 +172,13 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
         )}
         {helpOpen && (
           <p className="text-xs text-gray-500 p-2 rounded border border-gray-200 bg-gray-50">
-            Tik twee keer midden op de video (of druk op spatie) om te starten/stoppen, twee keer links voor 5 s terug en twee keer rechts voor 5 s vooruit. Swipen naar links/rechts en ←/→ of a/d werken ook.
+            Tik twee keer midden op de video (of druk op spatie) om te starten/stoppen, twee keer links voor 5 s terug en twee keer rechts voor 5 s vooruit. Swipen naar links/rechts en ←/→ of a/d werken ook. Met Klein/Middel/Groot/Maximaal kies je hoe groot de video is; dat wordt onthouden.
             {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
           </p>
         )}
       </div>
       {!subtitlesFound && (
-        <div className="lg:w-1/3 self-start p-3 rounded border border-orange-200 bg-orange-50 text-sm text-orange-800">
+        <div className={`${sizeClasses.side} self-start p-3 rounded border border-orange-200 bg-orange-50 text-sm text-orange-800`}>
           <p className="font-medium">Ondertitels niet gevonden.</p>
           <p className="mt-1">
             Zorg dat er een .srt-bestand bestaat met dezelfde naam als de video, in dezelfde map:{' '}
@@ -172,7 +186,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
           </p>
         </div>
       )}
-      <div ref={transcriptRef} hidden={!subtitlesFound || !transcriptOpen} onMouseUp={handleTextSelection} className="relative lg:w-1/3 h-[75vh] overflow-y-auto pr-2">
+      <div ref={transcriptRef} hidden={!subtitlesFound || !transcriptOpen} onMouseUp={handleTextSelection} className={`relative ${sizeClasses.side} h-[75vh] overflow-y-auto pr-2`}>
         {lesson.cues.map((cue, i) => (
           <div
             key={i}
