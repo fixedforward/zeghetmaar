@@ -14,6 +14,7 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [userInput, setUserInput] = useState('')
   const [checked, setChecked] = useState(false)
+  const [givenUpWord, setGivenUpWord] = useState<string | null>(null)
   const [answers, setAnswers] = useState<(boolean | null)[]>([])
 
   // Derived from answers, not tracked separately — this way jumping back to an
@@ -35,6 +36,7 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
       : buildClozeQuestions(words)
     const built = shuffleArray(cards)
     setMode(sessionMode)
+    setGivenUpWord(null)
     setQuestions(built)
     setCurrentIndex(0)
     setUserInput('')
@@ -43,6 +45,7 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   }, [])
 
   const stop = useCallback(() => {
+    setGivenUpWord(null)
     setQuestions([])
     setCurrentIndex(0)
     setUserInput('')
@@ -81,8 +84,30 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   }, [currentIndex])
 
   const nextQuestion = useCallback(() => {
+    setGivenUpWord(null)
     advance(answers[currentIndex])
   }, [advance, answers, currentIndex])
+
+  const giveUp = useCallback(() => {
+    const question = questions[currentIndex]
+    if (!question || checked) return
+    onPractice?.(mode)
+    setGivenUpWord(question.word)
+    setAnswers(prev => prev.map((a, i) => i === currentIndex ? false : a))
+    advance(false)
+  }, [questions, currentIndex, checked, onPractice, mode, advance])
+
+  const skipPhrase = useCallback(() => {
+    const question = questions[currentIndex]
+    if (!question) return
+    // Keep completed history, but remove every remaining meaning/direction/retry.
+    const keep = questions.map((q, i) => i < currentIndex || q.phraseId !== question.phraseId)
+    setQuestions(prev => prev.filter((_, i) => keep[i]))
+    setAnswers(prev => prev.filter((_, i) => keep[i]))
+    setUserInput('')
+    setChecked(false)
+    setGivenUpWord(null)
+  }, [questions, currentIndex])
 
   const reveal = useCallback(() => {
     if (questions[currentIndex]) setChecked(true)
@@ -98,11 +123,13 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   const jumpTo = (index: number) => {
     if (index < 0 || index >= questions.length) return
     setCurrentIndex(index)
+    setGivenUpWord(null)
     setUserInput('')
     setChecked(false)
   }
 
   const restart = () => {
+    setGivenUpWord(null)
     setCurrentIndex(0)
     setUserInput('')
     setChecked(false)
@@ -112,5 +139,6 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   return {
     mode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
+    giveUp, skipPhrase, givenUpWord,
   }
 }

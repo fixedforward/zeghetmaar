@@ -20,6 +20,7 @@ export function ClozeTab(props: Props) {
     startEdit, setBeheersing, beheersingLoadingId,
     mode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
+    giveUp, skipPhrase, givenUpWord,
   } = props
 
   const isActive = questions.length > 0
@@ -34,7 +35,7 @@ export function ClozeTab(props: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     inputRef.current?.focus()
-  }, [currentIndex])
+  }, [currentIndex, questions[currentIndex]])
 
   // Anki-style shortcuts: Space/Enter reveals, then 1 = Fout and 2 = Goed.
   const kaartenActive = mode === 'kaarten' && isActive && !done
@@ -191,6 +192,10 @@ export function ClozeTab(props: Props) {
         </div>
       </div>
 
+      {givenUpWord && (
+        <p role="status" className="text-sm text-red-600">Opgegeven — het juiste woord was "{givenUpWord}".</p>
+      )}
+
       {mode === 'kaarten' ? (
         <div className="space-y-3">
           {/* Keyed by index so the next card mounts face-up instead of animating
@@ -319,7 +324,7 @@ export function ClozeTab(props: Props) {
           )}
 
           {!checked ? (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={checkAnswer}
                 disabled={!userInput.trim()}
@@ -335,6 +340,9 @@ export function ClozeTab(props: Props) {
               >
                 💡 Hint (Tab)
               </button>
+              <button onClick={giveUp} className="px-4 py-2 bg-red-50 text-red-700 rounded hover:bg-red-100 text-sm">
+                Opgeven →
+              </button>
             </div>
           ) : (
             <button
@@ -346,6 +354,14 @@ export function ClozeTab(props: Props) {
           )}
         </div>
       )}
+
+      <button
+        onClick={skipPhrase}
+        title="Sla alle vragen over deze frase over voor deze sessie"
+        className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
+      >
+        Frase overslaan voor deze sessie →
+      </button>
 
       <details>
         <summary className="text-xs text-gray-400 mb-1 cursor-pointer select-none">Overzicht</summary>

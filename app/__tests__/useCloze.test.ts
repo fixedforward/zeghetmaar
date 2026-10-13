@@ -229,3 +229,36 @@ describe('useCloze', () => {
     })
   })
 })
+
+ describe('Cloze give up and session skip', () => {
+  it('gives up with empty input, records a mistake, reveals the answer and queues a retry', () => {
+    const onPractice = vi.fn()
+    const { result } = renderHook(() => useCloze(onPractice))
+    act(() => result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])]))
+    act(() => result.current.giveUp())
+    expect(result.current.currentIndex).toBe(1)
+    expect(result.current.givenUpWord).toBe('hallo')
+    expect(result.current.answers).toEqual([false, null])
+    expect(result.current.score.incorrect).toBe(1)
+    expect(onPractice).toHaveBeenCalledWith('typen')
+    act(() => result.current.skipPhrase())
+    expect(result.current.questions).toHaveLength(1)
+    expect(result.current.currentIndex).toBe(result.current.questions.length)
+  })
+
+  it('skips all remaining cards for a phrase, without scoring, and restores them in a new session', () => {
+    const words = [makeWord('1', 'hallo', ['Hallo daar!']), makeWord('2', 'dag', ['Dag allemaal.'])]
+    const onPractice = vi.fn()
+    const { result } = renderHook(() => useCloze(onPractice))
+    act(() => result.current.start(words, 'kaarten'))
+    const skippedId = result.current.questions[0].phraseId
+    act(() => result.current.skipPhrase())
+    expect(result.current.questions).toHaveLength(2)
+    expect(result.current.questions.every(q => q.phraseId !== skippedId)).toBe(true)
+    expect(result.current.answers).toEqual([null, null])
+    expect(result.current.currentIndex).toBe(0)
+    expect(onPractice).not.toHaveBeenCalled()
+    act(() => result.current.start(words, 'kaarten'))
+    expect(result.current.questions).toHaveLength(4)
+  })
+ })
