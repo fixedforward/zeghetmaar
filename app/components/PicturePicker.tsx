@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { usePictures } from '../hooks/usePictures'
 import { findPictureForPhrase } from '../lib/pictures'
 import { PhrasePicture } from './PhrasePicture'
@@ -9,30 +10,23 @@ type Props = {
 }
 
 export function PicturePicker({ phrase, value, onChange }: Props) {
-  const { pictures, loading, error } = usePictures(true)
+  const { pictures, loading, error } = usePictures(!value)
   const suggestion = value ? undefined : findPictureForPhrase(pictures, phrase)
-  const isUnknown = !!value && !loading && !pictures.some(p => p.id === value)
+  const fileId = value ?? suggestion?.id
+
+  useEffect(() => {
+    if (suggestion) onChange(suggestion.id)
+  }, [suggestion, onChange])
 
   return (
     <div className="space-y-2">
-      <select
-        value={value ?? ''}
-        onChange={e => onChange(e.target.value || null)}
-        disabled={loading}
-        aria-label="Afbeelding"
-        className="w-full p-2 border rounded text-sm"
-      >
-        <option value="">{loading ? 'Afbeeldingen laden...' : '— Geen afbeelding —'}</option>
-        {isUnknown && <option value={value}>Onbekend bestand ({value})</option>}
-        {pictures.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-      {error && <p className="text-xs text-red-500">{error}</p>}
-      {suggestion && (
-        <button type="button" onClick={() => onChange(suggestion.id)} className="text-xs text-blue-600 hover:underline">
-          Gebruik {suggestion.name}
-        </button>
+      {fileId ? (
+        <PhrasePicture fileId={fileId} alt={phrase} />
+      ) : error ? (
+        <p className="text-xs text-red-500">{error}</p>
+      ) : (
+        <p className="text-sm text-gray-500 italic">{loading ? 'Afbeeldingen laden...' : 'Geen afbeelding.'}</p>
       )}
-      {value && <PhrasePicture fileId={value} alt={phrase} />}
     </div>
   )
 }

@@ -155,34 +155,35 @@ describe('PhraseDetailModal', () => {
     expect(props.setBeheersing).toHaveBeenCalledWith('1', 3)
   })
 
-  it('lists the Drive pictures and calls setEditPicture when one is picked', async () => {
+  it('automatically displays and associates the picture named after the phrase', async () => {
     const props = buildProps()
     render(<PhraseDetailModal {...props} />)
 
-    await waitFor(() => expect(screen.getByRole('option', { name: 'fiets.png' })).toBeInTheDocument())
+    expect(await screen.findByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic2')
     expect(global.fetch).toHaveBeenCalledWith('/api/pictures')
-
-    fireEvent.change(screen.getByLabelText('Afbeelding'), { target: { value: 'pic1' } })
-    expect(props.setEditPicture).toHaveBeenCalledWith('pic1')
-
-    fireEvent.change(screen.getByLabelText('Afbeelding'), { target: { value: '' } })
-    expect(props.setEditPicture).toHaveBeenCalledWith(null)
+    expect(props.setEditPicture).toHaveBeenCalledWith('pic2')
+    expect(screen.queryByRole('combobox', { name: 'Afbeelding' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Gebruik /)).not.toBeInTheDocument()
   })
 
-  it('suggests the picture named after the phrase', async () => {
-    const props = buildProps()
+  it('shows no image when there is no matching file', async () => {
+    const props = buildProps({ editWord: 'onbekend' })
     render(<PhraseDetailModal {...props} />)
 
-    fireEvent.click(await screen.findByText('Gebruik gezellig.jpg'))
-    expect(props.setEditPicture).toHaveBeenCalledWith('pic2')
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/pictures'))
+    expect(await screen.findByText('Geen afbeelding.')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(props.setEditPicture).not.toHaveBeenCalled()
   })
 
-  it('shows the chosen picture', async () => {
-    render(<PhraseDetailModal {...buildProps({ editPicture: 'pic1' })} />)
+  it('shows the saved picture directly without fetching the picture list', () => {
+    const props = buildProps({ editPicture: 'pic1' })
+    render(<PhraseDetailModal {...props} />)
 
     expect(screen.getByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic1')
-    await waitFor(() => expect(screen.getByLabelText('Afbeelding')).toHaveValue('pic1'))
-    expect(screen.queryByText(/^Gebruik /)).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Afbeelding' })).not.toBeInTheDocument()
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(props.setEditPicture).not.toHaveBeenCalled()
   })
 
   it('shows the saved picture without a picker when logged out', () => {
