@@ -8,6 +8,8 @@ import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 import { PhrasePicture } from './PhrasePicture'
+import { usePictures } from '../hooks/usePictures'
+import { findPictureForPhrase } from '../lib/pictures'
 
 type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -26,6 +28,7 @@ export function ClozeTab(props: Props) {
   const isActive = questions.length > 0
   const total = questions.length
   const done = isActive && currentIndex >= total
+  const { pictures } = usePictures(isLoggedIn && isActive && mode === 'kaarten')
 
   const [daysFilter, setDaysFilter] = useState<DayRange | null>(DEFAULT_DAY_RANGE)
 
@@ -131,7 +134,8 @@ export function ClozeTab(props: Props) {
   const currentEntry = words.find(w => w.id === question.phraseId)
   const meanings = currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]
   // Shown on the meaning side of the card: the back normally, the front when reversed.
-  const picture = currentEntry?.picture && <PhrasePicture fileId={currentEntry.picture} alt={question.word} />
+  const pictureId = currentEntry?.picture ?? findPictureForPhrase(pictures, question.word)?.id
+  const picture = pictureId && <PhrasePicture fileId={pictureId} alt={question.word} />
 
   // How many letters the user already got right, starting from the front —
   // a wrong guess breaks the streak, same as the live red/green feedback above.
