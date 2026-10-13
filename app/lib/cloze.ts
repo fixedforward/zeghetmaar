@@ -5,6 +5,7 @@ export interface ClozeQuestion {
   word: string
   translation: string
   sentence: string
+  reversed?: boolean
 }
 
 function wordIndex(sentence: string, word: string): number {

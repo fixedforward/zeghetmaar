@@ -69,8 +69,8 @@ export function ClozeTab(props: Props) {
         )}
         <p className="text-sm text-gray-500">
           Typen: vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl.
-          Kaarten: zie de frase, draai de kaart om naar de betekenis en kies zelf Goed/Fout — Anki-stijl.
-          Kaarten omgekeerd: zie de vertaling en bedenk de frase.
+          Kaarten: oefen elke frase in beide richtingen — frase → vertaling en vertaling → frase.
+          Draai de kaart om en kies zelf Goed/Fout — Anki-stijl.
         </p>
         {wordsLoading && <p className="text-sm text-gray-400 italic">Fraselijst laden...</p>}
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
@@ -99,13 +99,7 @@ export function ClozeTab(props: Props) {
               onClick={() => start(filteredWords, 'kaarten')}
               className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
             >
-              Start kaarten ({kaartenCount} frases)
-            </button>
-            <button
-              onClick={() => start(filteredWords, 'kaarten', true)}
-              className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
-            >
-              Start kaarten: vertaling → frase ({kaartenCount} frases)
+              Start kaarten ({kaartenCount} frases · {kaartenCount * 2} kaarten)
             </button>
           </div>
         )}
@@ -367,7 +361,7 @@ export function ClozeTab(props: Props) {
               >
                 <span className="text-gray-400 w-6 shrink-0">{i + 1}.</span>
                 <span className={answer === false ? 'text-red-600' : answer === true ? 'text-green-700' : 'text-gray-600'}>
-                  {reversed ? q.translation : q.word}
+                  {q.reversed ? q.translation : q.word}
                 </span>
                 {answer === true && <span className="ml-auto text-green-600 shrink-0">✓</span>}
                 {answer === false && <span className="ml-auto text-red-600 shrink-0">✗</span>}

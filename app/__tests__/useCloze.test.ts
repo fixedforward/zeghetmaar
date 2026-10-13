@@ -148,28 +148,17 @@ describe('useCloze', () => {
   })
 
   describe('kaarten mode', () => {
-    it('start() with kaarten is not reversed by default', () => {
+    it('combines both directions for each phrase and derives the current direction', () => {
       const { result } = renderHook(() => useCloze())
-
-      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'kaarten') })
-
-      expect(result.current.reversed).toBe(false)
-    })
-
-    it('start() with kaarten and reversed sets reversed, keeping the kaarten mode', () => {
-      const { result } = renderHook(() => useCloze())
-
-      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'kaarten', true) })
-
-      expect(result.current.mode).toBe('kaarten')
-      expect(result.current.reversed).toBe(true)
-    })
-
-    it('start() with typen ignores reversed', () => {
-      const { result } = renderHook(() => useCloze())
-
-      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'typen', true) })
-
+      act(() => { result.current.start([makeWord('1', 'hallo', [])], 'kaarten') })
+      expect(result.current.questions).toHaveLength(2)
+      expect(result.current.questions.map(q => q.reversed).sort()).toEqual([false, true])
+      for (let i = 0; i < 2; i++) {
+        act(() => { result.current.jumpTo(i) })
+        expect(result.current.reversed).toBe(result.current.questions[i].reversed)
+      }
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'typen') })
+      expect(result.current.questions).toHaveLength(1)
       expect(result.current.reversed).toBe(false)
     })
 
@@ -187,7 +176,7 @@ describe('useCloze', () => {
 
       act(() => { result.current.start(words, 'kaarten') })
 
-      expect(result.current.questions.map(q => q.word).sort()).toEqual(['hallo', 'leeg'])
+      expect(result.current.questions.map(q => q.word).sort()).toEqual(['hallo', 'hallo', 'leeg', 'leeg'])
       expect(result.current.questions.find(q => q.word === 'leeg')?.translation).toBe('translation-leeg')
     })
 
@@ -199,7 +188,7 @@ describe('useCloze', () => {
       act(() => { result.current.markAndNext(true) })
 
       expect(result.current.currentIndex).toBe(0)
-      expect(result.current.answers).toEqual([null])
+      expect(result.current.answers).toEqual([null, null])
       expect(onPractice).not.toHaveBeenCalled()
     })
 
@@ -213,10 +202,10 @@ describe('useCloze', () => {
       expect(result.current.checked).toBe(true)
       act(() => { result.current.markAndNext(true) })
 
-      expect(result.current.answers).toEqual([true, null])
+      expect(result.current.answers).toEqual([true, null, null, null])
       expect(result.current.currentIndex).toBe(1)
       expect(result.current.checked).toBe(false)
-      expect(result.current.questions).toHaveLength(2)
+      expect(result.current.questions).toHaveLength(4)
       expect(onPractice).toHaveBeenCalledWith('kaarten')
     })
 
@@ -230,7 +219,7 @@ describe('useCloze', () => {
       act(() => { result.current.reveal() })
       act(() => { result.current.markAndNext(false) })
 
-      expect(result.current.questions).toHaveLength(11)
+      expect(result.current.questions).toHaveLength(21)
       expect(result.current.questions[3]).toEqual(missedQuestion)
       expect(result.current.answers[0]).toBe(false)
       expect(result.current.answers[3]).toBeNull()
