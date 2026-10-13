@@ -9,7 +9,7 @@ import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 import { PhrasePicture } from './PhrasePicture'
 import { usePictures } from '../hooks/usePictures'
-import { findPictureForPhrase } from '../lib/pictures'
+import { findPictureForMeaning, findPictureForPhrase } from '../lib/pictures'
 
 type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -134,8 +134,11 @@ export function ClozeTab(props: Props) {
   const currentEntry = words.find(w => w.id === question.phraseId)
   const meanings = currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]
   // Shown on the meaning side of the card: the back normally, the front when reversed.
-  const pictureId = currentEntry?.picture ?? findPictureForPhrase(pictures, question.word)?.id
-  const picture = pictureId && <PhrasePicture fileId={pictureId} alt={question.word} />
+  const meaningPicture = (translation: string, index: number) => {
+    const fileId = findPictureForMeaning(pictures, question.word, translation)?.id
+      ?? (index === 0 ? currentEntry?.picture ?? findPictureForPhrase(pictures, question.word)?.id : undefined)
+    return fileId ? <PhrasePicture fileId={fileId} alt={`${question.word} — ${translation}`} className="mx-auto" /> : null
+  }
 
   // How many letters the user already got right, starting from the front —
   // a wrong guess breaks the streak, same as the live red/green feedback above.
@@ -219,8 +222,12 @@ export function ClozeTab(props: Props) {
                 {reversed
                   ? (
                     <>
-                      {picture}
-                      {meanings.map((m, i) => <p key={i} className="text-2xl font-semibold text-gray-900">{m.translation}</p>)}
+                      {meanings.map((m, i) => (
+                        <div key={i}>
+                          <p className="text-2xl font-semibold text-gray-900">{m.translation}</p>
+                          {meaningPicture(m.translation, i)}
+                        </div>
+                      ))}
                     </>
                   )
                   : (
@@ -234,7 +241,6 @@ export function ClozeTab(props: Props) {
                 <p className="text-xs text-gray-400">Klik om om te draaien (Spatie)</p>
               </div>
               <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] border rounded bg-blue-50 p-8 min-h-40 flex flex-col items-center justify-center gap-2 text-center">
-                {picture}
                 {reversed ? (
                   <>
                     <p className="text-sm text-gray-500">{meanings.map(m => m.translation).join(' · ')}</p>
@@ -249,6 +255,7 @@ export function ClozeTab(props: Props) {
                     {meanings.map((m, i) => (
                       <div key={i}>
                         <p className="text-xl font-semibold text-gray-900">{m.translation}</p>
+                        {meaningPicture(m.translation, i)}
                         {m.examples[0] && <p className="text-xs text-gray-500 italic">{m.examples[0]}</p>}
                       </div>
                     ))}

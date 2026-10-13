@@ -2,13 +2,15 @@ import { useEffect } from 'react'
 import type { useWords } from '../hooks/useWords'
 import { TagsSelect } from './TagsSelect'
 import { MeaningsEditor } from './MeaningsEditor'
-import { PicturePicker } from './PicturePicker'
+import { usePictures } from '../hooks/usePictures'
+import { findPictureForMeaning, findPictureForPhrase } from '../lib/pictures'
 import { PhrasePicture } from './PhrasePicture'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
 
 export function PhraseDetailModal(words: Props) {
   const entry = words.words.find(w => w.id === words.editId) ?? null
+  const { pictures } = usePictures(words.isLoggedIn && !!entry)
   const allTags = [...new Set(words.words.flatMap(w => w.tags ?? []))].sort((a, b) =>
     a.localeCompare(b)
   )
@@ -48,6 +50,11 @@ export function PhraseDetailModal(words: Props) {
         </div>
 
         <MeaningsEditor
+          renderPicture={(meaning, index) => {
+            const fileId = findPictureForMeaning(pictures, words.editWord, meaning.translation)?.id
+              ?? (index === 0 ? words.editPicture ?? entry.picture ?? findPictureForPhrase(pictures, words.editWord)?.id : undefined)
+            return fileId ? <PhrasePicture fileId={fileId} alt={`${words.editWord} — ${meaning.translation}`} /> : null
+          }}
           meanings={words.editMeanings}
           onChange={words.setEditMeanings}
           word={words.editWord}
@@ -60,17 +67,6 @@ export function PhraseDetailModal(words: Props) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
           <TagsSelect allTags={allTags} selected={words.editTags} onChange={words.setEditTags} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Afbeelding</label>
-          {words.isLoggedIn ? (
-            <PicturePicker phrase={words.editWord} value={words.editPicture} onChange={words.setEditPicture} />
-          ) : entry.picture ? (
-            <PhrasePicture fileId={entry.picture} alt={entry.word} />
-          ) : (
-            <p className="text-sm text-gray-500 italic">Geen afbeelding.</p>
-          )}
         </div>
 
         <div className="flex items-center gap-3 border-t pt-3">

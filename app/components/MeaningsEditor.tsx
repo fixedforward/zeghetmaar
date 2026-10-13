@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import type { Meaning } from '../types'
 
 interface Props {
+  renderPicture?: (meaning: Meaning, index: number) => ReactNode
   meanings: Meaning[]
   onChange: (meanings: Meaning[]) => void
   word: string
@@ -11,7 +13,7 @@ interface Props {
 }
 
 export function MeaningsEditor({
-  meanings, onChange, word, onGenerateTranslation, onGenerateExamples, translationLoading, examplesLoading,
+  renderPicture, meanings, onChange, word, onGenerateTranslation, onGenerateExamples, translationLoading, examplesLoading,
 }: Props) {
   const updateMeaning = (index: number, update: Partial<Meaning>) => {
     onChange(meanings.map((m, i) => i === index ? { ...m, ...update } : m))
@@ -54,6 +56,8 @@ export function MeaningsEditor({
                   {translationLoading ? 'Vertalen...' : 'AI vertaling'}
                 </button>
               </div>
+
+              {renderPicture?.(meaning, mi)}
 
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Voorbeeldzinnen</label>

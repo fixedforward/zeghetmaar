@@ -66,7 +66,8 @@ function buildProps(overrides: Partial<Props> = {}): Props {
 
 const pictures = [
   { id: 'pic1', name: 'fiets.png' },
-  { id: 'pic2', name: 'gezellig.jpg' },
+  { id: 'pic2', name: 'gezellig$cozy.jpg' },
+  { id: 'pic3', name: 'gezellig$pleasant.png' },
 ]
 
 describe('PhraseDetailModal', () => {
@@ -155,13 +156,13 @@ describe('PhraseDetailModal', () => {
     expect(props.setBeheersing).toHaveBeenCalledWith('1', 3)
   })
 
-  it('automatically displays and associates the picture named after the phrase', async () => {
+  it('automatically displays the picture named after the phrase and meaning', async () => {
     const props = buildProps()
     render(<PhraseDetailModal {...props} />)
 
-    expect(await screen.findByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic2')
+    await waitFor(() => expect(screen.getByRole('img', { name: 'gezellig — cozy' })).toHaveAttribute('src', '/api/pictures/pic2'))
     expect(global.fetch).toHaveBeenCalledWith('/api/pictures')
-    expect(props.setEditPicture).toHaveBeenCalledWith('pic2')
+    expect(props.setEditPicture).not.toHaveBeenCalled()
     expect(screen.queryByRole('combobox', { name: 'Afbeelding' })).not.toBeInTheDocument()
     expect(screen.queryByText(/^Gebruik /)).not.toBeInTheDocument()
   })
@@ -171,25 +172,36 @@ describe('PhraseDetailModal', () => {
     render(<PhraseDetailModal {...props} />)
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/pictures'))
-    expect(await screen.findByText('Geen afbeelding.')).toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(props.setEditPicture).not.toHaveBeenCalled()
   })
 
-  it('shows the saved picture directly without fetching the picture list', () => {
+  it('prefers a meaning-specific picture over the old phrase picture', async () => {
     const props = buildProps({ editPicture: 'pic1' })
     render(<PhraseDetailModal {...props} />)
 
-    expect(screen.getByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic1')
+    await waitFor(() => expect(screen.getByRole('img', { name: 'gezellig — cozy' })).toHaveAttribute('src', '/api/pictures/pic2'))
     expect(screen.queryByRole('combobox', { name: 'Afbeelding' })).not.toBeInTheDocument()
-    expect(global.fetch).not.toHaveBeenCalled()
     expect(props.setEditPicture).not.toHaveBeenCalled()
+  })
+
+  it('shows a separate picture directly below each translation', async () => {
+    render(<PhraseDetailModal {...buildProps({ editMeanings: [
+      { translation: 'cozy', examples: [] },
+      { translation: 'pleasant', examples: [] },
+    ] })} />)
+    for (const [meaning, id] of [['cozy', 'pic2'], ['pleasant', 'pic3']]) {
+      const image = await screen.findByRole('img', { name: `gezellig — ${meaning}` })
+      expect(image).toHaveAttribute('src', `/api/pictures/${id}`)
+      const input = screen.getByDisplayValue(meaning)
+      expect(input.parentElement?.nextElementSibling).toBe(image)
+    }
   })
 
   it('shows the saved picture without a picker when logged out', () => {
     render(<PhraseDetailModal {...buildProps({ isLoggedIn: false, words: [{ ...entry, picture: 'pic1' }] })} />)
 
-    expect(screen.getByRole('img', { name: 'gezellig' })).toHaveAttribute('src', '/api/pictures/pic1')
+    expect(screen.getByRole('img', { name: 'gezellig — cozy' })).toHaveAttribute('src', '/api/pictures/pic1')
     expect(screen.queryByLabelText('Afbeelding')).not.toBeInTheDocument()
     expect(global.fetch).not.toHaveBeenCalled()
   })

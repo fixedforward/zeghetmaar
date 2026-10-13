@@ -14,3 +14,16 @@ export function findPictureForPhrase(pictures: PictureFile[], phrase: string): P
   if (!key) return undefined
   return pictures.find(p => normalizeName(p.name) === key)
 }
+
+// One picture per meaning: phrase$translation.png.
+export function findPictureForMeaning(pictures: PictureFile[], phrase: string, meaning: string): PictureFile | undefined {
+  const phraseKey = phrase.trim().toLowerCase()
+  const meaningKey = meaning.trim().toLowerCase()
+  if (!phraseKey || !meaningKey) return undefined
+  return pictures.find(p => {
+    const name = normalizeName(p.name)
+    const separator = name.indexOf('$')
+    return separator >= 0 && name.slice(0, separator).trim() === phraseKey
+      && name.slice(separator + 1).trim() === meaningKey
+  })
+}

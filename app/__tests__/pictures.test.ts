@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findPictureForPhrase, pictureUrl } from '../lib/pictures'
+import { findPictureForMeaning, findPictureForPhrase, pictureUrl } from '../lib/pictures'
 
 const pictures = [
   { id: 'a', name: 'fiets.png' },
@@ -23,3 +23,21 @@ describe('findPictureForPhrase', () => {
     expect(findPictureForPhrase(pictures, ' ')).toBeUndefined()
   })
 })
+
+ describe('findPictureForMeaning', () => {
+  const files = [
+    { id: '1', name: 'eveneens$likewise.png' },
+    { id: '2', name: 'eveneens$also.jpg' },
+    { id: '3', name: 'eveneens.png' },
+  ]
+  it('matches the phrase and meaning independently, ignoring case and surrounding spaces', () => {
+    expect(findPictureForMeaning(files, ' Eveneens ', ' LIKEWISE ')?.id).toBe('1')
+    expect(findPictureForMeaning(files, 'eveneens', 'also')?.id).toBe('2')
+    expect(findPictureForMeaning([{ id: '4', name: 'eveneens $ likewise.webp' }], 'eveneens', 'likewise')?.id).toBe('4')
+  })
+  it('does not match another meaning, phrase, or an empty meaning', () => {
+    expect(findPictureForMeaning(files, 'eveneens', 'unknown')).toBeUndefined()
+    expect(findPictureForMeaning(files, 'anders', 'likewise')).toBeUndefined()
+    expect(findPictureForMeaning(files, 'eveneens', '')).toBeUndefined()
+  })
+ })
