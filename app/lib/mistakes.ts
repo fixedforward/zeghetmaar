@@ -62,9 +62,8 @@ export function parseMistakesTsv(text: string): Mistake[] {
   return mistakes
 }
 
-// Only the one cell changes, so the rest of the file (other columns, line endings) stays as it was.
-// The mistake text is checked too, so an edit to the file since it was loaded can't update the wrong row.
-export function setTimesPracticedInTsv(text: string, row: number, mistake: string, timesPracticed: number): string {
+// The mistake text is checked too, so an edit to the file since it was loaded can't change the wrong row.
+function findRow(text: string, row: number, mistake: string) {
   const { lines, eol } = splitLines(text)
   const columns = findColumns(lines[0] ?? '')
   if (row < 1 || row >= lines.length) throw new MistakeRowMismatchError(`Row ${row} does not exist.`)
@@ -72,10 +71,27 @@ export function setTimesPracticedInTsv(text: string, row: number, mistake: strin
   if (cells[columns.mistake]?.trim() !== mistake.trim()) {
     throw new MistakeRowMismatchError(`Row ${row} no longer holds this mistake.`)
   }
+  return { lines, eol, columns, cells }
+}
+
+// Only the one cell changes, so the rest of the file (other columns, line endings) stays as it was.
+export function setTimesPracticedInTsv(text: string, row: number, mistake: string, timesPracticed: number): string {
+  const { lines, eol, columns, cells } = findRow(text, row, mistake)
   while (cells.length <= columns.timesPracticed) cells.push('')
   cells[columns.timesPracticed] = String(timesPracticed)
   lines[row] = cells.join('\t')
   return lines.join(eol)
+}
+
+export function deleteRowFromTsv(text: string, row: number, mistake: string): string {
+  const { lines, eol } = findRow(text, row, mistake)
+  lines.splice(row, 1)
+  return lines.join(eol)
+}
+
+// After a row is deleted, every row below it moves up one line.
+export function shiftRowsAfterDelete<T extends { row: number }>(items: T[], deletedRow: number): T[] {
+  return items.filter(item => item.row !== deletedRow).map(item => item.row > deletedRow ? { ...item, row: item.row - 1 } : item)
 }
 
 export function orderLeastPracticedFirst(mistakes: Mistake[]): Mistake[] {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseMistakesTsv, setTimesPracticedInTsv, orderLeastPracticedFirst, MistakeRowMismatchError } from '../lib/mistakes'
+import { parseMistakesTsv, setTimesPracticedInTsv, deleteRowFromTsv, shiftRowsAfterDelete, orderLeastPracticedFirst, MistakeRowMismatchError } from '../lib/mistakes'
 import type { Mistake } from '../types'
 
 const TSV = [
@@ -46,6 +46,25 @@ describe('setTimesPracticedInTsv', () => {
     expect(() => setTimesPracticedInTsv(TSV, 1, 'iets anders', 1)).toThrow(MistakeRowMismatchError)
     expect(() => setTimesPracticedInTsv(TSV, 0, 'Mijn fout', 1)).toThrow(MistakeRowMismatchError)
     expect(() => setTimesPracticedInTsv(TSV, 99, 'x', 1)).toThrow(MistakeRowMismatchError)
+  })
+})
+
+describe('deleteRowFromTsv', () => {
+  it('removes only that line, so the rows below it move up', () => {
+    const updated = deleteRowFromTsv(TSV, 1, 'ik ben eens met jou')
+
+    expect(updated).toBe(TSV.replace('ik ben eens met jou\tIk ben het eens met jou.\tGrammar fix\t0\n', ''))
+    expect(parseMistakesTsv(updated).map(m => [m.row, m.mistake])).toEqual([[2, 'De mensen zou bestijden']])
+  })
+
+  it('refuses when the row holds a different mistake', () => {
+    expect(() => deleteRowFromTsv(TSV, 3, 'ik ben eens met jou')).toThrow(MistakeRowMismatchError)
+  })
+})
+
+describe('shiftRowsAfterDelete', () => {
+  it('drops the deleted row and moves the rows below it up one line', () => {
+    expect(shiftRowsAfterDelete([{ row: 1 }, { row: 3 }, { row: 5 }], 3)).toEqual([{ row: 1 }, { row: 4 }])
   })
 })
 

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Mistake } from '../types'
-import { orderLeastPracticedFirst } from '../lib/mistakes'
+import { orderLeastPracticedFirst, shiftRowsAfterDelete } from '../lib/mistakes'
 import { insertLater, randomRequeueGap } from '../lib/requeue'
 import { buildChatGptMistakeFixUrl, openChatGptInBackground } from '../lib/chatgpt'
 
@@ -15,6 +15,7 @@ export function useMistakes(onPractice?: () => void) {
   const [revealed, setRevealed] = useState(false)
   const [markedCorrect, setMarkedCorrect] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deletingRow, setDeletingRow] = useState<number | null>(null)
 
   const current = mistakes.find(m => m.row === queue[currentIndex])
   const done = queue.length > 0 && currentIndex >= queue.length
@@ -90,6 +91,35 @@ export function useMistakes(onPractice?: () => void) {
     setMarkedCorrect(false)
   }, [current, revealed, currentIndex, markedCorrect])
 
+  const deleteMistakeAsync = useCallback(async (row: number) => {
+    const target = mistakes.find(m => m.row === row)
+    if (!target || saving || deletingRow !== null) return
+    setDeletingRow(row)
+    try {
+      const res = await fetch('/api/mistakes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row, mistake: target.mistake }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Kon de fout niet verwijderen.')
+      const removedBefore = queue.slice(0, currentIndex).filter(r => r === row).length
+      if (queue[currentIndex] === row) {
+        setUserInput('')
+        setRevealed(false)
+        setMarkedCorrect(false)
+      }
+      setMistakes(prev => shiftRowsAfterDelete(prev, row))
+      setQueue(prev => prev.filter(r => r !== row).map(r => r > row ? r - 1 : r))
+      setCurrentIndex(index => index - removedBefore)
+      setError(null)
+    } catch (err) {
+      console.error('[useMistakes] Failed to delete mistake:', err)
+      setError(err instanceof Error ? err.message : 'Kon de fout niet verwijderen.')
+    } finally {
+      setDeletingRow(null)
+    }
+  }, [mistakes, saving, deletingRow, queue, currentIndex])
+
   const askChatGpt = useCallback(() => {
     if (!current || !userInput.trim()) return
     openChatGptInBackground(buildChatGptMistakeFixUrl(current, userInput.trim()))
@@ -97,7 +127,7 @@ export function useMistakes(onPractice?: () => void) {
 
   return {
     mistakes, loading, error, queue, currentIndex, current, done,
-    userInput, setUserInput, revealed, markedCorrect, saving,
-    loadMistakesAsync, restart, reveal, toggleCorrectAsync, next, askChatGpt,
+    userInput, setUserInput, revealed, markedCorrect, saving, deletingRow,
+    loadMistakesAsync, restart, reveal, toggleCorrectAsync, next, askChatGpt, deleteMistakeAsync,
   }
 }

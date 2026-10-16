@@ -15,7 +15,7 @@ vi.mock('@/app/lib/driveStore', () => ({
   getDriveClient: () => ({ files: { get: filesGetMock, update: filesUpdateMock } }),
 }))
 
-import { GET, PUT } from '../api/mistakes/route'
+import { GET, PUT, DELETE } from '../api/mistakes/route'
 
 const TSV = 'Mijn fout\tMogelijke verbetering\tType fout\tnoOfTimesPracticed\nik ben eens\tIk ben het eens.\tGrammar fix\t0\n'
 
@@ -26,6 +26,9 @@ function mockDriveFile(text: string) {
 
 const putRequest = (body: unknown) =>
   PUT(new NextRequest('http://localhost/api/mistakes', { method: 'PUT', body: JSON.stringify(body) }))
+
+const deleteRequest = (body: unknown) =>
+  DELETE(new NextRequest('http://localhost/api/mistakes', { method: 'DELETE', body: JSON.stringify(body) }))
 
 async function uploadedText(): Promise<string> {
   const body = filesUpdateMock.mock.calls[0][0].media.body
@@ -83,6 +86,20 @@ describe('/api/mistakes', () => {
   it('PUT rejects bad input', async () => {
     expect((await putRequest({ row: 1, mistake: 'ik ben eens', timesPracticed: -1 })).status).toBe(400)
     expect((await putRequest({ row: '1', mistake: 'ik ben eens', timesPracticed: 1 })).status).toBe(400)
+    expect(filesUpdateMock).not.toHaveBeenCalled()
+  })
+
+  it('DELETE removes that row from the Drive file', async () => {
+    const res = await deleteRequest({ row: 1, mistake: 'ik ben eens' })
+
+    expect(res.status).toBe(200)
+    expect(await uploadedText()).toBe('Mijn fout\tMogelijke verbetering\tType fout\tnoOfTimesPracticed\n')
+  })
+
+  it('DELETE returns 409 when the row no longer holds that mistake, and 401 without login', async () => {
+    expect((await deleteRequest({ row: 1, mistake: 'iets anders' })).status).toBe(409)
+    authMock.mockResolvedValue(null)
+    expect((await deleteRequest({ row: 1, mistake: 'ik ben eens' })).status).toBe(401)
     expect(filesUpdateMock).not.toHaveBeenCalled()
   })
 })

@@ -7,10 +7,10 @@ import type { Mistake } from '../types'
 const make = (row: number, timesPracticed = 0): Mistake =>
   ({ row, mistake: `fout ${row}`, correction: `goed ${row}`, type: 'Grammar fix', timesPracticed })
 
-function mockFetch(mistakes: Mistake[], putOk = true) {
+function mockFetch(mistakes: Mistake[], writeOk = true) {
   global.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) =>
-    init?.method === 'PUT'
-      ? { ok: putOk, json: () => Promise.resolve(putOk ? { ok: true } : { error: 'Kon de teller niet opslaan.' }) }
+    init?.method === 'PUT' || init?.method === 'DELETE'
+      ? { ok: writeOk, json: () => Promise.resolve(writeOk ? { ok: true } : { error: 'Opslaan mislukt.' }) }
       : { ok: true, json: () => Promise.resolve({ mistakes }) }) as unknown as typeof fetch
 }
 
@@ -64,7 +64,7 @@ describe('useMistakes', () => {
 
     expect(result.current.current?.timesPracticed).toBe(2)
     expect(result.current.markedCorrect).toBe(false)
-    expect(result.current.error).toBe('Kon de teller niet opslaan.')
+    expect(result.current.error).toBe('Opslaan mislukt.')
   })
 
   it('can only mark Goed after revealing the answer', async () => {
@@ -117,6 +117,45 @@ describe('useMistakes', () => {
     act(() => result.current.askChatGpt())
 
     expect(openSpy.mock.calls[0][0]).toBe(buildChatGptMistakeFixUrl(make(1), 'mijn poging'))
+  })
+
+  it('deleting the current card removes it, shifts the rows below it and shows the next card', async () => {
+    const list = [make(1), make(2, 1), make(3, 2)]
+    mockFetch(list)
+    const { result } = await renderLoaded(list)
+    act(() => result.current.setUserInput('iets'))
+
+    await act(async () => { await result.current.deleteMistakeAsync(1) })
+
+    expect(JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[1][1].body)).toEqual({ row: 1, mistake: 'fout 1' })
+    expect(result.current.mistakes.map(m => [m.row, m.mistake])).toEqual([[1, 'fout 2'], [2, 'fout 3']])
+    expect(result.current.queue).toEqual([1, 2])
+    expect(result.current.current?.mistake).toBe('fout 2')
+    expect(result.current.userInput).toBe('')
+  })
+
+  it('deleting an earlier card keeps the current card in place', async () => {
+    const list = [make(1), make(2, 1), make(3, 2)]
+    mockFetch(list)
+    const { result } = await renderLoaded(list)
+    act(() => result.current.reveal())
+    await act(async () => { await result.current.toggleCorrectAsync() })
+    act(() => result.current.next())
+
+    await act(async () => { await result.current.deleteMistakeAsync(1) })
+
+    expect(result.current.currentIndex).toBe(0)
+    expect(result.current.current?.mistake).toBe('fout 2')
+  })
+
+  it('keeps the mistake when deleting fails', async () => {
+    mockFetch([make(1)], false)
+    const { result } = await renderLoaded([make(1)])
+
+    await act(async () => { await result.current.deleteMistakeAsync(1) })
+
+    expect(result.current.mistakes).toHaveLength(1)
+    expect(result.current.error).toBe('Opslaan mislukt.')
   })
 
   it('shows the error when loading fails', async () => {

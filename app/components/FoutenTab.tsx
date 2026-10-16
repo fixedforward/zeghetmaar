@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { useMistakes } from '../hooks/useMistakes'
 import { PracticeCounter } from './PracticeCounter'
 
@@ -7,6 +7,47 @@ type Props = ReturnType<typeof useMistakes> & {
   practicedDates: Set<string>
   onCheckIn: () => void
   onCancelCheckIn: () => void
+}
+
+function DeleteMistakeButton({ onDelete, deleting }: { onDelete: () => void; deleting: boolean }) {
+  const [confirming, setConfirming] = useState(false)
+
+  if (deleting) return <span className="text-xs text-gray-400 shrink-0">Verwijderen...</span>
+  if (!confirming) {
+    return (
+      <button onClick={() => setConfirming(true)} title="Rij verwijderen" className="text-xs text-red-400 hover:text-red-600 shrink-0">
+        ✕ Verwijderen
+      </button>
+    )
+  }
+  return (
+    <span className="flex items-center gap-2 shrink-0">
+      <span className="text-xs text-gray-600">Verwijderen?</span>
+      <button onClick={() => { setConfirming(false); onDelete() }} className="text-xs text-red-600 hover:underline font-medium">Ja</button>
+      <button onClick={() => setConfirming(false)} className="text-xs text-gray-500 hover:underline">Nee</button>
+    </span>
+  )
+}
+
+function MistakesOverview({ fouten }: { fouten: Props }) {
+  const currentRow = fouten.done ? undefined : fouten.current?.row
+  return (
+    <details className="mt-4">
+      <summary className="text-xs text-gray-400 mb-1 cursor-pointer select-none">Overzicht ({fouten.mistakes.length})</summary>
+      <ul className="space-y-1 max-h-96 overflow-y-auto border rounded p-2 bg-white">
+        {fouten.mistakes.map(m => (
+          <li key={m.row} className={`text-sm px-2 py-1 rounded flex items-start gap-3 ${m.row === currentRow ? 'bg-blue-50 border border-blue-200' : ''}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-red-700">{m.mistake}</p>
+              <p className="text-green-700">{m.correction}</p>
+              <p className="text-xs text-gray-400">{m.type && `${m.type} · `}✓ {m.timesPracticed}× goed</p>
+            </div>
+            <DeleteMistakeButton onDelete={() => fouten.deleteMistakeAsync(m.row)} deleting={fouten.deletingRow === m.row} />
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
 }
 
 export function FoutenTab(fouten: Props) {
@@ -59,6 +100,7 @@ export function FoutenTab(fouten: Props) {
             </button>
           </div>
         </div>
+        <MistakesOverview fouten={fouten} />
       </div>
     )
   }
@@ -72,7 +114,10 @@ export function FoutenTab(fouten: Props) {
       <div className="border rounded p-4 bg-white space-y-4">
         <div className="flex justify-between items-center text-xs text-gray-400">
           <span>Fout {fouten.currentIndex + 1} van {fouten.queue.length}{current.type && ` · ${current.type}`}</span>
-          <span title="Aantal keer goed (noOfTimesPracticed)">✓ {current.timesPracticed}× goed</span>
+          <span className="flex items-center gap-3">
+            <span title="Aantal keer goed (noOfTimesPracticed)">✓ {current.timesPracticed}× goed</span>
+            <DeleteMistakeButton key={current.row} onDelete={() => fouten.deleteMistakeAsync(current.row)} deleting={fouten.deletingRow === current.row} />
+          </span>
         </div>
 
         <div>
@@ -138,6 +183,7 @@ export function FoutenTab(fouten: Props) {
 
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
+      <MistakesOverview fouten={fouten} />
     </div>
   )
 }
