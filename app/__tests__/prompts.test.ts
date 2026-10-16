@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
+import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, MISTAKE_TRACKER_SHEET_URL, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
 import type { WordEntry } from '../types'
 
 const basePhrase: WordEntry = {
@@ -99,6 +99,12 @@ describe('comprehensionCheckPrompt', () => {
     expect(prompt).toContain('7 vragen')
     expect(prompt).toContain('Eerste alinea.\n\nTweede alinea.')
   })
+
+  it('asks to log the mistakes in my answers to the mistake tracker sheet', () => {
+    const prompt = comprehensionCheckPrompt('Tekst.')
+    expect(prompt).toContain(MISTAKE_TRACKER_SHEET_URL)
+    expect(prompt).toContain('"Mistake Log"')
+  })
 })
 
 describe('listeningComprehensionPrompt', () => {
@@ -110,6 +116,7 @@ describe('listeningComprehensionPrompt', () => {
     expect(prompt).toContain('7 vragen')
     expect(prompt).toContain('één voor één')
     expect(prompt).toContain('Kun je de link niet openen?')
+    expect(prompt).toContain(MISTAKE_TRACKER_SHEET_URL)
   })
 })
 
