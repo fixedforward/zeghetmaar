@@ -71,6 +71,15 @@ describe('useTranscriptPlayer', () => {
     expect(result.current.activeIndex).toBe(1)
   })
 
+  it('keeps the video length once its metadata has loaded', async () => {
+    const { result } = await renderLoadedAsync()
+    result.current.mediaRef.current = { ...fakeMedia(), duration: 754 } as unknown as HTMLVideoElement
+
+    act(() => result.current.syncDuration())
+
+    expect(result.current.duration).toBe(754)
+  })
+
   it('jumps to a cue and plays from there', async () => {
     const { result } = await renderLoadedAsync()
     const media = fakeMedia()

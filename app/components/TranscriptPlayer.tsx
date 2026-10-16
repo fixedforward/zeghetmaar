@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { SKIP_SECONDS, useTranscriptPlayer } from '../hooks/useTranscriptPlayer'
+import { JUMP_INTERVAL_SECONDS, SKIP_SECONDS, useTranscriptPlayer } from '../hooks/useTranscriptPlayer'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { useWords } from '../hooks/useWords'
 import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
@@ -10,7 +10,7 @@ import { useVideoSize } from '../hooks/useVideoSize'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
 import { DEFAULT_MODEL } from '../config/models'
-import { formatClock } from '../lib/youtube'
+import { formatClock, intervalStarts } from '../lib/youtube'
 import { VIDEO_SIZES, type VideoSize } from '../lib/videoSize'
 import type { SwipeDirection, TapZone } from '../lib/swipe'
 
@@ -70,6 +70,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   const { lesson } = player
   const subtitlesFound = lesson.subtitleFileId !== null
   const currentCue = lesson.cues[player.activeIndex]
+  const jumpStarts = intervalStarts(player.duration, JUMP_INTERVAL_SECONDS)
 
   // Pauses first, so the video doesn't run on while you fill in the form.
   const addCurrentCueToFraselijst = () => {
@@ -99,6 +100,8 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
             playsInline
             preload="metadata"
             onTimeUpdate={player.syncActiveCue}
+            onLoadedMetadata={player.syncDuration}
+            onDurationChange={player.syncDuration}
             className={`w-full rounded bg-black ${lesson.isAudio ? 'aspect-video' : sizeClasses.maxHeight}`}
           />
           {/* Catches clicks and swipes on the picture; subtitles are shown below the controls. */}
@@ -133,6 +136,21 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
           <button onClick={() => player.skipBy(SKIP_SECONDS)} title="5 seconden vooruit" className={toggleClass(false)}>
             +{SKIP_SECONDS}s
           </button>
+          {jumpStarts.length > 1 && (
+            <select
+              value=""
+              onChange={e => {
+                player.seekTo(Number(e.target.value))
+                // Otherwise the dropdown keeps focus and Space opens it instead of playing/pausing.
+                e.target.blur()
+              }}
+              title="Spring naar een punt in de video"
+              className="px-2 py-1 rounded border border-gray-300 text-sm text-gray-700 bg-white"
+            >
+              <option value="" disabled>⏱ Spring naar…</option>
+              {jumpStarts.map(start => <option key={start} value={start}>{formatClock(start)}</option>)}
+            </select>
+          )}
           {subtitlesFound && (
             <>
               <button onClick={() => player.seekToCueBy(-1)} title="Naar de vorige ondertitel" className={toggleClass(false)}>

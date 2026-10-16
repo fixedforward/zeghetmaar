@@ -6,6 +6,7 @@ import { isModalOpen, isTypingTarget } from '../lib/keyboard'
 
 const CONTEXT_SENTENCES = 3
 export const SKIP_SECONDS = 5
+export const JUMP_INTERVAL_SECONDS = 5 * 60
 
 export function useTranscriptPlayer(folderId: string, fileId: string) {
   const mediaRef = useRef<HTMLVideoElement>(null)
@@ -14,12 +15,14 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
   const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(-1)
   const [subtitlesOn, setSubtitlesOn] = useState(false)
+  const [duration, setDuration] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     setError(null)
     setLesson(null)
     setActiveIndex(-1)
+    setDuration(0)
     fetch(`/api/luisteren/lessons/${encodeURIComponent(folderId)}?file=${encodeURIComponent(fileId)}`)
       .then(async res => {
         const data = await res.json().catch(() => ({}))
@@ -57,6 +60,10 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
     if (!lesson || !mediaRef.current) return
     setActiveIndex(findActiveCueIndex(lesson.cues, mediaRef.current.currentTime))
   }, [lesson])
+
+  const syncDuration = useCallback(() => {
+    setDuration(mediaRef.current?.duration ?? 0)
+  }, [])
 
   const seekTo = useCallback((seconds: number) => {
     const media = mediaRef.current
@@ -123,7 +130,7 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
   }, [lesson])
 
   return {
-    mediaRef, lesson, error, activeIndex, subtitlesOn,
-    syncActiveCue, seekTo, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
+    mediaRef, lesson, error, activeIndex, subtitlesOn, duration,
+    syncActiveCue, syncDuration, seekTo, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatClock, formatCompactTimestamp, isYouTubeUrl, parseCompactTimestamp, startBefore, withStartTime } from '../lib/youtube'
+import { formatClock, formatCompactTimestamp, intervalStarts, isYouTubeUrl, parseCompactTimestamp, startBefore, withStartTime } from '../lib/youtube'
 
 describe('isYouTubeUrl', () => {
   it.each([
@@ -52,6 +52,22 @@ describe('formatClock', () => {
   it('formats as m:ss, or h:mm:ss from an hour on', () => {
     expect(formatClock(17 * 60 + 23)).toBe('17:23')
     expect(formatClock(59 * 60 + 94)).toBe('1:00:34')
+  })
+})
+
+describe('intervalStarts', () => {
+  it('gives every interval start before the end of the video', () => {
+    expect(intervalStarts(12 * 60 + 34, 5 * 60)).toEqual([0, 300, 600])
+  })
+
+  it('does not add a start right at the end', () => {
+    expect(intervalStarts(600, 300)).toEqual([0, 300])
+  })
+
+  it('is empty while the length is not known yet', () => {
+    expect(intervalStarts(0, 300)).toEqual([])
+    expect(intervalStarts(NaN, 300)).toEqual([])
+    expect(intervalStarts(Infinity, 300)).toEqual([])
   })
 })
 

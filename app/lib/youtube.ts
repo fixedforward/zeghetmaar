@@ -32,6 +32,13 @@ export function formatClock(totalSeconds: number): string {
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}` : `${minutes}:${seconds}`
 }
 
+export function intervalStarts(durationSeconds: number, intervalSeconds: number): number[] {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return []
+  const starts: number[] = []
+  for (let start = 0; start < durationSeconds; start += intervalSeconds) starts.push(start)
+  return starts
+}
+
 // Where to start playing so a moment isn't missed, never before the start.
 export function startBefore(seconds: number, leadSeconds: number): number {
   return Math.max(0, seconds - leadSeconds)
