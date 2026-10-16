@@ -35,6 +35,10 @@
     "googlePicturesFolder": {
       "_comment": "optional — folder holding the phrase pictures (Fraselijst edit modal, Cloze kaarten), readable by the service account above",
       "folderId": "<drive-folder-id>"
+    },
+    "googleMistakesFile": {
+      "_comment": "optional — enables the Fouten tab; a .tsv file (columns: Mijn fout, Mogelijke verbetering, Type fout, noOfTimesPracticed) the service account above can edit",
+      "fileId": "<drive-file-id>"
     }
   },
   "auth": {

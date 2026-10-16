@@ -1,4 +1,13 @@
-export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren'
+export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'fouten'
+
+// One row of the mistakes .tsv on Drive; `row` is its line index in the file (the header is 0).
+export interface Mistake {
+  row: number
+  mistake: string
+  correction: string
+  type: string
+  timesPracticed: number
+}
 
 export interface QuizFile {
   id: string

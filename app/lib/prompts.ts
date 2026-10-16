@@ -1,4 +1,4 @@
-import type { WordEntry } from '../types'
+import type { Mistake, WordEntry } from '../types'
 
 export function practiceScenarioPrompt(phrase: WordEntry, extraWords: WordEntry[] = []): string {
   // Ground the generated situation in the phrase's own meanings/examples, not
@@ -80,6 +80,17 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
     ONE_QUESTION_AT_A_TIME,
     `Kun je de link niet openen? Zeg dat dan meteen, in plaats van te raden wat erin staat.`,
   ].join('\n')
+}
+
+export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type'>, attempt: string): string {
+  return [
+    `Ik leer Nederlands en oefen met mijn eigen fouten. Ik moest deze zin verbeteren.`,
+    `Mijn fout: "${mistake.mistake}"`,
+    mistake.type ? `Type fout: ${mistake.type}` : null,
+    `Mijn poging: "${attempt}"`,
+    `Een mogelijke verbetering: "${mistake.correction}"`,
+    `Zeg of mijn poging goed is. Mijn poging hoeft niet precies gelijk te zijn aan de mogelijke verbetering, als hij ook correct en natuurlijk Nederlands is. Is hij niet goed, leg dan kort uit wat er nog fout is.`,
+  ].filter(line => line !== null).join('\n')
 }
 
 export function checkAnswerPrompt(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {

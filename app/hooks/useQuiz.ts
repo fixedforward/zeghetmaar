@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { QuizFile, QuizPair, WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
+import { insertLater, randomRequeueGap } from '../lib/requeue'
 import { buildQuizPairsFromWords } from '../lib/wordQuiz'
 import { useMarkedFiles } from './useMarkedFiles'
 
@@ -135,18 +136,9 @@ export function useQuiz(onPractice?: () => void) {
       return
     }
 
-    // Wrong answer: don't just mark it — requeue the same exercise a few
-    // questions later (2-5 others in between) instead of a separate retry round.
-    const gap = 2 + Math.floor(Math.random() * 4)
-    setPairs(prev => {
-      const insertAt = Math.min(answeredIndex + 1 + gap, prev.length)
-      return [...prev.slice(0, insertAt), prev[answeredIndex], ...prev.slice(insertAt)]
-    })
-    setAnswers(prev => {
-      const marked = prev.map((a, i) => i === answeredIndex ? false : a)
-      const insertAt = Math.min(answeredIndex + 1 + gap, marked.length)
-      return [...marked.slice(0, insertAt), null, ...marked.slice(insertAt)]
-    })
+    const gap = randomRequeueGap()
+    setPairs(prev => insertLater(prev, answeredIndex, gap, prev[answeredIndex]))
+    setAnswers(prev => insertLater(prev.map((a, i) => i === answeredIndex ? false : a), answeredIndex, gap, null))
   }
 
   const jumpTo = (index: number) => {

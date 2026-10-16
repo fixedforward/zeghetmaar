@@ -57,6 +57,10 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/luisteren/media/[id]/route.ts` | GET handler: streams a Drive video/audio file to `<video>`, passing the browser's `Range` header on to Drive (206 Partial Content) so seeking only downloads what's needed; refuses non-media files (415); login required |
 | `app/api/pictures/route.ts` | GET handler: lists the images (`image/*`) in the `googlePicturesFolder` Drive folder, sorted by name; 501 if the folder isn't configured; login required |
 | `app/api/pictures/[id]/route.ts` | GET handler: streams one Drive image to `<img>` (refuses non-images with 415); login required |
+| `app/api/mistakes/route.ts` | GET/PUT for the Fouten tab: GET reads and parses the mistakes `.tsv` (`googleMistakesFile`), PUT `{ row, mistake, timesPracticed }` sets one row's `noOfTimesPracticed` and uploads the file again (409 if that row no longer holds that mistake, so an edited file can't update the wrong row); 501 if not configured; login required |
+| `app/lib/mistakes.ts` + `app/lib/driveMistakeStore.ts` | Mistakes `.tsv`: `parseMistakesTsv` (columns found by header name: `Mijn fout`, `Mogelijke verbetering`, `Type fout` (optional), `noOfTimesPracticed`), `setTimesPracticedInTsv` (changes only that one cell, keeps line endings), `orderLeastPracticedFirst`; the store reads it with `readDriveTextFileAsync` and writes it with `files.update` |
+| `app/hooks/useMistakes.ts` + `app/components/FoutenTab.tsx` | Fouten tab: one mistake at a time, least practiced first; type the fix, "Toon antwoord" shows `Mogelijke verbetering`, "Vraag ChatGPT" opens ChatGPT with the mistake, my attempt and the correction (`mistakeFixCheckPrompt`), "Goed (+1)" is an undoable toggle that saves `noOfTimesPracticed` + 1 to Drive (optimistic, rolled back on failure) and marks the `fouten` day counter; a card not marked Goed comes back 2–5 cards later |
+| `app/lib/requeue.ts` | `randomRequeueGap` + `insertLater`: the "wrong answer comes back 2–5 cards later" step shared by Quiz, Cloze and Fouten |
 | `app/api/health/route.ts` | GET handler: liveness check (no external calls) |
 | `app/api/auth/[...nextauth]/route.ts` | NextAuth route handlers |
 | `auth.ts` | NextAuth config: Google provider, allowed-email check, custom error redirect |
@@ -135,6 +139,9 @@ Optional:
 - `database.googlePicturesFolder.folderId` — Drive folder holding the phrase pictures,
   readable by the same service account. Pictures are uploaded there by hand (the service
   account can't create files); if unset, `/api/pictures` returns a "not configured" error.
+- `database.googleMistakesFile.fileId` — a `.tsv` file (not a Google Sheet) holding my mistakes,
+  which the service account must be able to **edit** (it writes `noOfTimesPracticed` back).
+  Enables the Fouten tab; if unset, `/api/mistakes` returns a "not configured" error.
 
 See `app/config.example.json` for the full shape. The default selectable model is set in
 `app/config/models.ts` (`DEFAULT_MODEL`), not via config.
@@ -177,6 +184,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, click "Comprehension controleren" (below the article) to open ChatGPT with the whole article and a request for 7 comprehension questions, each with the rough paragraph that holds the answer, and select text to open a ChatGPT explanation (the whole article is sent along as context) or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
 | **Cloze** | Fill-in-the-blank on Fraselijst example sentences. Two separate sessions: "Start typen" (type the word, letter hints) and "Start kaarten" (Anki-style card: phrase on the front, click/Space flips it to its meanings, then self-mark Goed/Fout with 1/2; any phrase with a meaning qualifies), with both frase → vertaling and vertaling → frase shuffled together in one session. Each has its own daily counter (`cloze` / `clozekaarten`) |
 | **Luisteren** | Shows a daily goal (listen at least 5 minutes a day). A Drive tree (`googleListeningFolder`) lists the .mp3/.mp4 files; clicking one opens the player page with its same-name `.srt` as a synced transcript. Save YouTube links (stored on Drive, so they sync across devices) and click one to open the video, starting where you left off if you filled that in; note words/phrases per video and import them into the Fraselijst; login required |
+| **Fouten** | Practice my own mistakes from a `.tsv` on Drive: fix the sentence, check it against the possible correction or ask ChatGPT, and mark it Goed to add 1 to its `noOfTimesPracticed`; own daily counter (`fouten`); login required |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
 
 ## Phrase Practice

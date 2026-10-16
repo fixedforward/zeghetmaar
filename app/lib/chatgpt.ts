@@ -1,4 +1,5 @@
-import { explainPhrasePrompt, checkAnswerPrompt, comprehensionCheckPrompt, listeningComprehensionPrompt } from './prompts'
+import { explainPhrasePrompt, checkAnswerPrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, mistakeFixCheckPrompt } from './prompts'
+import type { Mistake } from '../types'
 import { openPopupWindow } from './popup'
 
 export function buildChatGptExplainUrl(phrase: string, context?: string): string {
@@ -21,6 +22,10 @@ export function buildChatGptListeningComprehensionUrl(title: string, subtitleFil
 
 export function buildChatGptCheckAnswerUrl(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {
   return `https://chatgpt.com/?q=${encodeURIComponent(checkAnswerPrompt(phrase, situation, answer, extraWords))}`
+}
+
+export function buildChatGptMistakeFixUrl(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type'>, attempt: string): string {
+  return `https://chatgpt.com/?q=${encodeURIComponent(mistakeFixCheckPrompt(mistake, attempt))}`
 }
 
 // chatgpt.com blocks being embedded in an iframe (it sends X-Frame-Options / a

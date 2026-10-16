@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { WordEntry } from '../types'
 import { shuffleArray } from '../lib/shuffle'
+import { insertLater, randomRequeueGap } from '../lib/requeue'
 import { buildClozeQuestions, buildFlashcards, type ClozeQuestion } from '../lib/cloze'
 
 // 'typen' is the Clozemaster-style session (type the missing word); 'kaarten'
@@ -69,17 +70,9 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
     setCurrentIndex(prev => prev + 1)
 
     if (wasCorrect === false) {
-      // Wrong answer: don't just mark it — requeue the same question a few
-      // questions later (2-5 others in between) instead of a separate retry round.
-      const gap = 2 + Math.floor(Math.random() * 4)
-      setQuestions(prev => {
-        const insertAt = Math.min(answeredIndex + 1 + gap, prev.length)
-        return [...prev.slice(0, insertAt), prev[answeredIndex], ...prev.slice(insertAt)]
-      })
-      setAnswers(prev => {
-        const insertAt = Math.min(answeredIndex + 1 + gap, prev.length)
-        return [...prev.slice(0, insertAt), null, ...prev.slice(insertAt)]
-      })
+      const gap = randomRequeueGap()
+      setQuestions(prev => insertLater(prev, answeredIndex, gap, prev[answeredIndex]))
+      setAnswers(prev => insertLater(prev, answeredIndex, gap, null))
     }
   }, [currentIndex])
 

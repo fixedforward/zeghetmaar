@@ -8,7 +8,7 @@ const YEAR_BITMAP_BYTES = 46 // ceil(366 / 8)
 // The last four back the daily-tracker checklist modal — manually checked off,
 // same mark/cancel mechanism as the in-app ones.
 export const PRACTICE_LOG_TYPES = [
-  'oefensessie', 'quiz', 'cloze', 'clozekaarten',
+  'oefensessie', 'quiz', 'cloze', 'clozekaarten', 'fouten',
   'clozemaster', 'podcastactief', 'podcastpassief', 'zeghetmaar',
 ] as const
 export type PracticeLogType = (typeof PRACTICE_LOG_TYPES)[number]

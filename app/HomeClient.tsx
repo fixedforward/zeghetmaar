@@ -13,6 +13,7 @@ import { useQuiz } from './hooks/useQuiz'
 import { useCloze } from './hooks/useCloze'
 import { useArticles } from './hooks/useArticles'
 import { useListeningTree } from './hooks/useListeningTree'
+import { useMistakes } from './hooks/useMistakes'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { ALL_TABS, TAB_LABELS } from './config/tabs'
@@ -25,6 +26,7 @@ import { QuizTab } from './components/QuizTab'
 import { ClozeTab } from './components/ClozeTab'
 import { ArtikelenTab } from './components/ArtikelenTab'
 import { LuisterenTab } from './components/LuisterenTab'
+import { FoutenTab } from './components/FoutenTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
 import { SettingsModal } from './components/SettingsModal'
@@ -46,6 +48,7 @@ export default function HomeClient() {
   const quizTracker = usePracticeTracker('quiz', !!session)
   const clozeTracker = usePracticeTracker('cloze', !!session)
   const clozeKaartenTracker = usePracticeTracker('clozekaarten', !!session)
+  const foutenTracker = usePracticeTracker('fouten', !!session)
   const clozemasterTracker = usePracticeTracker('clozemaster', !!session)
   const podcastActiefTracker = usePracticeTracker('podcastactief', !!session)
   const podcastPassiefTracker = usePracticeTracker('podcastpassief', !!session)
@@ -67,6 +70,7 @@ export default function HomeClient() {
   const cloze = useCloze(mode => (mode === 'kaarten' ? clozeKaartenTracker : clozeTracker).markPracticedToday())
   const articles = useArticles()
   const listeningTree = useListeningTree()
+  const fouten = useMistakes(foutenTracker.markPracticedToday)
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {
@@ -100,6 +104,7 @@ export default function HomeClient() {
       quizTracker.loadPracticeLog()
       clozeTracker.loadPracticeLog()
       clozeKaartenTracker.loadPracticeLog()
+      foutenTracker.loadPracticeLog()
       clozemasterTracker.loadPracticeLog()
       podcastActiefTracker.loadPracticeLog()
       podcastPassiefTracker.loadPracticeLog()
@@ -109,7 +114,7 @@ export default function HomeClient() {
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
-    clozeKaartenTracker.loadPracticeLog,
+    clozeKaartenTracker.loadPracticeLog, foutenTracker.loadPracticeLog,
     clozemasterTracker.loadPracticeLog, podcastActiefTracker.loadPracticeLog,
     podcastPassiefTracker.loadPracticeLog, zeghetmaarTracker.loadPracticeLog,
     quiz.loadPreparedFileIds,
@@ -223,6 +228,17 @@ export default function HomeClient() {
         )}
         {activeTab === 'artikelen' && <ErrorBoundary><ArtikelenTab {...articles} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
         {activeTab === 'luisteren' && <ErrorBoundary><LuisterenTab isLoggedIn={!!session} listeningTree={listeningTree} /></ErrorBoundary>}
+        {activeTab === 'fouten' && (
+          <ErrorBoundary>
+            <FoutenTab
+              {...fouten}
+              isLoggedIn={!!session}
+              practicedDates={foutenTracker.practicedDates}
+              onCheckIn={foutenTracker.markPracticedToday}
+              onCancelCheckIn={foutenTracker.cancelPracticedToday}
+            />
+          </ErrorBoundary>
+        )}
       </main>
 
       {chat.selectionPopup && (

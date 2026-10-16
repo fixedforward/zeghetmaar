@@ -25,6 +25,9 @@ interface AppConfig {
     googlePicturesFolder?: {
       folderId: string
     }
+    googleMistakesFile?: {
+      fileId: string
+    }
   }
   auth: {
     nextAuthSecret: string

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
+import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, mistakeFixCheckPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
 import type { WordEntry } from '../types'
 
 const basePhrase: WordEntry = {
@@ -115,6 +115,25 @@ describe('listeningComprehensionPrompt', () => {
     expect(prompt).toContain('één voor één')
     expect(prompt).toContain('Kun je de link niet openen?')
     expect(prompt).toContain('op welk tijdstip in het transcript het antwoord zit')
+  })
+})
+
+describe('mistakeFixCheckPrompt', () => {
+  it('includes my mistake, its type, my attempt and the possible correction, and asks if I got it right', () => {
+    const prompt = mistakeFixCheckPrompt(
+      { mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix' },
+      'Ik ben het met jou eens.',
+    )
+
+    expect(prompt).toContain('Mijn fout: "ik ben eens met jou"')
+    expect(prompt).toContain('Type fout: Grammar fix')
+    expect(prompt).toContain('Mijn poging: "Ik ben het met jou eens."')
+    expect(prompt).toContain('Een mogelijke verbetering: "Ik ben het eens met jou."')
+    expect(prompt).toContain('Zeg of mijn poging goed is.')
+  })
+
+  it('leaves out the type line when there is no type', () => {
+    expect(mistakeFixCheckPrompt({ mistake: 'a', correction: 'b', type: '' }, 'c')).not.toContain('Type fout')
   })
 })
 
