@@ -59,20 +59,12 @@ export function explainPhrasePrompt(phrase: string, context?: string): string {
 
 const ONE_QUESTION_AT_A_TIME = `Stel de vragen één voor één: wacht op mijn antwoord, geef feedback (en verbeter mijn Nederlands), en stel dan pas de volgende vraag.`
 
-export const MISTAKE_TRACKER_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1tW5dOf_gPu6a4dYWgUBy1oiN4WfIqt5EY9prI73Cuyc/edit'
-
-const LOG_MISTAKES_TO_SHEET = [
-  `Voeg na elk antwoord de fouten in mijn antwoordpoging toe als nieuwe rijen aan het tabblad "Mistake Log" van deze Google Sheet: ${MISTAKE_TRACKER_SHEET_URL}`,
-  `Vul de bestaande kolommen in (ID in de reeks NL-001, NL-002, …; Date added; Category; My original sentence; Correct Dutch; Explanation / rule; Source / topic; Times repeated; Correct uses; Last review; Next review = de dag erna; Status = New). Staat dezelfde fout er al, verhoog dan "Times repeated" en zet Status op Recurring in plaats van een nieuwe rij toe te voegen.`,
-  `Kun je de sheet niet bewerken? Zeg dat dan meteen.`,
-].join('\n')
-
 export function comprehensionCheckPrompt(articleText: string): string {
   return [
     `Ik leer Nederlands en heb de onderstaande tekst gelezen.`,
     `Controleer mijn begrip van de tekst door mij 7 vragen erover te stellen, in het Nederlands.`,
+    `Zet bij elke vraag ongeveer in welke alinea het antwoord staat (bijv. "zie alinea 3"), zodat ik het kan teruglezen.`,
     ONE_QUESTION_AT_A_TIME,
-    LOG_MISTAKES_TO_SHEET,
     ``,
     articleText,
   ].join('\n')
@@ -84,8 +76,8 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
     `Ik leer Nederlands en heb net naar "${title}" geluisterd.`,
     `Het transcript (een .srt-bestand) staat hier: ${transcriptUrl}`,
     `Open het transcript en controleer mijn begrip door mij 7 vragen over de inhoud te stellen, in het Nederlands.`,
+    `Zet bij elke vraag ongeveer op welk tijdstip in het transcript het antwoord zit (bijv. "rond 03:20"), zodat ik het kan terugluisteren.`,
     ONE_QUESTION_AT_A_TIME,
-    LOG_MISTAKES_TO_SHEET,
     `Kun je de link niet openen? Zeg dat dan meteen, in plaats van te raden wat erin staat.`,
   ].join('\n')
 }
