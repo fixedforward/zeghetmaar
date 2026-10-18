@@ -38,6 +38,7 @@ function MistakesOverview({ fouten }: { fouten: Props }) {
         {fouten.mistakes.map(m => (
           <li key={m.row} className={`text-sm px-2 py-1 rounded flex items-start gap-3 ${m.row === currentRow ? 'bg-blue-50 border border-blue-200' : ''}`}>
             <div className="flex-1 min-w-0">
+              {m.translation && <p className="text-gray-700">{m.translation}</p>}
               <p className="text-red-700">{m.mistake}</p>
               <p className="text-green-700">{m.correction}</p>
               <p className="text-xs text-gray-400">{m.type && `${m.type} · `}✓ {m.timesPracticed}× goed</p>
@@ -82,7 +83,7 @@ export function FoutenTab(fouten: Props) {
   }
 
   if (mistakes.length === 0) {
-    return <div>{counter}<p className="text-sm text-gray-500">Er staan nog geen fouten in het bestand.</p></div>
+    return <div>{counter}<p className="text-sm text-gray-500">Er staan nog geen zinnen in het bestand.</p></div>
   }
 
   if (fouten.done || !fouten.current) {
@@ -90,7 +91,7 @@ export function FoutenTab(fouten: Props) {
       <div>
         {counter}
         <div className="border rounded p-4 bg-white text-center space-y-3">
-          <p className="font-semibold">Klaar! Je hebt alle {mistakes.length} fouten geoefend.</p>
+          <p className="font-semibold">Klaar! Je hebt alle {mistakes.length} zinnen geoefend.</p>
           <div className="flex justify-center gap-2">
             <button onClick={fouten.restart} className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600">
               Opnieuw
@@ -120,10 +121,17 @@ export function FoutenTab(fouten: Props) {
           </span>
         </div>
 
-        <div>
-          <p className="text-xs text-gray-500 mb-1">Verbeter deze zin:</p>
-          <p className="text-lg text-red-700">{current.mistake}</p>
-        </div>
+        {current.translation ? (
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Vertaal naar het Nederlands:</p>
+            <p className="text-lg">{current.translation}</p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Verbeter deze zin:</p>
+            <p className="text-lg text-red-700">{current.mistake}</p>
+          </div>
+        )}
 
         <input
           ref={inputRef}
@@ -135,7 +143,7 @@ export function FoutenTab(fouten: Props) {
             if (revealed) fouten.next()
             else fouten.reveal()
           }}
-          placeholder="Jouw verbetering..."
+          placeholder={current.translation ? 'Jouw vertaling...' : 'Jouw verbetering...'}
           className="w-full border rounded p-2 text-sm"
         />
 
@@ -145,15 +153,23 @@ export function FoutenTab(fouten: Props) {
           </button>
         ) : (
           <>
-            <div className="border-t pt-3">
-              <p className="text-xs text-gray-500 mb-1">Mogelijke verbetering:</p>
-              <p className="text-lg text-green-700">{current.correction}</p>
+            <div className="border-t pt-3 space-y-2">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">{current.translation ? 'Mogelijke vertaling:' : 'Mogelijke verbetering:'}</p>
+                <p className="text-lg text-green-700">{current.correction}</p>
+              </div>
+              {current.translation && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Je eerdere fout:</p>
+                  <p className="text-sm text-red-700">{current.mistake}</p>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={fouten.askChatGpt}
                 disabled={!hasAttempt}
-                title={hasAttempt ? undefined : 'Typ eerst je verbetering'}
+                title={hasAttempt ? undefined : 'Typ eerst je antwoord'}
                 className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50"
               >
                 Vraag ChatGPT

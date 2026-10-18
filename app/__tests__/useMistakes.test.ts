@@ -5,7 +5,7 @@ import { buildChatGptMistakeFixUrl } from '../lib/chatgpt'
 import type { Mistake } from '../types'
 
 const make = (row: number, timesPracticed = 0): Mistake =>
-  ({ row, mistake: `fout ${row}`, correction: `goed ${row}`, type: 'Grammar fix', timesPracticed })
+  ({ row, mistake: `fout ${row}`, correction: `goed ${row}`, type: 'Grammar fix', timesPracticed, translation: `english ${row}` })
 
 function mockFetch(mistakes: Mistake[], writeOk = true) {
   global.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) =>

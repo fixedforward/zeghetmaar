@@ -121,7 +121,7 @@ describe('listeningComprehensionPrompt', () => {
 describe('mistakeFixCheckPrompt', () => {
   it('includes my mistake, its type, my attempt and the possible correction, and asks if I got it right', () => {
     const prompt = mistakeFixCheckPrompt(
-      { mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix' },
+      { mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix', translation: '' },
       'Ik ben het met jou eens.',
     )
 
@@ -132,8 +132,21 @@ describe('mistakeFixCheckPrompt', () => {
     expect(prompt).toContain('Zeg of mijn poging goed is.')
   })
 
+  it('asks about my translation of the English sentence when there is one', () => {
+    const prompt = mistakeFixCheckPrompt(
+      { mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix', translation: 'I agree with you.' },
+      'Ik ben het met je eens.',
+    )
+
+    expect(prompt).toContain('deze Engelse zin naar het Nederlands vertalen: "I agree with you."')
+    expect(prompt).toContain('Mijn vertaling: "Ik ben het met je eens."')
+    expect(prompt).toContain('Een mogelijke vertaling: "Ik ben het eens met jou."')
+    expect(prompt).toContain('met een fout: "ik ben eens met jou"')
+    expect(prompt).toContain('klinkt hij natuurlijk?')
+  })
+
   it('leaves out the type line when there is no type', () => {
-    expect(mistakeFixCheckPrompt({ mistake: 'a', correction: 'b', type: '' }, 'c')).not.toContain('Type fout')
+    expect(mistakeFixCheckPrompt({ mistake: 'a', correction: 'b', type: '', translation: '' }, 'c')).not.toContain('Type fout')
   })
 })
 

@@ -13,15 +13,21 @@ const TSV = [
 describe('parseMistakesTsv', () => {
   it('reads each row by header name, keeping its line index', () => {
     expect(parseMistakesTsv(TSV)).toEqual([
-      { row: 1, mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix', timesPracticed: 0 },
-      { row: 3, mistake: 'De mensen zou bestijden', correction: 'De mensen zouden bestrijden', type: 'Both', timesPracticed: 2 },
+      { row: 1, mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix', timesPracticed: 0, translation: '' },
+      { row: 3, mistake: 'De mensen zou bestijden', correction: 'De mensen zouden bestrijden', type: 'Both', timesPracticed: 2, translation: '' },
     ])
   })
 
   it('finds the columns in any order and treats an empty count as 0', () => {
     const text = '﻿noOfTimesPracticed\tMogelijke verbetering\tMijn fout\r\n\tGoed.\tFout.\r\n'
 
-    expect(parseMistakesTsv(text)).toEqual([{ row: 1, mistake: 'Fout.', correction: 'Goed.', type: '', timesPracticed: 0 }])
+    expect(parseMistakesTsv(text)).toEqual([{ row: 1, mistake: 'Fout.', correction: 'Goed.', type: '', timesPracticed: 0, translation: '' }])
+  })
+
+  it('reads the English translation when the file has that column', () => {
+    const text = 'Mijn fout\tMogelijke verbetering\tType fout\tnoOfTimesPracticed\tenglishTranslation\nik ben eens\tIk ben het eens.\tGrammar fix\t0\tI agree.\n'
+
+    expect(parseMistakesTsv(text)[0].translation).toBe('I agree.')
   })
 
   it('throws when a required column is missing', () => {
@@ -70,7 +76,7 @@ describe('shiftRowsAfterDelete', () => {
 
 describe('orderLeastPracticedFirst', () => {
   it('puts the least practiced mistakes first', () => {
-    const make = (row: number, timesPracticed: number): Mistake => ({ row, mistake: `m${row}`, correction: '', type: '', timesPracticed })
+    const make = (row: number, timesPracticed: number): Mistake => ({ row, mistake: `m${row}`, correction: '', type: '', timesPracticed, translation: '' })
 
     const ordered = orderLeastPracticedFirst([make(1, 3), make(2, 0), make(3, 1), make(4, 0)])
 

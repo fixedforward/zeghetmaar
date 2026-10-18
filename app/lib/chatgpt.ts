@@ -24,7 +24,7 @@ export function buildChatGptCheckAnswerUrl(phrase: string, situation: string, an
   return `https://chatgpt.com/?q=${encodeURIComponent(checkAnswerPrompt(phrase, situation, answer, extraWords))}`
 }
 
-export function buildChatGptMistakeFixUrl(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type'>, attempt: string): string {
+export function buildChatGptMistakeFixUrl(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type' | 'translation'>, attempt: string): string {
   return `https://chatgpt.com/?q=${encodeURIComponent(mistakeFixCheckPrompt(mistake, attempt))}`
 }
 

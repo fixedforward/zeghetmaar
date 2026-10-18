@@ -14,5 +14,5 @@ export const TAB_LABELS: Record<Tab, string> = {
   cloze: 'Cloze',
   artikelen: 'Artikelen',
   luisteren: 'Luisteren',
-  fouten: 'Fouten',
+  fouten: 'Vertaling oefenen',
 }

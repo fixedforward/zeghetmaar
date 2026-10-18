@@ -7,6 +7,8 @@ export interface Mistake {
   correction: string
   type: string
   timesPracticed: number
+  // English version of the sentence: the prompt for translation practice. Empty when the file has none.
+  translation: string
 }
 
 export interface QuizFile {

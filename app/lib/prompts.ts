@@ -82,7 +82,18 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
   ].join('\n')
 }
 
-export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type'>, attempt: string): string {
+// With an English translation the exercise is translation practice; without one it falls back to fixing the mistake.
+export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type' | 'translation'>, attempt: string): string {
+  if (mistake.translation) {
+    return [
+      `Ik leer Nederlands en oefen met vertalen, om me duidelijker en natuurlijker uit te drukken.`,
+      `Ik moest deze Engelse zin naar het Nederlands vertalen: "${mistake.translation}"`,
+      `Mijn vertaling: "${attempt}"`,
+      `Een mogelijke vertaling: "${mistake.correction}"`,
+      `Eerder schreef ik het zo, met een fout: "${mistake.mistake}"`,
+      `Zeg of mijn vertaling goed is: klopt de grammatica, zegt hij hetzelfde als de Engelse zin, en klinkt hij natuurlijk? Hij hoeft niet precies gelijk te zijn aan de mogelijke vertaling. Is hij niet goed of kan het duidelijker, leg dan kort uit wat er beter kan.`,
+    ].join('\n')
+  }
   return [
     `Ik leer Nederlands en oefen met mijn eigen fouten. Ik moest deze zin verbeteren.`,
     `Mijn fout: "${mistake.mistake}"`,

@@ -63,7 +63,7 @@ describe('/api/mistakes', () => {
     const res = await GET()
 
     expect(await res.json()).toEqual({
-      mistakes: [{ row: 1, mistake: 'ik ben eens', correction: 'Ik ben het eens.', type: 'Grammar fix', timesPracticed: 0 }],
+      mistakes: [{ row: 1, mistake: 'ik ben eens', correction: 'Ik ben het eens.', type: 'Grammar fix', timesPracticed: 0, translation: '' }],
     })
     expect(filesGetMock).toHaveBeenCalledWith(expect.objectContaining({ fileId: 'tsv1', alt: 'media' }), expect.anything())
   })
