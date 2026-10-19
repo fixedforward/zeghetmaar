@@ -82,6 +82,14 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
   ].join('\n')
 }
 
+const ANSWER_AS_TABLE = [
+  `Antwoord kort, zonder lange uitleg in zinnen:`,
+  `1. Eén regel: ✅ goed of ❌ niet goed.`,
+  `2. Een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom (max. 10 woorden).`,
+  `3. De hele verbeterde zin op één regel.`,
+  `Is alles goed, laat de tabel dan weg.`,
+].join('\n')
+
 // With an English translation the exercise is translation practice; without one it falls back to fixing the mistake.
 export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type' | 'translation'>, attempt: string): string {
   if (mistake.translation) {
@@ -91,7 +99,8 @@ export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correc
       `Mijn vertaling: "${attempt}"`,
       `Een mogelijke vertaling: "${mistake.correction}"`,
       `Eerder schreef ik het zo, met een fout: "${mistake.mistake}"`,
-      `Zeg of mijn vertaling goed is: klopt de grammatica, zegt hij hetzelfde als de Engelse zin, en klinkt hij natuurlijk? Hij hoeft niet precies gelijk te zijn aan de mogelijke vertaling. Is hij niet goed of kan het duidelijker, leg dan kort uit wat er beter kan.`,
+      `Zeg of mijn vertaling goed is: klopt de grammatica, zegt hij hetzelfde als de Engelse zin, en klinkt hij natuurlijk? Hij hoeft niet precies gelijk te zijn aan de mogelijke vertaling. Zet ook in de tabel wat duidelijker of natuurlijker kan.`,
+      ANSWER_AS_TABLE,
     ].join('\n')
   }
   return [
@@ -100,7 +109,8 @@ export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correc
     mistake.type ? `Type fout: ${mistake.type}` : null,
     `Mijn poging: "${attempt}"`,
     `Een mogelijke verbetering: "${mistake.correction}"`,
-    `Zeg of mijn poging goed is. Mijn poging hoeft niet precies gelijk te zijn aan de mogelijke verbetering, als hij ook correct en natuurlijk Nederlands is. Is hij niet goed, leg dan kort uit wat er nog fout is.`,
+    `Zeg of mijn poging goed is. Mijn poging hoeft niet precies gelijk te zijn aan de mogelijke verbetering, als hij ook correct en natuurlijk Nederlands is.`,
+    ANSWER_AS_TABLE,
   ].filter(line => line !== null).join('\n')
 }
 
