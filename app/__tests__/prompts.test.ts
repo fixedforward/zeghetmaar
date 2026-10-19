@@ -132,7 +132,9 @@ describe('mistakeFixCheckPrompt', () => {
     expect(prompt).toContain('Zeg of mijn poging goed is.')
     expect(prompt).toContain('een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom')
     expect(prompt.indexOf('1. Mijn poging')).toBeLessThan(prompt.indexOf('2. Verbetering / herformulering'))
-    expect(prompt.indexOf('2. Verbetering / herformulering')).toBeLessThan(prompt.indexOf('3. Uitleg: een tabel'))
+    expect(prompt.indexOf('2. Verbetering / herformulering')).toBeLessThan(prompt.indexOf('3. Natuurlijker:'))
+    expect(prompt.indexOf('3. Natuurlijker:')).toBeLessThan(prompt.indexOf('4. Uitleg: een tabel'))
+    expect(prompt).toContain('als het kan en past, een natuurlijkere herformulering')
   })
 
   it('asks about my translation of the English sentence when there is one', () => {
