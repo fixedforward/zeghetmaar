@@ -6,7 +6,7 @@ import { buildChatGptMistakeFixUrl } from '../lib/chatgpt'
 import type { Mistake } from '../types'
 
 const make = (row: number, timesPracticed = 0): Mistake =>
-  ({ row, mistake: `fout ${row}`, correction: `goed ${row}`, type: 'Grammar fix', timesPracticed, translation: `english ${row}` })
+  ({ row, mistake: `fout ${row}`, correction: `goed ${row}`, type: 'Grammar fix', timesPracticed, translation: `english ${row}`, rewording: '' })
 
 function mockFetch(mistakes: Mistake[], writeOk = true) {
   global.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) =>
@@ -18,6 +18,7 @@ function mockFetch(mistakes: Mistake[], writeOk = true) {
 async function renderLoaded(mistakes: Mistake[], onPractice?: () => void) {
   const hook = renderHook(() => useMistakes(onPractice))
   await act(async () => { await hook.result.current.loadMistakesAsync() })
+  act(() => hook.result.current.start())
   return hook
 }
 
@@ -187,31 +188,35 @@ describe('useMistakes', () => {
     expect(result.current.error).toBe('Opslaan mislukt.')
   })
 
-  it('practices only the sentences with the chosen number of Goed, and starts over', async () => {
+  it('loading shows the start screen; Start begins a session with only the sentences that match the filter', async () => {
     const list = [make(1, 0), make(2, 1), make(3, 3), make(4, 5)]
     mockFetch(list)
-    const { result } = await renderLoaded(list)
-    act(() => result.current.reveal())
-    act(() => result.current.next())
+    const { result } = renderHook(() => useMistakes())
+    await act(async () => { await result.current.loadMistakesAsync() })
+
+    expect(result.current.active).toBe(false)
+    expect(result.current.queue).toEqual([])
 
     act(() => result.current.setPracticedFilter('3+'))
+    expect(result.current.active).toBe(false)
 
-    expect(result.current.practicedFilter).toBe('3+')
+    act(() => result.current.start())
+    expect(result.current.active).toBe(true)
     expect([...result.current.queue].sort()).toEqual([3, 4])
     expect(result.current.currentIndex).toBe(0)
-
-    act(() => result.current.setPracticedFilter('2'))
-    expect(result.current.queue).toEqual([])
   })
 
-  it('keeps the filter when starting over', async () => {
+  it('Stoppen goes back to the start screen and keeps the filter for the next Start', async () => {
     const list = [make(1, 0), make(2, 1)]
     mockFetch(list)
     const { result } = await renderLoaded(list)
     act(() => result.current.setPracticedFilter('1'))
 
-    act(() => result.current.restart())
+    act(() => result.current.stop())
+    expect(result.current.active).toBe(false)
+    expect(result.current.queue).toEqual([])
 
+    act(() => result.current.start())
     expect(result.current.queue).toEqual([2])
   })
 

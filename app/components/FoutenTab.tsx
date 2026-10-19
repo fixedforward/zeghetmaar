@@ -68,6 +68,7 @@ function MistakesOverview({ fouten }: { fouten: Props }) {
               {m.translation && <p className="text-gray-700">{m.translation}</p>}
               <p className="text-red-700">{m.mistake}</p>
               <p className="text-green-700">{m.correction}</p>
+              {m.rewording && <p className="text-blue-700">{m.rewording}</p>}
               <p className="text-xs text-gray-400">{m.type && `${m.type} · `}✓ {m.timesPracticed}× goed</p>
             </div>
             <DeleteMistakeButton onDelete={() => fouten.deleteMistakeAsync(m.row)} deleting={fouten.deletingRow === m.row} />
@@ -102,22 +103,6 @@ export function FoutenTab(fouten: Props) {
           📝 Vandaag <span className="font-medium text-gray-700">{fouten.practicedTodayCount}</span> {fouten.practicedTodayCount === 1 ? 'zin' : 'zinnen'} geoefend
         </p>
       </div>
-      {mistakes.length > 0 && (
-        <label className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
-          Oefen zinnen
-          <select
-            value={fouten.practicedFilter}
-            onChange={e => fouten.setPracticedFilter(e.target.value as typeof fouten.practicedFilter)}
-            className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
-          >
-            {PRACTICED_FILTER_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>
-                {o.label} ({mistakes.filter(m => matchesPracticedFilter(m, o.value)).length})
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
     </div>
   )
 
@@ -136,11 +121,37 @@ export function FoutenTab(fouten: Props) {
     return <div>{counter}<p className="text-sm text-gray-500">Er staan nog geen zinnen in het bestand.</p></div>
   }
 
-  if (fouten.queue.length === 0) {
+  if (!fouten.active) {
+    const matchingCount = mistakes.filter(m => matchesPracticedFilter(m, fouten.practicedFilter)).length
     return (
-      <div>
+      <div className="space-y-4">
         {counter}
-        <p className="text-sm text-gray-500">Geen zinnen met dit aantal keer goed. Kies een andere filter.</p>
+        <p className="text-sm text-gray-500">
+          Vertaal de Engelse zin naar het Nederlands en vergelijk je vertaling met de mogelijke vertaling.
+          Klik op Goed (+1) als je hem goed had; anders komt de zin later in de sessie terug.
+        </p>
+        <label className="flex items-center gap-1.5 text-xs text-gray-500">
+          Oefen zinnen
+          <select
+            value={fouten.practicedFilter}
+            onChange={e => fouten.setPracticedFilter(e.target.value as typeof fouten.practicedFilter)}
+            className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
+          >
+            {PRACTICED_FILTER_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>
+                {o.label} ({mistakes.filter(m => matchesPracticedFilter(m, o.value)).length})
+              </option>
+            ))}
+          </select>
+        </label>
+        {matchingCount === 0 && <p className="text-sm text-gray-400">Geen zinnen met dit aantal keer goed. Kies een andere filter.</p>}
+        <button
+          onClick={fouten.start}
+          disabled={matchingCount === 0}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
+        >
+          Start ({matchingCount} {matchingCount === 1 ? 'zin' : 'zinnen'})
+        </button>
         <MistakesOverview fouten={fouten} />
       </div>
     )
@@ -153,8 +164,11 @@ export function FoutenTab(fouten: Props) {
         <div className="border rounded p-4 bg-white text-center space-y-3">
           <p className="font-semibold">Klaar! Je hebt alle {new Set(fouten.queue).size} zinnen geoefend.</p>
           <div className="flex justify-center gap-2">
-            <button onClick={fouten.restart} className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600">
+            <button onClick={fouten.start} className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600">
               Opnieuw
+            </button>
+            <button onClick={fouten.stop} className="px-3 py-1 text-sm border rounded hover:bg-gray-100">
+              Terug
             </button>
             <button onClick={loadMistakesAsync} className="px-3 py-1 text-sm border rounded hover:bg-gray-100">
               Bestand opnieuw laden
@@ -181,6 +195,7 @@ export function FoutenTab(fouten: Props) {
         <div className="flex justify-between items-center text-xs text-gray-400">
           <span>Fout {fouten.currentIndex + 1} van {fouten.queue.length}{current.type && ` · ${current.type}`}</span>
           <span className="flex items-center gap-3">
+            <button onClick={fouten.stop} className="text-xs text-gray-400 hover:text-gray-600">✕ Stoppen</button>
             <span title="Aantal keer goed (noOfTimesPracticed)">✓ {current.timesPracticed}× goed</span>
             <DeleteMistakeButton key={current.row} onDelete={() => fouten.deleteMistakeAsync(current.row)} deleting={fouten.deletingRow === current.row} />
           </span>
@@ -231,6 +246,12 @@ export function FoutenTab(fouten: Props) {
                   onSave={fouten.saveCorrectionAsync}
                 />
               </div>
+              {current.rewording && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Natuurlijker:</p>
+                  <p className="text-lg text-blue-700">{current.rewording}</p>
+                </div>
+              )}
               {current.translation && (
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Je eerdere fout:</p>

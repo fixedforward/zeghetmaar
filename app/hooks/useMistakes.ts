@@ -22,6 +22,8 @@ export function useMistakes(onPractice?: () => void) {
   const [deletingRow, setDeletingRow] = useState<number | null>(null)
   const [practicedFilter, setPracticedFilterState] = useState<PracticedFilter>('alle')
   const [practicedToday, setPracticedToday] = useState<PracticedToday | null>(null)
+  // false = the start screen (filter + Start), true = a session is running.
+  const [active, setActive] = useState(false)
 
   useEffect(() => {
     try {
@@ -36,6 +38,7 @@ export function useMistakes(onPractice?: () => void) {
 
   const startSession = useCallback((list: Mistake[], filter: PracticedFilter) => {
     setQueue(orderLeastPracticedFirst(list.filter(m => matchesPracticedFilter(m, filter))).map(m => m.row))
+    setActive(true)
     setCurrentIndex(0)
     setUserInput('')
     setRevealed(false)
@@ -50,22 +53,27 @@ export function useMistakes(onPractice?: () => void) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Kon fouten niet laden.')
       setMistakes(data.mistakes)
-      startSession(data.mistakes, practicedFilter)
+      setActive(false)
+      setQueue([])
     } catch (err) {
       console.error('[useMistakes] Failed to load mistakes:', err)
       setError(err instanceof Error ? err.message : 'Kon fouten niet laden.')
     } finally {
       setLoading(false)
     }
-  }, [startSession, practicedFilter])
+  }, [])
 
-  const restart = useCallback(() => startSession(mistakes, practicedFilter), [startSession, mistakes, practicedFilter])
+  // Only the sentences that match the filter, so the counts at that moment decide.
+  const start = useCallback(() => startSession(mistakes, practicedFilter), [startSession, mistakes, practicedFilter])
 
-  // Starts a new session with only the sentences that match, so the counts at that moment decide.
-  const setPracticedFilter = useCallback((filter: PracticedFilter) => {
-    setPracticedFilterState(filter)
-    startSession(mistakes, filter)
-  }, [startSession, mistakes])
+  const stop = useCallback(() => {
+    setActive(false)
+    setQueue([])
+    setCurrentIndex(0)
+    setUserInput('')
+    setRevealed(false)
+    setMarkedCorrect(false)
+  }, [])
 
   // Showing the answer counts as practicing that sentence.
   const reveal = useCallback(() => {
@@ -188,9 +196,9 @@ export function useMistakes(onPractice?: () => void) {
   }, [current, userInput])
 
   return {
-    mistakes, loading, error, queue, currentIndex, current, done, practicedFilter, setPracticedFilter,
+    mistakes, loading, error, queue, currentIndex, current, done, active, practicedFilter, setPracticedFilter: setPracticedFilterState,
     practicedTodayCount: countPracticedOn(practicedToday, todayLocalIso()),
     userInput, setUserInput, revealed, markedCorrect, saving, deletingRow,
-    loadMistakesAsync, restart, reveal, toggleCorrectAsync, saveCorrectionAsync, next, skip, askChatGpt, deleteMistakeAsync,
+    loadMistakesAsync, start, stop, reveal, toggleCorrectAsync, saveCorrectionAsync, next, skip, askChatGpt, deleteMistakeAsync,
   }
 }
