@@ -9,6 +9,8 @@ export interface Mistake {
   timesPracticed: number
   // English version of the sentence: the prompt for translation practice. Empty when the file has none.
   translation: string
+  // A simpler or more natural way to say it than the plain correction. Empty when there is none.
+  rewording: string
 }
 
 export interface QuizFile {

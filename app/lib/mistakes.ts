@@ -6,6 +6,7 @@ export const CORRECTION_COLUMN = 'Mogelijke verbetering'
 export const TYPE_COLUMN = 'Type fout'
 export const TIMES_PRACTICED_COLUMN = 'noOfTimesPracticed'
 export const TRANSLATION_COLUMN = 'englishTranslation'
+export const REWORDING_COLUMN = 'herformulering'
 
 export class MistakeRowMismatchError extends Error {}
 
@@ -15,6 +16,7 @@ interface Columns {
   type: number
   timesPracticed: number
   translation: number
+  rewording: number
 }
 
 function splitLines(text: string): { lines: string[]; eol: string } {
@@ -30,6 +32,7 @@ function findColumns(headerLine: string): Columns {
     type: indexOf(TYPE_COLUMN),
     timesPracticed: indexOf(TIMES_PRACTICED_COLUMN),
     translation: indexOf(TRANSLATION_COLUMN),
+    rewording: indexOf(REWORDING_COLUMN),
   }
   const missing = [
     [MISTAKE_COLUMN, columns.mistake],
@@ -61,6 +64,7 @@ export function parseMistakesTsv(text: string): Mistake[] {
       type: columns.type === -1 ? '' : cells[columns.type]?.trim() ?? '',
       timesPracticed: parseCount(cells[columns.timesPracticed]),
       translation: columns.translation === -1 ? '' : cells[columns.translation]?.trim() ?? '',
+      rewording: columns.rewording === -1 ? '' : cells[columns.rewording]?.trim() ?? '',
     })
   })
   return mistakes
