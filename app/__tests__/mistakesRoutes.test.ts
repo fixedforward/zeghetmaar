@@ -76,6 +76,13 @@ describe('/api/mistakes', () => {
     expect(await uploadedText()).toBe(TSV.replace('Grammar fix\t0', 'Grammar fix\t1'))
   })
 
+  it('PUT saves an edited correction', async () => {
+    const res = await putRequest({ row: 1, mistake: 'ik ben eens', correction: 'Ik ben het er mee eens.' })
+
+    expect(res.status).toBe(200)
+    expect(await uploadedText()).toBe(TSV.replace('Ik ben het eens.', 'Ik ben het er mee eens.'))
+  })
+
   it('PUT returns 409 when the row no longer holds that mistake', async () => {
     const res = await putRequest({ row: 1, mistake: 'een andere fout', timesPracticed: 1 })
 
@@ -86,6 +93,8 @@ describe('/api/mistakes', () => {
   it('PUT rejects bad input', async () => {
     expect((await putRequest({ row: 1, mistake: 'ik ben eens', timesPracticed: -1 })).status).toBe(400)
     expect((await putRequest({ row: '1', mistake: 'ik ben eens', timesPracticed: 1 })).status).toBe(400)
+    expect((await putRequest({ row: 1, mistake: 'ik ben eens', correction: '  ' })).status).toBe(400)
+    expect((await putRequest({ row: 1, mistake: 'ik ben eens' })).status).toBe(400)
     expect(filesUpdateMock).not.toHaveBeenCalled()
   })
 

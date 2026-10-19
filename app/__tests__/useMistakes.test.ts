@@ -158,6 +158,33 @@ describe('useMistakes', () => {
     expect(result.current.error).toBe('Opslaan mislukt.')
   })
 
+  it('saves an edited correction to Drive and shows it', async () => {
+    mockFetch([make(1)])
+    const { result } = await renderLoaded([make(1)])
+    act(() => result.current.reveal())
+
+    let saved = false
+    await act(async () => { saved = await result.current.saveCorrectionAsync('  Nieuwe\nvertaling. ') })
+
+    expect(saved).toBe(true)
+    expect(JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[1][1].body))
+      .toEqual({ row: 1, mistake: 'fout 1', correction: 'Nieuwe vertaling.' })
+    expect(result.current.current?.correction).toBe('Nieuwe vertaling.')
+  })
+
+  it('does not save an unchanged or empty correction, and keeps the old one when saving fails', async () => {
+    mockFetch([make(1)], false)
+    const { result } = await renderLoaded([make(1)])
+
+    await act(async () => { await result.current.saveCorrectionAsync('goed 1') })
+    await act(async () => { await result.current.saveCorrectionAsync('   ') })
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+
+    await act(async () => { await result.current.saveCorrectionAsync('anders') })
+    expect(result.current.current?.correction).toBe('goed 1')
+    expect(result.current.error).toBe('Opslaan mislukt.')
+  })
+
   it('shows the error when loading fails', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false, json: () => Promise.resolve({ error: 'Foutenbestand is niet geconfigureerd.' }),

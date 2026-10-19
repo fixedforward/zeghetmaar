@@ -78,11 +78,25 @@ function findRow(text: string, row: number, mistake: string) {
   return { lines, eol, columns, cells }
 }
 
-// Only the one cell changes, so the rest of the file (other columns, line endings) stays as it was.
-export function setTimesPracticedInTsv(text: string, row: number, mistake: string, timesPracticed: number): string {
+export interface MistakeChanges {
+  timesPracticed?: number
+  correction?: string
+}
+
+// A tab or line break inside a cell would break the TSV columns.
+export function cleanCell(value: string): string {
+  return value.split(/\s+/).filter(Boolean).join(' ')
+}
+
+// Only the changed cells change, so the rest of the file (other columns, line endings) stays as it was.
+export function updateMistakeInTsv(text: string, row: number, mistake: string, changes: MistakeChanges): string {
   const { lines, eol, columns, cells } = findRow(text, row, mistake)
-  while (cells.length <= columns.timesPracticed) cells.push('')
-  cells[columns.timesPracticed] = String(timesPracticed)
+  const setCell = (index: number, value: string) => {
+    while (cells.length <= index) cells.push('')
+    cells[index] = value
+  }
+  if (changes.timesPracticed !== undefined) setCell(columns.timesPracticed, String(changes.timesPracticed))
+  if (changes.correction !== undefined) setCell(columns.correction, cleanCell(changes.correction))
   lines[row] = cells.join('\t')
   return lines.join(eol)
 }

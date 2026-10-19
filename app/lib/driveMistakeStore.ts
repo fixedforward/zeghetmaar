@@ -2,7 +2,7 @@ import { Readable } from 'stream'
 import { getDriveClient } from './driveStore'
 import { readDriveTextFileAsync } from './driveQuizStore'
 import { config } from './config'
-import { deleteRowFromTsv, parseMistakesTsv, setTimesPracticedInTsv } from './mistakes'
+import { deleteRowFromTsv, parseMistakesTsv, updateMistakeInTsv, type MistakeChanges } from './mistakes'
 import type { Mistake } from '../types'
 
 function getMistakesFileId(): string | undefined {
@@ -33,8 +33,8 @@ async function updateMistakesFileAsync(change: (text: string) => string): Promis
   })
 }
 
-export async function setTimesPracticedAsync(row: number, mistake: string, timesPracticed: number): Promise<void> {
-  await updateMistakesFileAsync(text => setTimesPracticedInTsv(text, row, mistake, timesPracticed))
+export async function updateMistakeAsync(row: number, mistake: string, changes: MistakeChanges): Promise<void> {
+  await updateMistakesFileAsync(text => updateMistakeInTsv(text, row, mistake, changes))
 }
 
 export async function deleteMistakeAsync(row: number, mistake: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseMistakesTsv, setTimesPracticedInTsv, deleteRowFromTsv, shiftRowsAfterDelete, orderLeastPracticedFirst, MistakeRowMismatchError } from '../lib/mistakes'
+import { parseMistakesTsv, updateMistakeInTsv, cleanCell, deleteRowFromTsv, shiftRowsAfterDelete, orderLeastPracticedFirst, MistakeRowMismatchError } from '../lib/mistakes'
 import type { Mistake } from '../types'
 
 const TSV = [
@@ -35,9 +35,9 @@ describe('parseMistakesTsv', () => {
   })
 })
 
-describe('setTimesPracticedInTsv', () => {
+describe('updateMistakeInTsv', () => {
   it('changes only that row\'s count and keeps the rest of the file', () => {
-    const updated = setTimesPracticedInTsv(TSV, 3, 'De mensen zou bestijden', 3)
+    const updated = updateMistakeInTsv(TSV, 3, 'De mensen zou bestijden', { timesPracticed: 3 })
 
     expect(updated).toBe(TSV.replace('Both\t2', 'Both\t3'))
   })
@@ -45,13 +45,27 @@ describe('setTimesPracticedInTsv', () => {
   it('keeps Windows line endings and fills a missing count cell', () => {
     const text = 'Mijn fout\tMogelijke verbetering\tnoOfTimesPracticed\r\nFout.\tGoed.\r\n'
 
-    expect(setTimesPracticedInTsv(text, 1, 'Fout.', 1)).toBe('Mijn fout\tMogelijke verbetering\tnoOfTimesPracticed\r\nFout.\tGoed.\t1\r\n')
+    expect(updateMistakeInTsv(text, 1, 'Fout.', { timesPracticed: 1 })).toBe('Mijn fout\tMogelijke verbetering\tnoOfTimesPracticed\r\nFout.\tGoed.\t1\r\n')
   })
 
   it('refuses when the row holds a different mistake, or does not exist', () => {
-    expect(() => setTimesPracticedInTsv(TSV, 1, 'iets anders', 1)).toThrow(MistakeRowMismatchError)
-    expect(() => setTimesPracticedInTsv(TSV, 0, 'Mijn fout', 1)).toThrow(MistakeRowMismatchError)
-    expect(() => setTimesPracticedInTsv(TSV, 99, 'x', 1)).toThrow(MistakeRowMismatchError)
+    expect(() => updateMistakeInTsv(TSV, 1, 'iets anders', { timesPracticed: 1 })).toThrow(MistakeRowMismatchError)
+    expect(() => updateMistakeInTsv(TSV, 0, 'Mijn fout', { timesPracticed: 1 })).toThrow(MistakeRowMismatchError)
+    expect(() => updateMistakeInTsv(TSV, 99, 'x', { timesPracticed: 1 })).toThrow(MistakeRowMismatchError)
+  })
+})
+
+describe('updateMistakeInTsv correction', () => {
+  it('changes only the correction cell, cleaned of tabs and line breaks', () => {
+    const updated = updateMistakeInTsv(TSV, 1, 'ik ben eens met jou', { correction: ' Ik ben het met je\teens.\n' })
+
+    expect(updated).toBe(TSV.replace('Ik ben het eens met jou.', 'Ik ben het met je eens.'))
+  })
+})
+
+describe('cleanCell', () => {
+  it('collapses all whitespace into single spaces', () => {
+    expect(cleanCell('  a\tb\r\n c  ')).toBe('a b c')
   })
 })
 

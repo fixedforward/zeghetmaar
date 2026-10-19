@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Mistake } from '../types'
-import { orderLeastPracticedFirst, shiftRowsAfterDelete } from '../lib/mistakes'
+import { cleanCell, orderLeastPracticedFirst, shiftRowsAfterDelete, type MistakeChanges } from '../lib/mistakes'
 import { insertLater, randomRequeueGap } from '../lib/requeue'
 import { buildChatGptMistakeFixUrl, openChatGptInBackground } from '../lib/chatgpt'
 
@@ -54,6 +54,15 @@ export function useMistakes(onPractice?: () => void) {
   const setCount = (row: number, timesPracticed: number) =>
     setMistakes(prev => prev.map(m => m.row === row ? { ...m, timesPracticed } : m))
 
+  const putMistakeAsync = async (target: Mistake, changes: MistakeChanges) => {
+    const res = await fetch('/api/mistakes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ row: target.row, mistake: target.mistake, ...changes }),
+    })
+    if (!res.ok) throw new Error((await res.json()).error ?? 'Kon de wijziging niet opslaan.')
+  }
+
   const toggleCorrectAsync = useCallback(async () => {
     if (!current || !revealed || saving) return
     const previous = current.timesPracticed
@@ -64,12 +73,7 @@ export function useMistakes(onPractice?: () => void) {
     if (!wasMarked) onPractice?.()
     setSaving(true)
     try {
-      const res = await fetch('/api/mistakes', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ row: current.row, mistake: current.mistake, timesPracticed: next }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Kon de teller niet opslaan.')
+      await putMistakeAsync(current, { timesPracticed: next })
       setError(null)
     } catch (err) {
       console.error('[useMistakes] Failed to save count:', err)
@@ -80,6 +84,24 @@ export function useMistakes(onPractice?: () => void) {
       setSaving(false)
     }
   }, [current, revealed, saving, markedCorrect, onPractice])
+
+  const saveCorrectionAsync = useCallback(async (text: string): Promise<boolean> => {
+    const correction = cleanCell(text)
+    if (!current || saving || !correction || correction === current.correction) return false
+    setSaving(true)
+    try {
+      await putMistakeAsync(current, { correction })
+      setMistakes(prev => prev.map(m => m.row === current.row ? { ...m, correction } : m))
+      setError(null)
+      return true
+    } catch (err) {
+      console.error('[useMistakes] Failed to save correction:', err)
+      setError(err instanceof Error ? err.message : 'Kon de wijziging niet opslaan.')
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }, [current, saving])
 
   const next = useCallback(() => {
     if (!current || !revealed) return
@@ -128,6 +150,6 @@ export function useMistakes(onPractice?: () => void) {
   return {
     mistakes, loading, error, queue, currentIndex, current, done,
     userInput, setUserInput, revealed, markedCorrect, saving, deletingRow,
-    loadMistakesAsync, restart, reveal, toggleCorrectAsync, next, askChatGpt, deleteMistakeAsync,
+    loadMistakesAsync, restart, reveal, toggleCorrectAsync, saveCorrectionAsync, next, askChatGpt, deleteMistakeAsync,
   }
 }

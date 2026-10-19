@@ -29,6 +29,32 @@ function DeleteMistakeButton({ onDelete, deleting }: { onDelete: () => void; del
   )
 }
 
+function CorrectionEditor({ correction, saving, onSave }: { correction: string; saving: boolean; onSave: (text: string) => Promise<boolean> }) {
+  const [draft, setDraft] = useState(correction)
+  const changed = draft.trim() !== '' && draft.trim() !== correction
+
+  return (
+    <div className="space-y-1">
+      <textarea
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        rows={2}
+        className="w-full border rounded p-2 text-lg text-green-700"
+      />
+      {changed && (
+        <div className="flex gap-2">
+          <button onClick={() => onSave(draft)} disabled={saving} className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50">
+            Opslaan
+          </button>
+          <button onClick={() => setDraft(correction)} disabled={saving} className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50">
+            Annuleren
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MistakesOverview({ fouten }: { fouten: Props }) {
   const currentRow = fouten.done ? undefined : fouten.current?.row
   return (
@@ -156,7 +182,12 @@ export function FoutenTab(fouten: Props) {
             <div className="border-t pt-3 space-y-2">
               <div>
                 <p className="text-xs text-gray-500 mb-1">{current.translation ? 'Mogelijke vertaling:' : 'Mogelijke verbetering:'}</p>
-                <p className="text-lg text-green-700">{current.correction}</p>
+                <CorrectionEditor
+                  key={`${current.row}:${current.correction}`}
+                  correction={current.correction}
+                  saving={fouten.saving}
+                  onSave={fouten.saveCorrectionAsync}
+                />
               </div>
               {current.translation && (
                 <div>

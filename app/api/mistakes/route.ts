@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { deleteMistakeAsync, getMistakesAsync, isMistakesConfigured, setTimesPracticedAsync } from '@/app/lib/driveMistakeStore'
-import { MistakeRowMismatchError } from '@/app/lib/mistakes'
+import { deleteMistakeAsync, getMistakesAsync, isMistakesConfigured, updateMistakeAsync } from '@/app/lib/driveMistakeStore'
+import { cleanCell, MistakeRowMismatchError } from '@/app/lib/mistakes'
 
 const NOT_CONFIGURED = 'Foutenbestand is niet geconfigureerd.'
 const FILE_CHANGED = 'Het foutenbestand is intussen gewijzigd. Laad de fouten opnieuw.'
@@ -25,20 +25,23 @@ export async function PUT(request: NextRequest) {
   if (!isMistakesConfigured()) return NextResponse.json({ error: NOT_CONFIGURED }, { status: 501 })
 
   const body = await request.json().catch(() => null)
-  const { row, mistake, timesPracticed } = body ?? {}
-  if (!Number.isInteger(row) || typeof mistake !== 'string' || !Number.isInteger(timesPracticed) || timesPracticed < 0) {
+  const { row, mistake, timesPracticed, correction } = body ?? {}
+  const validCount = timesPracticed === undefined || (Number.isInteger(timesPracticed) && timesPracticed >= 0)
+  const validCorrection = correction === undefined || (typeof correction === 'string' && cleanCell(correction) !== '')
+  const hasChange = timesPracticed !== undefined || correction !== undefined
+  if (!Number.isInteger(row) || typeof mistake !== 'string' || !validCount || !validCorrection || !hasChange) {
     return NextResponse.json({ error: 'Ongeldige gegevens.' }, { status: 400 })
   }
 
   try {
-    await setTimesPracticedAsync(row, mistake, timesPracticed)
+    await updateMistakeAsync(row, mistake, { timesPracticed, correction })
     return NextResponse.json({ ok: true })
   } catch (err) {
     if (err instanceof MistakeRowMismatchError) {
       return NextResponse.json({ error: FILE_CHANGED }, { status: 409 })
     }
     console.error('[/api/mistakes] Failed to update mistake:', err)
-    return NextResponse.json({ error: 'Kon de teller niet opslaan.' }, { status: 500 })
+    return NextResponse.json({ error: 'Kon de wijziging niet opslaan.' }, { status: 500 })
   }
 }
 
