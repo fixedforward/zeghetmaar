@@ -83,10 +83,10 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
 }
 
 const ANSWER_AS_TABLE = [
-  `Antwoord kort, zonder lange uitleg in zinnen:`,
-  `1. Eén regel: ✅ goed of ❌ niet goed.`,
-  `2. Een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom (max. 10 woorden).`,
-  `3. De hele verbeterde zin op één regel.`,
+  `Antwoord kort, zonder lange uitleg in zinnen, in deze volgorde:`,
+  `1. Mijn poging: herhaal mijn zin precies zoals ik hem schreef, met ✅ goed of ❌ niet goed erachter.`,
+  `2. Verbetering / herformulering: de hele verbeterde of natuurlijkere zin op één regel.`,
+  `3. Uitleg: een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom (max. 10 woorden).`,
   `Is alles goed, laat de tabel dan weg.`,
 ].join('\n')
 

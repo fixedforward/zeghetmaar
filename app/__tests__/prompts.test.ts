@@ -130,7 +130,9 @@ describe('mistakeFixCheckPrompt', () => {
     expect(prompt).toContain('Mijn poging: "Ik ben het met jou eens."')
     expect(prompt).toContain('Een mogelijke verbetering: "Ik ben het eens met jou."')
     expect(prompt).toContain('Zeg of mijn poging goed is.')
-    expect(prompt).toContain('Een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom')
+    expect(prompt).toContain('een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom')
+    expect(prompt.indexOf('1. Mijn poging')).toBeLessThan(prompt.indexOf('2. Verbetering / herformulering'))
+    expect(prompt.indexOf('2. Verbetering / herformulering')).toBeLessThan(prompt.indexOf('3. Uitleg: een tabel'))
   })
 
   it('asks about my translation of the English sentence when there is one', () => {
@@ -145,7 +147,7 @@ describe('mistakeFixCheckPrompt', () => {
     expect(prompt).toContain('met een fout: "ik ben eens met jou"')
     expect(prompt).toContain('klinkt hij natuurlijk?')
     expect(prompt).toContain('zonder lange uitleg in zinnen')
-    expect(prompt).toContain('Een tabel met per fout één rij')
+    expect(prompt).toContain('een tabel met per fout één rij')
   })
 
   it('leaves out the type line when there is no type', () => {
