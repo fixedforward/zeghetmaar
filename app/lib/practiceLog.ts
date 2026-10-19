@@ -5,12 +5,7 @@ const YEAR_BITMAP_BYTES = 46 // ceil(366 / 8)
 
 // Each practice type (Oefensessie, Quiz, ...) tracks its own independent log, so
 // they get their own appProperties namespace on the same phrase-list Drive file.
-// The last four back the daily-tracker checklist modal — manually checked off,
-// same mark/cancel mechanism as the in-app ones.
-export const PRACTICE_LOG_TYPES = [
-  'oefensessie', 'quiz', 'cloze', 'clozekaarten', 'fouten',
-  'clozemaster', 'podcastactief', 'podcastpassief', 'zeghetmaar',
-] as const
+export const PRACTICE_LOG_TYPES = ['oefensessie', 'quiz', 'cloze', 'clozekaarten', 'fouten'] as const
 export type PracticeLogType = (typeof PRACTICE_LOG_TYPES)[number]
 
 export function isPracticeLogType(value: string): value is PracticeLogType {
