@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { pictureUrl } from '../lib/pictures'
 
-type Props = { fileId: string; alt: string; className?: string }
+type Props = { fileId: string; alt: string; className?: string; fallback?: ReactNode }
 
-export function PhrasePicture({ fileId, alt, className = '' }: Props) {
+export function PhrasePicture({ fileId, alt, className = '', fallback = null }: Props) {
   const [failedId, setFailedId] = useState<string | null>(null)
-  if (failedId === fileId) return null
+  if (failedId === fileId) return <>{fallback}</>
   return (
     <img
       src={pictureUrl(fileId)}

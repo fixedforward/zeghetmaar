@@ -28,7 +28,7 @@ export function ClozeTab(props: Props) {
   const isActive = questions.length > 0
   const total = questions.length
   const done = isActive && currentIndex >= total
-  const { pictures } = usePictures(isLoggedIn && isActive && mode === 'kaarten')
+  const { pictures, loading: picturesLoading } = usePictures(isLoggedIn && isActive)
 
   const [daysFilter, setDaysFilter] = useState<DayRange | null>(DEFAULT_DAY_RANGE)
 
@@ -134,10 +134,21 @@ export function ClozeTab(props: Props) {
   const currentEntry = words.find(w => w.id === question.phraseId)
   const meanings = currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]
   // Shown on the meaning side of the card: the back normally, the front when reversed.
-  const meaningPicture = (translation: string, index: number) => {
-    const fileId = findPictureForMeaning(pictures, question.word, translation)?.id
+  const meaningPictureId = (translation: string, index: number) =>
+    findPictureForMeaning(pictures, question.word, translation)?.id
       ?? (index === 0 ? currentEntry?.picture ?? findPictureForPhrase(pictures, question.word)?.id : undefined)
+  const meaningPicture = (translation: string, index: number) => {
+    const fileId = meaningPictureId(translation, index)
     return fileId ? <PhrasePicture fileId={fileId} alt={`${question.word} — ${translation}`} className="mx-auto" /> : null
+  }
+  // Typen: the picture of the meaning this sentence belongs to, once the answer is checked.
+  const noPicture = <p className="text-xs text-gray-400 italic">Geen afbeelding beschikbaar</p>
+  const typenPicture = () => {
+    if (picturesLoading) return null
+    const fileId = meaningPictureId(question.translation, Math.max(0, meanings.findIndex(m => m.translation === question.translation)))
+    return fileId
+      ? <PhrasePicture fileId={fileId} alt={`${question.word} — ${question.translation}`} fallback={noPicture} />
+      : noPicture
   }
 
   // How many letters the user already got right, starting from the front —
@@ -330,6 +341,7 @@ export function ClozeTab(props: Props) {
                 {isCorrect ? '✓ Goed!' : `✗ Fout — het juiste woord was "${question.word}".`}
               </p>
               {question.translation && <p className="text-xs text-gray-500">{question.translation}</p>}
+              {typenPicture()}
               {beheersingButtons}
             </div>
           )}
