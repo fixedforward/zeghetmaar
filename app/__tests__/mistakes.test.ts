@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseMistakesTsv, updateMistakeInTsv, cleanCell, deleteRowFromTsv, shiftRowsAfterDelete, orderLeastPracticedFirst, MistakeRowMismatchError } from '../lib/mistakes'
+import { parseMistakesTsv, updateMistakeInTsv, cleanCell, deleteRowFromTsv, shiftRowsAfterDelete, orderLeastPracticedFirst, matchesPracticedFilter, MistakeRowMismatchError } from '../lib/mistakes'
 import type { Mistake } from '../types'
 
 const TSV = [
@@ -85,6 +85,19 @@ describe('deleteRowFromTsv', () => {
 describe('shiftRowsAfterDelete', () => {
   it('drops the deleted row and moves the rows below it up one line', () => {
     expect(shiftRowsAfterDelete([{ row: 1 }, { row: 3 }, { row: 5 }], 3)).toEqual([{ row: 1 }, { row: 4 }])
+  })
+})
+
+describe('matchesPracticedFilter', () => {
+  it('matches an exact count, 3 or more, or everything', () => {
+    const counts = [0, 1, 2, 3, 7]
+    const matching = (filter: Parameters<typeof matchesPracticedFilter>[1]) =>
+      counts.filter(timesPracticed => matchesPracticedFilter({ timesPracticed }, filter))
+
+    expect(matching('0')).toEqual([0])
+    expect(matching('2')).toEqual([2])
+    expect(matching('3+')).toEqual([3, 7])
+    expect(matching('alle')).toEqual(counts)
   })
 })
 

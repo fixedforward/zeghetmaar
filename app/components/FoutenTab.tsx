@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useMistakes } from '../hooks/useMistakes'
 import { PracticeCounter } from './PracticeCounter'
+import { matchesPracticedFilter, PRACTICED_FILTER_OPTIONS } from '../lib/mistakes'
 
 type Props = ReturnType<typeof useMistakes> & {
   isLoggedIn: boolean
@@ -94,7 +95,25 @@ export function FoutenTab(fouten: Props) {
   }
 
   const counter = (
-    <PracticeCounter practicedDates={fouten.practicedDates} onCheckIn={fouten.onCheckIn} onCancelCheckIn={fouten.onCancelCheckIn} />
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <PracticeCounter practicedDates={fouten.practicedDates} onCheckIn={fouten.onCheckIn} onCancelCheckIn={fouten.onCancelCheckIn} />
+      {mistakes.length > 0 && (
+        <label className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+          Oefen zinnen
+          <select
+            value={fouten.practicedFilter}
+            onChange={e => fouten.setPracticedFilter(e.target.value as typeof fouten.practicedFilter)}
+            className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
+          >
+            {PRACTICED_FILTER_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>
+                {o.label} ({mistakes.filter(m => matchesPracticedFilter(m, o.value)).length})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
   )
 
   if (loading) return <p className="text-sm text-gray-400">Fouten laden...</p>
@@ -112,12 +131,22 @@ export function FoutenTab(fouten: Props) {
     return <div>{counter}<p className="text-sm text-gray-500">Er staan nog geen zinnen in het bestand.</p></div>
   }
 
+  if (fouten.queue.length === 0) {
+    return (
+      <div>
+        {counter}
+        <p className="text-sm text-gray-500">Geen zinnen met dit aantal keer goed. Kies een andere filter.</p>
+        <MistakesOverview fouten={fouten} />
+      </div>
+    )
+  }
+
   if (fouten.done || !fouten.current) {
     return (
       <div>
         {counter}
         <div className="border rounded p-4 bg-white text-center space-y-3">
-          <p className="font-semibold">Klaar! Je hebt alle {mistakes.length} zinnen geoefend.</p>
+          <p className="font-semibold">Klaar! Je hebt alle {new Set(fouten.queue).size} zinnen geoefend.</p>
           <div className="flex justify-center gap-2">
             <button onClick={fouten.restart} className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600">
               Opnieuw

@@ -185,6 +185,34 @@ describe('useMistakes', () => {
     expect(result.current.error).toBe('Opslaan mislukt.')
   })
 
+  it('practices only the sentences with the chosen number of Goed, and starts over', async () => {
+    const list = [make(1, 0), make(2, 1), make(3, 3), make(4, 5)]
+    mockFetch(list)
+    const { result } = await renderLoaded(list)
+    act(() => result.current.reveal())
+    act(() => result.current.next())
+
+    act(() => result.current.setPracticedFilter('3+'))
+
+    expect(result.current.practicedFilter).toBe('3+')
+    expect([...result.current.queue].sort()).toEqual([3, 4])
+    expect(result.current.currentIndex).toBe(0)
+
+    act(() => result.current.setPracticedFilter('2'))
+    expect(result.current.queue).toEqual([])
+  })
+
+  it('keeps the filter when starting over', async () => {
+    const list = [make(1, 0), make(2, 1)]
+    mockFetch(list)
+    const { result } = await renderLoaded(list)
+    act(() => result.current.setPracticedFilter('1'))
+
+    act(() => result.current.restart())
+
+    expect(result.current.queue).toEqual([2])
+  })
+
   it('shows the error when loading fails', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false, json: () => Promise.resolve({ error: 'Foutenbestand is niet geconfigureerd.' }),

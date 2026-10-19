@@ -112,6 +112,23 @@ export function shiftRowsAfterDelete<T extends { row: number }>(items: T[], dele
   return items.filter(item => item.row !== deletedRow).map(item => item.row > deletedRow ? { ...item, row: item.row - 1 } : item)
 }
 
+// Which sentences to practice, by how many times they were marked Goed (noOfTimesPracticed).
+export type PracticedFilter = 'alle' | '0' | '1' | '2' | '3+'
+
+export const PRACTICED_FILTER_OPTIONS: { value: PracticedFilter; label: string }[] = [
+  { value: 'alle', label: 'alle' },
+  { value: '0', label: '0× goed' },
+  { value: '1', label: '1× goed' },
+  { value: '2', label: '2× goed' },
+  { value: '3+', label: '3× of vaker goed' },
+]
+
+export function matchesPracticedFilter(mistake: Pick<Mistake, 'timesPracticed'>, filter: PracticedFilter): boolean {
+  if (filter === 'alle') return true
+  if (filter === '3+') return mistake.timesPracticed >= 3
+  return mistake.timesPracticed === Number(filter)
+}
+
 export function orderLeastPracticedFirst(mistakes: Mistake[]): Mistake[] {
   return shuffleArray(mistakes).sort((a, b) => a.timesPracticed - b.timesPracticed)
 }

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Mistake } from '../types'
-import { cleanCell, orderLeastPracticedFirst, shiftRowsAfterDelete, type MistakeChanges } from '../lib/mistakes'
+import { cleanCell, matchesPracticedFilter, orderLeastPracticedFirst, shiftRowsAfterDelete, type MistakeChanges, type PracticedFilter } from '../lib/mistakes'
 import { insertLater, randomRequeueGap } from '../lib/requeue'
 import { buildChatGptMistakeFixUrl, openChatGptInBackground } from '../lib/chatgpt'
 
@@ -16,12 +16,13 @@ export function useMistakes(onPractice?: () => void) {
   const [markedCorrect, setMarkedCorrect] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deletingRow, setDeletingRow] = useState<number | null>(null)
+  const [practicedFilter, setPracticedFilterState] = useState<PracticedFilter>('alle')
 
   const current = mistakes.find(m => m.row === queue[currentIndex])
   const done = queue.length > 0 && currentIndex >= queue.length
 
-  const startSession = useCallback((list: Mistake[]) => {
-    setQueue(orderLeastPracticedFirst(list).map(m => m.row))
+  const startSession = useCallback((list: Mistake[], filter: PracticedFilter) => {
+    setQueue(orderLeastPracticedFirst(list.filter(m => matchesPracticedFilter(m, filter))).map(m => m.row))
     setCurrentIndex(0)
     setUserInput('')
     setRevealed(false)
@@ -36,16 +37,22 @@ export function useMistakes(onPractice?: () => void) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Kon fouten niet laden.')
       setMistakes(data.mistakes)
-      startSession(data.mistakes)
+      startSession(data.mistakes, practicedFilter)
     } catch (err) {
       console.error('[useMistakes] Failed to load mistakes:', err)
       setError(err instanceof Error ? err.message : 'Kon fouten niet laden.')
     } finally {
       setLoading(false)
     }
-  }, [startSession])
+  }, [startSession, practicedFilter])
 
-  const restart = useCallback(() => startSession(mistakes), [startSession, mistakes])
+  const restart = useCallback(() => startSession(mistakes, practicedFilter), [startSession, mistakes, practicedFilter])
+
+  // Starts a new session with only the sentences that match, so the counts at that moment decide.
+  const setPracticedFilter = useCallback((filter: PracticedFilter) => {
+    setPracticedFilterState(filter)
+    startSession(mistakes, filter)
+  }, [startSession, mistakes])
 
   const reveal = useCallback(() => {
     if (current) setRevealed(true)
@@ -148,7 +155,7 @@ export function useMistakes(onPractice?: () => void) {
   }, [current, userInput])
 
   return {
-    mistakes, loading, error, queue, currentIndex, current, done,
+    mistakes, loading, error, queue, currentIndex, current, done, practicedFilter, setPracticedFilter,
     userInput, setUserInput, revealed, markedCorrect, saving, deletingRow,
     loadMistakesAsync, restart, reveal, toggleCorrectAsync, saveCorrectionAsync, next, askChatGpt, deleteMistakeAsync,
   }
