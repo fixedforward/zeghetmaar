@@ -5,6 +5,13 @@ import { cleanCell, MistakeRowMismatchError } from '@/app/lib/mistakes'
 
 const NOT_CONFIGURED = 'Foutenbestand is niet geconfigureerd.'
 const FILE_CHANGED = 'Het foutenbestand is intussen gewijzigd. Laad de fouten opnieuw.'
+const NO_EDIT_ACCESS = 'De app mag het foutenbestand niet bewerken. Deel het in Drive als Editor met het service-account.'
+
+// Drive answers 403 when the service account can only view the file.
+function isNoEditAccess(err: unknown): boolean {
+  const { status, code } = (err ?? {}) as { status?: unknown; code?: unknown }
+  return status === 403 || code === 403 || code === '403'
+}
 
 export async function GET() {
   const session = await auth()
@@ -40,6 +47,7 @@ export async function PUT(request: NextRequest) {
     if (err instanceof MistakeRowMismatchError) {
       return NextResponse.json({ error: FILE_CHANGED }, { status: 409 })
     }
+    if (isNoEditAccess(err)) return NextResponse.json({ error: NO_EDIT_ACCESS }, { status: 403 })
     console.error('[/api/mistakes] Failed to update mistake:', err)
     return NextResponse.json({ error: 'Kon de wijziging niet opslaan.' }, { status: 500 })
   }
@@ -61,6 +69,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     if (err instanceof MistakeRowMismatchError) return NextResponse.json({ error: FILE_CHANGED }, { status: 409 })
+    if (isNoEditAccess(err)) return NextResponse.json({ error: NO_EDIT_ACCESS }, { status: 403 })
     console.error('[/api/mistakes] Failed to delete mistake:', err)
     return NextResponse.json({ error: 'Kon de fout niet verwijderen.' }, { status: 500 })
   }

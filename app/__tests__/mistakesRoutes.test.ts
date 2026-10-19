@@ -90,6 +90,17 @@ describe('/api/mistakes', () => {
     expect(filesUpdateMock).not.toHaveBeenCalled()
   })
 
+  it('PUT and DELETE explain when the app may not edit the file', async () => {
+    filesUpdateMock.mockRejectedValue(Object.assign(new Error('Insufficient permissions'), { status: 403 }))
+
+    const put = await putRequest({ row: 1, mistake: 'ik ben eens', timesPracticed: 1 })
+    const del = await deleteRequest({ row: 1, mistake: 'ik ben eens' })
+
+    expect(put.status).toBe(403)
+    expect((await put.json()).error).toContain('Editor')
+    expect(del.status).toBe(403)
+  })
+
   it('PUT rejects bad input', async () => {
     expect((await putRequest({ row: 1, mistake: 'ik ben eens', timesPracticed: -1 })).status).toBe(400)
     expect((await putRequest({ row: '1', mistake: 'ik ben eens', timesPracticed: 1 })).status).toBe(400)
