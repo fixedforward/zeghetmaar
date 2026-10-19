@@ -1,8 +1,12 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { Mistake } from '../types'
 import { cleanCell, matchesPracticedFilter, orderLeastPracticedFirst, shiftRowsAfterDelete, type MistakeChanges, type PracticedFilter } from '../lib/mistakes'
 import { insertLater, randomRequeueGap } from '../lib/requeue'
 import { buildChatGptMistakeFixUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { addPracticedSentence, countPracticedOn, parsePracticedToday, type PracticedToday } from '../lib/practicedToday'
+import { todayLocalIso } from '../lib/date'
+
+export const PRACTICED_TODAY_STORAGE_KEY = 'vertaling-oefenen-vandaag'
 
 export function useMistakes(onPractice?: () => void) {
   const [mistakes, setMistakes] = useState<Mistake[]>([])
@@ -17,6 +21,15 @@ export function useMistakes(onPractice?: () => void) {
   const [saving, setSaving] = useState(false)
   const [deletingRow, setDeletingRow] = useState<number | null>(null)
   const [practicedFilter, setPracticedFilterState] = useState<PracticedFilter>('alle')
+  const [practicedToday, setPracticedToday] = useState<PracticedToday | null>(null)
+
+  useEffect(() => {
+    try {
+      setPracticedToday(parsePracticedToday(localStorage.getItem(PRACTICED_TODAY_STORAGE_KEY)))
+    } catch {
+      // localStorage unavailable — the counter starts at 0.
+    }
+  }, [])
 
   const current = mistakes.find(m => m.row === queue[currentIndex])
   const done = queue.length > 0 && currentIndex >= queue.length
@@ -54,8 +67,19 @@ export function useMistakes(onPractice?: () => void) {
     startSession(mistakes, filter)
   }, [startSession, mistakes])
 
+  // Showing the answer counts as practicing that sentence.
   const reveal = useCallback(() => {
-    if (current) setRevealed(true)
+    if (!current) return
+    setRevealed(true)
+    setPracticedToday(prev => {
+      const next = addPracticedSentence(prev, todayLocalIso(), current.mistake)
+      try {
+        localStorage.setItem(PRACTICED_TODAY_STORAGE_KEY, JSON.stringify(next))
+      } catch {
+        // The counter just won't survive a reload.
+      }
+      return next
+    })
   }, [current])
 
   const setCount = (row: number, timesPracticed: number) =>
@@ -120,6 +144,15 @@ export function useMistakes(onPractice?: () => void) {
     setMarkedCorrect(false)
   }, [current, revealed, currentIndex, markedCorrect])
 
+  // Skipped sentences don't come back this session; they stay in the file for next time.
+  const skip = useCallback(() => {
+    if (!current) return
+    setQueue(prev => prev.filter((row, i) => i < currentIndex || row !== current.row))
+    setUserInput('')
+    setRevealed(false)
+    setMarkedCorrect(false)
+  }, [current, currentIndex])
+
   const deleteMistakeAsync = useCallback(async (row: number) => {
     const target = mistakes.find(m => m.row === row)
     if (!target || saving || deletingRow !== null) return
@@ -156,7 +189,8 @@ export function useMistakes(onPractice?: () => void) {
 
   return {
     mistakes, loading, error, queue, currentIndex, current, done, practicedFilter, setPracticedFilter,
+    practicedTodayCount: countPracticedOn(practicedToday, todayLocalIso()),
     userInput, setUserInput, revealed, markedCorrect, saving, deletingRow,
-    loadMistakesAsync, restart, reveal, toggleCorrectAsync, saveCorrectionAsync, next, askChatGpt, deleteMistakeAsync,
+    loadMistakesAsync, restart, reveal, toggleCorrectAsync, saveCorrectionAsync, next, skip, askChatGpt, deleteMistakeAsync,
   }
 }

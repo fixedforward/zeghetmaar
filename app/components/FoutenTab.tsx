@@ -96,7 +96,12 @@ export function FoutenTab(fouten: Props) {
 
   const counter = (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <PracticeCounter practicedDates={fouten.practicedDates} onCheckIn={fouten.onCheckIn} onCancelCheckIn={fouten.onCancelCheckIn} />
+      <div className="flex flex-wrap items-center gap-3">
+        <PracticeCounter practicedDates={fouten.practicedDates} onCheckIn={fouten.onCheckIn} onCancelCheckIn={fouten.onCancelCheckIn} />
+        <p className="text-xs text-gray-500 mb-3" title="Zinnen waarvan je vandaag het antwoord hebt bekeken">
+          📝 Vandaag <span className="font-medium text-gray-700">{fouten.practicedTodayCount}</span> {fouten.practicedTodayCount === 1 ? 'zin' : 'zinnen'} geoefend
+        </p>
+      </div>
       {mistakes.length > 0 && (
         <label className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
           Oefen zinnen
@@ -163,6 +168,11 @@ export function FoutenTab(fouten: Props) {
 
   const { current, revealed } = fouten
   const hasAttempt = fouten.userInput.trim().length > 0
+  const skipButton = (
+    <button onClick={fouten.skip} title="Deze zin komt deze sessie niet meer terug" className="px-3 py-1 text-sm border rounded text-gray-600 hover:bg-gray-100">
+      Overslaan ⏭
+    </button>
+  )
 
   return (
     <div>
@@ -203,9 +213,12 @@ export function FoutenTab(fouten: Props) {
         />
 
         {!revealed ? (
-          <button onClick={fouten.reveal} className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
-            Toon antwoord
-          </button>
+          <div className="flex gap-2">
+            <button onClick={fouten.reveal} className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
+              Toon antwoord
+            </button>
+            {skipButton}
+          </div>
         ) : (
           <>
             <div className="border-t pt-3 space-y-2">
@@ -250,6 +263,7 @@ export function FoutenTab(fouten: Props) {
               <button onClick={fouten.next} className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600">
                 Volgende →
               </button>
+              {skipButton}
             </div>
             {!fouten.markedCorrect && (
               <p className="text-xs text-gray-400">Niet op &quot;Goed&quot; geklikt? Dan komt deze fout over een paar zinnen terug.</p>

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useMistakes } from '../hooks/useMistakes'
+import { useMistakes, PRACTICED_TODAY_STORAGE_KEY } from '../hooks/useMistakes'
+import { todayLocalIso } from '../lib/date'
 import { buildChatGptMistakeFixUrl } from '../lib/chatgpt'
 import type { Mistake } from '../types'
 
@@ -23,6 +24,7 @@ async function renderLoaded(mistakes: Mistake[], onPractice?: () => void) {
 describe('useMistakes', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    localStorage.clear()
   })
 
   it('starts with the least practiced mistake', async () => {
@@ -211,6 +213,43 @@ describe('useMistakes', () => {
     act(() => result.current.restart())
 
     expect(result.current.queue).toEqual([2])
+  })
+
+  it('counts each sentence whose answer I looked at today once, and remembers it', async () => {
+    const list = [make(1), make(2, 1), make(3, 2)]
+    mockFetch(list)
+    const { result } = await renderLoaded(list)
+
+    act(() => result.current.reveal())
+    act(() => result.current.next())
+    act(() => result.current.reveal())
+    act(() => result.current.reveal())
+
+    expect(result.current.practicedTodayCount).toBe(2)
+    expect(JSON.parse(localStorage.getItem(PRACTICED_TODAY_STORAGE_KEY) ?? '')).toEqual({ date: todayLocalIso(), sentences: ['fout 1', 'fout 2'] })
+
+    const reloaded = await renderLoaded(list)
+    expect(reloaded.result.current.practicedTodayCount).toBe(2)
+  })
+
+  it('skipping moves on without requeueing, and drops later repeats of that sentence', async () => {
+    const list = [make(1), make(2, 1), make(3, 2)]
+    mockFetch(list)
+    const { result } = await renderLoaded(list)
+    act(() => result.current.reveal())
+    act(() => result.current.next())
+    expect(result.current.queue).toEqual([1, 2, 3, 1])
+
+    act(() => result.current.setUserInput('iets'))
+    act(() => result.current.skip())
+    expect(result.current.queue).toEqual([1, 3, 1])
+    expect(result.current.current?.row).toBe(3)
+    expect(result.current.userInput).toBe('')
+
+    act(() => result.current.skip())
+    expect(result.current.queue).toEqual([1, 1])
+    expect(result.current.current?.row).toBe(1)
+    expect(result.current.practicedTodayCount).toBe(1)
   })
 
   it('shows the error when loading fails', async () => {
