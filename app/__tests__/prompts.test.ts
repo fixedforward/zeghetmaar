@@ -103,6 +103,12 @@ describe('comprehensionCheckPrompt', () => {
   it('asks for the rough paragraph that holds each answer', () => {
     expect(comprehensionCheckPrompt('Tekst.')).toContain('in welke alinea het antwoord staat')
   })
+
+  it('asks for new or difficult words from the text that I must use in my answer', () => {
+    const prompt = comprehensionCheckPrompt('Tekst.')
+    expect(prompt).toContain('nieuwe of moeilijke woorden of uitdrukkingen uit de tekst die ik in mijn antwoord moet gebruiken')
+    expect(prompt).toContain('Controleer in je feedback of ik ze gebruikt heb')
+  })
 })
 
 describe('listeningComprehensionPrompt', () => {
@@ -115,6 +121,7 @@ describe('listeningComprehensionPrompt', () => {
     expect(prompt).toContain('één voor één')
     expect(prompt).toContain('Kun je de link niet openen?')
     expect(prompt).toContain('op welk tijdstip in het transcript het antwoord zit')
+    expect(prompt).toContain('nieuwe of moeilijke woorden of uitdrukkingen uit het transcript die ik in mijn antwoord moet gebruiken')
   })
 })
 

@@ -59,11 +59,17 @@ export function explainPhrasePrompt(phrase: string, context?: string): string {
 
 const ONE_QUESTION_AT_A_TIME = `Stel de vragen één voor één: wacht op mijn antwoord, geef feedback (en verbeter mijn Nederlands), en stel dan pas de volgende vraag.`
 
+// So answering the questions also practices the new vocabulary, not just understanding.
+function requiredWordsInstruction(source: string): string {
+  return `Noem bij elke vraag 1 tot 3 nieuwe of moeilijke woorden of uitdrukkingen uit ${source} die ik in mijn antwoord moet gebruiken. Controleer in je feedback of ik ze gebruikt heb en of dat goed ging.`
+}
+
 export function comprehensionCheckPrompt(articleText: string): string {
   return [
     `Ik leer Nederlands en heb de onderstaande tekst gelezen.`,
     `Controleer mijn begrip van de tekst door mij 7 vragen erover te stellen, in het Nederlands.`,
     `Zet bij elke vraag ongeveer in welke alinea het antwoord staat (bijv. "zie alinea 3"), zodat ik het kan teruglezen.`,
+    requiredWordsInstruction('de tekst'),
     ONE_QUESTION_AT_A_TIME,
     ``,
     articleText,
@@ -77,6 +83,7 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
     `Het transcript (een .srt-bestand) staat hier: ${transcriptUrl}`,
     `Open het transcript en controleer mijn begrip door mij 7 vragen over de inhoud te stellen, in het Nederlands.`,
     `Zet bij elke vraag ongeveer op welk tijdstip in het transcript het antwoord zit (bijv. "rond 03:20"), zodat ik het kan terugluisteren.`,
+    requiredWordsInstruction('het transcript'),
     ONE_QUESTION_AT_A_TIME,
     `Kun je de link niet openen? Zeg dat dan meteen, in plaats van te raden wat erin staat.`,
   ].join('\n')
