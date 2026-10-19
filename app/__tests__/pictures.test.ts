@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findPictureForMeaning, findPictureForPhrase, pictureUrl } from '../lib/pictures'
+import { findMeaningPictureId, findPictureForMeaning, findPictureForPhrase, pictureUrl } from '../lib/pictures'
 
 const pictures = [
   { id: 'a', name: 'fiets.png' },
@@ -41,3 +41,20 @@ describe('findPictureForPhrase', () => {
     expect(findPictureForMeaning(files, 'eveneens', '')).toBeUndefined()
   })
  })
+
+describe('findMeaningPictureId', () => {
+  const files = [
+    { id: 'm', name: 'bank$bench.png' },
+    { id: 'p', name: 'bank.png' },
+  ]
+
+  it('prefers the picture for that meaning', () => {
+    expect(findMeaningPictureId(files, 'bank', 'bench', 1)).toBe('m')
+  })
+
+  it('falls back to the saved or phrase picture for the first meaning only', () => {
+    expect(findMeaningPictureId(files, 'bank', 'bank', 0, 'saved')).toBe('saved')
+    expect(findMeaningPictureId(files, 'bank', 'bank', 0)).toBe('p')
+    expect(findMeaningPictureId(files, 'bank', 'shore', 1)).toBeUndefined()
+  })
+})

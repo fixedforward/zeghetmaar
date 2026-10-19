@@ -3,14 +3,14 @@ import type { useWords } from '../hooks/useWords'
 import { TagsSelect } from './TagsSelect'
 import { MeaningsEditor } from './MeaningsEditor'
 import { usePictures } from '../hooks/usePictures'
-import { findPictureForMeaning, findPictureForPhrase } from '../lib/pictures'
-import { PhrasePicture } from './PhrasePicture'
+import { findMeaningPictureId } from '../lib/pictures'
+import { MeaningPicture } from './PhrasePicture'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean }
 
 export function PhraseDetailModal(words: Props) {
   const entry = words.words.find(w => w.id === words.editId) ?? null
-  const { pictures } = usePictures(words.isLoggedIn && !!entry)
+  const { pictures, loading: picturesLoading } = usePictures(words.isLoggedIn && !!entry)
   const allTags = [...new Set(words.words.flatMap(w => w.tags ?? []))].sort((a, b) =>
     a.localeCompare(b)
   )
@@ -50,11 +50,13 @@ export function PhraseDetailModal(words: Props) {
         </div>
 
         <MeaningsEditor
-          renderPicture={(meaning, index) => {
-            const fileId = findPictureForMeaning(pictures, words.editWord, meaning.translation)?.id
-              ?? (index === 0 ? words.editPicture ?? entry.picture ?? findPictureForPhrase(pictures, words.editWord)?.id : undefined)
-            return fileId ? <PhrasePicture fileId={fileId} alt={`${words.editWord} — ${meaning.translation}`} /> : null
-          }}
+          renderPicture={(meaning, index) => (
+            <MeaningPicture
+              fileId={findMeaningPictureId(pictures, words.editWord, meaning.translation, index, words.editPicture ?? entry.picture)}
+              alt={`${words.editWord} — ${meaning.translation}`}
+              loading={picturesLoading}
+            />
+          )}
           meanings={words.editMeanings}
           onChange={words.setEditMeanings}
           word={words.editWord}

@@ -27,3 +27,12 @@ export function findPictureForMeaning(pictures: PictureFile[], phrase: string, m
       && name.slice(separator + 1).trim() === meaningKey
   })
 }
+
+// The picture for one meaning of a phrase: its own phrase$meaning picture, or for the first
+// meaning the phrase's saved picture or a picture named after the phrase.
+export function findMeaningPictureId(
+  pictures: PictureFile[], phrase: string, meaning: string, index: number, savedPicture?: string | null,
+): string | undefined {
+  return findPictureForMeaning(pictures, phrase, meaning)?.id
+    ?? (index === 0 ? savedPicture ?? findPictureForPhrase(pictures, phrase)?.id : undefined)
+}

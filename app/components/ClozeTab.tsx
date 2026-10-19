@@ -7,9 +7,9 @@ import { isTypingTarget } from '../lib/keyboard'
 import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
-import { PhrasePicture } from './PhrasePicture'
+import { MeaningPicture } from './PhrasePicture'
 import { usePictures } from '../hooks/usePictures'
-import { findPictureForMeaning, findPictureForPhrase } from '../lib/pictures'
+import { findMeaningPictureId } from '../lib/pictures'
 
 type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -134,22 +134,17 @@ export function ClozeTab(props: Props) {
   const currentEntry = words.find(w => w.id === question.phraseId)
   const meanings = currentEntry?.meanings ?? [{ translation: question.translation, examples: [] }]
   // Shown on the meaning side of the card: the back normally, the front when reversed.
-  const meaningPictureId = (translation: string, index: number) =>
-    findPictureForMeaning(pictures, question.word, translation)?.id
-      ?? (index === 0 ? currentEntry?.picture ?? findPictureForPhrase(pictures, question.word)?.id : undefined)
-  const meaningPicture = (translation: string, index: number) => {
-    const fileId = meaningPictureId(translation, index)
-    return fileId ? <PhrasePicture fileId={fileId} alt={`${question.word} — ${translation}`} className="mx-auto" /> : null
-  }
+  const meaningPicture = (translation: string, index: number, className?: string) => (
+    <MeaningPicture
+      fileId={findMeaningPictureId(pictures, question.word, translation, index, currentEntry?.picture)}
+      alt={`${question.word} — ${translation}`}
+      loading={picturesLoading}
+      className={className}
+    />
+  )
   // Typen: the picture of the meaning this sentence belongs to, once the answer is checked.
-  const noPicture = <p className="text-xs text-gray-400 italic">Geen afbeelding beschikbaar</p>
-  const typenPicture = () => {
-    if (picturesLoading) return null
-    const fileId = meaningPictureId(question.translation, Math.max(0, meanings.findIndex(m => m.translation === question.translation)))
-    return fileId
-      ? <PhrasePicture fileId={fileId} alt={`${question.word} — ${question.translation}`} fallback={noPicture} />
-      : noPicture
-  }
+  const typenPicture = () =>
+    meaningPicture(question.translation, Math.max(0, meanings.findIndex(m => m.translation === question.translation)))
 
   // How many letters the user already got right, starting from the front —
   // a wrong guess breaks the streak, same as the live red/green feedback above.
@@ -236,7 +231,7 @@ export function ClozeTab(props: Props) {
                       {meanings.map((m, i) => (
                         <div key={i}>
                           <p className="text-2xl font-semibold text-gray-900">{m.translation}</p>
-                          {meaningPicture(m.translation, i)}
+                          {meaningPicture(m.translation, i, 'mx-auto')}
                         </div>
                       ))}
                     </>
@@ -266,7 +261,7 @@ export function ClozeTab(props: Props) {
                     {meanings.map((m, i) => (
                       <div key={i}>
                         <p className="text-xl font-semibold text-gray-900">{m.translation}</p>
-                        {meaningPicture(m.translation, i)}
+                        {meaningPicture(m.translation, i, 'mx-auto')}
                         {m.examples[0] && <p className="text-xs text-gray-500 italic">{m.examples[0]}</p>}
                       </div>
                     ))}
