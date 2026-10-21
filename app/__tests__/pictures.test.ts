@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findMeaningPictureId, findPictureForMeaning, findPictureForPhrase, pictureUrl } from '../lib/pictures'
+import { findMeaningPictureId, findPictureForMeaning, findPictureForPhrase, matchKey, pictureUrl } from '../lib/pictures'
 
 const pictures = [
   { id: 'a', name: 'fiets.png' },
@@ -56,5 +56,29 @@ describe('findMeaningPictureId', () => {
     expect(findMeaningPictureId(files, 'bank', 'bank', 0, 'saved')).toBe('saved')
     expect(findMeaningPictureId(files, 'bank', 'bank', 0)).toBe('p')
     expect(findMeaningPictureId(files, 'bank', 'shore', 1)).toBeUndefined()
+  })
+})
+
+describe('sentences as phrase or meaning', () => {
+  it('matchKey keeps only letters and digits, in lower case, with single spaces', () => {
+    expect(matchKey("  I'm  tired. ")).toBe('im tired')
+    expect(matchKey('Hoe gaat het?')).toBe('hoe gaat het')
+    expect(matchKey('Wat een café!')).toBe('wat een café')
+  })
+
+  it('finds a phrase picture whose name leaves out the punctuation of the sentence', () => {
+    const files = [{ id: 's', name: 'hoe gaat het.png' }]
+    expect(findPictureForPhrase(files, 'Hoe gaat het?')?.id).toBe('s')
+  })
+
+  it('finds a meaning picture when both the phrase and the meaning are sentences', () => {
+    const files = [{ id: 'm', name: 'Ik ben het ermee eens$I agree with that.jpg' }]
+    expect(findPictureForMeaning(files, 'Ik ben het ermee eens.', "I agree with that!")?.id).toBe('m')
+  })
+
+  it('keeps a dot inside the sentence and only strips a real image extension', () => {
+    const files = [{ id: 'd', name: 'Hij is 3.5 jaar$He is 3.5 years.png' }]
+    expect(findPictureForMeaning(files, 'Hij is 3.5 jaar.', 'He is 3.5 years.')?.id).toBe('d')
+    expect(findPictureForPhrase([{ id: 'x', name: 'Het kost 3.50' }], 'Het kost 3.50')?.id).toBe('x')
   })
 })
