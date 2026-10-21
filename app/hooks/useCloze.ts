@@ -8,9 +8,27 @@ import { buildClozeQuestions, buildFlashcards, type ClozeQuestion } from '../lib
 // is the Anki-style one: each phrase is practiced in both directions,
 // with the direction stored on each card so retries keep the same front.
 export type ClozeMode = 'typen' | 'kaarten'
+// 'gemengd' shuffles both kinds into one session; each item then carries its own mode.
+export type ClozeSessionMode = ClozeMode | 'gemengd'
+
+function buildKaarten(words: WordEntry[]): ClozeQuestion[] {
+  return buildFlashcards(words).flatMap(card => [
+    { ...card, reversed: false },
+    { ...card, reversed: true },
+  ])
+}
+
+function buildSession(words: WordEntry[], sessionMode: ClozeSessionMode): ClozeQuestion[] {
+  if (sessionMode === 'kaarten') return buildKaarten(words)
+  if (sessionMode === 'typen') return buildClozeQuestions(words)
+  return [
+    ...buildClozeQuestions(words).map(q => ({ ...q, mode: 'typen' as const })),
+    ...buildKaarten(words).map(q => ({ ...q, mode: 'kaarten' as const })),
+  ]
+}
 
 export function useCloze(onPractice?: (mode: ClozeMode) => void) {
-  const [mode, setMode] = useState<ClozeMode>('typen')
+  const [mode, setMode] = useState<ClozeSessionMode>('typen')
   const [questions, setQuestions] = useState<ClozeQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [userInput, setUserInput] = useState('')
@@ -27,15 +45,11 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   }
 
   const reversed = questions[currentIndex]?.reversed ?? false
+  // What the current item is: in a mixed session that differs per item.
+  const questionMode: ClozeMode = questions[currentIndex]?.mode ?? (mode === 'gemengd' ? 'typen' : mode)
 
-  const start = useCallback((words: WordEntry[], sessionMode: ClozeMode = 'typen') => {
-    const cards = sessionMode === 'kaarten'
-      ? buildFlashcards(words).flatMap(card => [
-          { ...card, reversed: false },
-          { ...card, reversed: true },
-        ])
-      : buildClozeQuestions(words)
-    const built = shuffleArray(cards)
+  const start = useCallback((words: WordEntry[], sessionMode: ClozeSessionMode = 'typen') => {
+    const built = shuffleArray(buildSession(words, sessionMode))
     setMode(sessionMode)
     setGivenUpWord(null)
     setQuestions(built)
@@ -57,11 +71,11 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   const checkAnswer = useCallback(() => {
     const question = questions[currentIndex]
     if (checked || !question || !userInput.trim()) return
-    onPractice?.(mode)
+    onPractice?.(questionMode)
     const correct = userInput.trim().toLowerCase() === question.word.trim().toLowerCase()
     setAnswers(prev => prev.map((a, i) => i === currentIndex ? correct : a))
     setChecked(true)
-  }, [checked, questions, currentIndex, userInput, onPractice, mode])
+  }, [checked, questions, currentIndex, userInput, onPractice, questionMode])
 
   const advance = useCallback((wasCorrect: boolean | null) => {
     const answeredIndex = currentIndex
@@ -84,11 +98,11 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   const giveUp = useCallback(() => {
     const question = questions[currentIndex]
     if (!question || checked) return
-    onPractice?.(mode)
+    onPractice?.(questionMode)
     setGivenUpWord(question.word)
     setAnswers(prev => prev.map((a, i) => i === currentIndex ? false : a))
     advance(false)
-  }, [questions, currentIndex, checked, onPractice, mode, advance])
+  }, [questions, currentIndex, checked, onPractice, questionMode, advance])
 
   const skipPhrase = useCallback(() => {
     const question = questions[currentIndex]
@@ -108,10 +122,10 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
 
   const markAndNext = useCallback((correct: boolean) => {
     if (!checked) return
-    onPractice?.(mode)
+    onPractice?.(questionMode)
     setAnswers(prev => prev.map((a, i) => i === currentIndex ? correct : a))
     advance(correct)
-  }, [checked, onPractice, mode, currentIndex, advance])
+  }, [checked, onPractice, questionMode, currentIndex, advance])
 
   const jumpTo = (index: number) => {
     if (index < 0 || index >= questions.length) return
@@ -130,7 +144,7 @@ export function useCloze(onPractice?: (mode: ClozeMode) => void) {
   }
 
   return {
-    mode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    mode, questionMode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
     giveUp, skipPhrase, givenUpWord,
   }

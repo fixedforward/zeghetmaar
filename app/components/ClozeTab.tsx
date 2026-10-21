@@ -20,7 +20,7 @@ export function ClozeTab(props: Props) {
   const {
     words, wordsLoading, wordsError, isLoggedIn, trackers,
     startEdit, setBeheersing, beheersingLoadingId,
-    mode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    mode, questionMode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
     giveUp, skipPhrase, givenUpWord,
   } = props
@@ -41,7 +41,7 @@ export function ClozeTab(props: Props) {
   }, [currentIndex, questions[currentIndex]])
 
   // Anki-style shortcuts: Space/Enter reveals, then 1 = Fout and 2 = Goed.
-  const kaartenActive = mode === 'kaarten' && isActive && !done
+  const kaartenActive = questionMode === 'kaarten' && isActive && !done
   useEffect(() => {
     if (!kaartenActive) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -75,6 +75,7 @@ export function ClozeTab(props: Props) {
           Typen: vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl.
           Kaarten: oefen elke frase in beide richtingen — frase → vertaling en vertaling → frase.
           Draai de kaart om en kies zelf Goed/Fout — Anki-stijl.
+          Gemengd: typen en kaarten door elkaar in één sessie.
         </p>
         {wordsLoading && <p className="text-sm text-gray-400 italic">Fraselijst laden...</p>}
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
@@ -105,6 +106,13 @@ export function ClozeTab(props: Props) {
             >
               Start kaarten ({kaartenCount} frases · {kaartenCount * 2} kaarten)
             </button>
+            <button
+              onClick={() => start(filteredWords, 'gemengd')}
+              title="Typen-vragen en kaarten door elkaar in één sessie"
+              className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600 text-sm"
+            >
+              Start gemengd ({typenCount} vragen + {kaartenCount * 2} kaarten)
+            </button>
           </div>
         )}
       </div>
@@ -114,7 +122,9 @@ export function ClozeTab(props: Props) {
   if (done) {
     return (
       <div className="space-y-4 text-center py-8">
-        {isLoggedIn && <div className="flex justify-center"><PracticeCounter {...trackers[mode]} /></div>}
+        {isLoggedIn && (mode === 'gemengd'
+          ? <div className="flex flex-col items-center"><PracticeCounter {...trackers.typen} /><PracticeCounter {...trackers.kaarten} /></div>
+          : <div className="flex justify-center"><PracticeCounter {...trackers[mode]} /></div>)}
         <p className="text-lg font-semibold text-gray-900">Klaar! 🎉</p>
         <p className="text-sm text-gray-600">{score.correct} goed, {score.incorrect} fout van {total}.</p>
         <div className="flex justify-center gap-2">
@@ -190,7 +200,7 @@ export function ClozeTab(props: Props) {
     <div className="space-y-5">
       <div className="flex justify-between items-center">
         <span className="text-xs font-medium text-gray-500">
-          {mode === 'kaarten' ? 'Kaart' : 'Zin'} {currentIndex + 1} van {total} · {score.correct} goed, {score.incorrect} fout
+          {questionMode === 'kaarten' ? 'Kaart' : 'Zin'} {currentIndex + 1} van {total} · {score.correct} goed, {score.incorrect} fout
         </span>
         <div className="flex items-center gap-3">
           {currentEntry && (
@@ -209,7 +219,7 @@ export function ClozeTab(props: Props) {
         <p role="status" className="text-sm text-red-600">Opgegeven — het juiste woord was "{givenUpWord}".</p>
       )}
 
-      {mode === 'kaarten' ? (
+      {questionMode === 'kaarten' ? (
         <div className="space-y-3">
           {/* Keyed by index so the next card mounts face-up instead of animating
               back and briefly showing its meaning. */}

@@ -6,6 +6,8 @@ export interface ClozeQuestion {
   translation: string
   sentence: string
   reversed?: boolean
+  // Only set in a mixed session, where typen questions and kaarten cards are shuffled together.
+  mode?: 'typen' | 'kaarten'
 }
 
 function wordIndex(sentence: string, word: string): number {

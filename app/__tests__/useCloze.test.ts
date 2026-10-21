@@ -147,6 +147,40 @@ describe('useCloze', () => {
     expect(onPractice).toHaveBeenCalledWith('typen')
   })
 
+  describe('gemengd mode', () => {
+    it('start() mixes typen questions and kaarten cards, each with its own mode', () => {
+      const words = [makeWord('1', 'hallo', ['Hallo daar!']), makeWord('2', 'leeg', [])]
+      const { result } = renderHook(() => useCloze())
+
+      act(() => { result.current.start(words, 'gemengd') })
+
+      expect(result.current.mode).toBe('gemengd')
+      const kinds = result.current.questions.map(q => `${q.word}:${q.mode}`).sort()
+      expect(kinds).toEqual(['hallo:kaarten', 'hallo:kaarten', 'hallo:typen', 'leeg:kaarten', 'leeg:kaarten'])
+      expect(result.current.answers).toHaveLength(5)
+    })
+
+    it('reports practice for the mode of the item that was answered', () => {
+      const onPractice = vi.fn()
+      const { result } = renderHook(() => useCloze(onPractice))
+      act(() => { result.current.start([makeWord('1', 'hallo', ['Hallo daar!'])], 'gemengd') })
+
+      for (let i = 0; i < 3; i++) {
+        const mode = result.current.questionMode
+        if (mode === 'typen') {
+          act(() => { result.current.setUserInput('hallo') })
+          act(() => { result.current.checkAnswer() })
+          act(() => { result.current.nextQuestion() })
+        } else {
+          act(() => { result.current.reveal() })
+          act(() => { result.current.markAndNext(true) })
+        }
+        expect(onPractice).toHaveBeenLastCalledWith(mode)
+      }
+      expect(onPractice.mock.calls.map(c => c[0]).sort()).toEqual(['kaarten', 'kaarten', 'typen'])
+    })
+  })
+
   describe('kaarten mode', () => {
     it('combines both directions for each phrase and derives the current direction', () => {
       const { result } = renderHook(() => useCloze())
