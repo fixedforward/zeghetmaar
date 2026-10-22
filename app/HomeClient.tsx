@@ -46,7 +46,6 @@ export default function HomeClient() {
   const oefenSessieTracker = usePracticeTracker('oefensessie', !!session)
   const quizTracker = usePracticeTracker('quiz', !!session)
   const clozeTracker = usePracticeTracker('cloze', !!session)
-  const clozeKaartenTracker = usePracticeTracker('clozekaarten', !!session)
   const foutenTracker = usePracticeTracker('fouten', !!session)
 
   const exercises = useExercises()
@@ -55,7 +54,7 @@ export default function HomeClient() {
   const practice = usePhrasePractice(activeModel, words.words)
   const oefenSessie = useOefenSessie(activeModel, oefenSessieTracker.markPracticedToday)
   const quiz = useQuiz(quizTracker.markPracticedToday)
-  const cloze = useCloze(mode => (mode === 'kaarten' ? clozeKaartenTracker : clozeTracker).markPracticedToday())
+  const cloze = useCloze(clozeTracker.markPracticedToday)
   const articles = useArticles()
   const listeningTree = useListeningTree()
   const fouten = useMistakes(foutenTracker.markPracticedToday)
@@ -91,14 +90,13 @@ export default function HomeClient() {
       oefenSessieTracker.loadPracticeLog()
       quizTracker.loadPracticeLog()
       clozeTracker.loadPracticeLog()
-      clozeKaartenTracker.loadPracticeLog()
       foutenTracker.loadPracticeLog()
       quiz.loadPreparedFileIds()
     }
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
-    clozeKaartenTracker.loadPracticeLog, foutenTracker.loadPracticeLog,
+    foutenTracker.loadPracticeLog,
     quiz.loadPreparedFileIds,
   ])
 
@@ -186,17 +184,10 @@ export default function HomeClient() {
               {...cloze}
               {...words}
               isLoggedIn={!!session}
-              trackers={{
-                typen: {
-                  practicedDates: clozeTracker.practicedDates,
-                  onCheckIn: clozeTracker.markPracticedToday,
-                  onCancelCheckIn: clozeTracker.cancelPracticedToday,
-                },
-                kaarten: {
-                  practicedDates: clozeKaartenTracker.practicedDates,
-                  onCheckIn: clozeKaartenTracker.markPracticedToday,
-                  onCancelCheckIn: clozeKaartenTracker.cancelPracticedToday,
-                },
+              tracker={{
+                practicedDates: clozeTracker.practicedDates,
+                onCheckIn: clozeTracker.markPracticedToday,
+                onCancelCheckIn: clozeTracker.cancelPracticedToday,
               }}
             />
           </ErrorBoundary>

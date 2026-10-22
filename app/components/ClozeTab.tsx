@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react'
-import type { ClozeMode, useCloze } from '../hooks/useCloze'
+import type { useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
 import { buildClozeQuestions, buildFlashcards, maskWord } from '../lib/cloze'
 import { DEFAULT_DAY_RANGE, filterWordsByDaysSinceAdded, type DayRange } from '../lib/wordFilters'
@@ -14,14 +14,14 @@ import { findMeaningPictureId } from '../lib/pictures'
 
 type Props = ReturnType<typeof useCloze> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
-  trackers: Record<ClozeMode, ComponentProps<typeof PracticeCounter>>
+  tracker: ComponentProps<typeof PracticeCounter>
 }
 
 export function ClozeTab(props: Props) {
   const {
-    words, wordsLoading, wordsError, isLoggedIn, trackers,
+    words, wordsLoading, wordsError, isLoggedIn, tracker,
     startEdit, setBeheersing, beheersingLoadingId,
-    mode, questionMode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
+    questionMode, reversed, questions, currentIndex, userInput, setUserInput, checked, answers, score,
     start, stop, checkAnswer, nextQuestion, reveal, markAndNext, jumpTo, restart,
     giveUp, skipPhrase, givenUpWord,
   } = props
@@ -64,19 +64,12 @@ export function ClozeTab(props: Props) {
     const kaartenCount = buildFlashcards(filteredWords).length
     return (
       <div className="space-y-4">
-        {isLoggedIn && (
-          <div>
-            <p className="text-xs font-medium text-gray-600 mb-1">Typen</p>
-            <PracticeCounter {...trackers.typen} />
-            <p className="text-xs font-medium text-gray-600 mb-1">Kaarten</p>
-            <PracticeCounter {...trackers.kaarten} />
-          </div>
-        )}
+        {isLoggedIn && <PracticeCounter {...tracker} />}
         <p className="text-sm text-gray-500">
-          Typen: vul het ontbrekende woord in een voorbeeldzin uit je fraselijst in — Clozemaster-stijl.
-          Kaarten: oefen elke frase in beide richtingen — frase → vertaling en vertaling → frase.
-          Draai de kaart om en kies zelf Goed/Fout — Anki-stijl.
-          Gemengd: typen en kaarten door elkaar in één sessie.
+          Typen en kaarten door elkaar in één sessie. Typen: vul het ontbrekende woord in een
+          voorbeeldzin uit je fraselijst in — Clozemaster-stijl. Kaarten: oefen elke frase in beide
+          richtingen — frase → vertaling en vertaling → frase. Draai de kaart om en kies zelf
+          Goed/Fout — Anki-stijl.
         </p>
         {wordsLoading && <p className="text-sm text-gray-400 italic">Fraselijst laden...</p>}
         {wordsError && <p className="text-sm text-red-600">{wordsError}</p>}
@@ -94,22 +87,7 @@ export function ClozeTab(props: Props) {
         {!wordsLoading && !wordsError && kaartenCount > 0 && (
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => start(filteredWords, 'typen')}
-              disabled={typenCount === 0}
-              title={typenCount === 0 ? 'Geen frasen met een bruikbare voorbeeldzin voor deze filters.' : undefined}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
-            >
-              Start typen ({typenCount} vragen)
-            </button>
-            <button
-              onClick={() => start(filteredWords, 'kaarten')}
-              className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-sm"
-            >
-              Start kaarten ({kaartenCount} frases · {kaartenCount * 2} kaarten)
-            </button>
-            <button
               onClick={() => start(filteredWords, 'gemengd')}
-              title="Typen-vragen en kaarten door elkaar in één sessie"
               className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600 text-sm"
             >
               Start gemengd ({typenCount} vragen + {kaartenCount * 2} kaarten)
@@ -123,9 +101,7 @@ export function ClozeTab(props: Props) {
   if (done) {
     return (
       <div className="space-y-4 text-center py-8">
-        {isLoggedIn && (mode === 'gemengd'
-          ? <div className="flex flex-col items-center"><PracticeCounter {...trackers.typen} /><PracticeCounter {...trackers.kaarten} /></div>
-          : <div className="flex justify-center"><PracticeCounter {...trackers[mode]} /></div>)}
+        {isLoggedIn && <div className="flex justify-center"><PracticeCounter {...tracker} /></div>}
         <p className="text-lg font-semibold text-gray-900">Klaar! 🎉</p>
         <p className="text-sm text-gray-600">{score.correct} goed, {score.incorrect} fout van {total}.</p>
         <div className="flex justify-center gap-2">
