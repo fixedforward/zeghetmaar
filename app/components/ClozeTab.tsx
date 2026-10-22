@@ -8,6 +8,7 @@ import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 import { MeaningPicture } from './PhrasePicture'
+import { CardScratchField } from './CardScratchField'
 import { usePictures } from '../hooks/usePictures'
 import { findMeaningPictureId } from '../lib/pictures'
 
@@ -280,6 +281,7 @@ export function ClozeTab(props: Props) {
               </div>
             </div>
           </button>
+          <CardScratchField key={currentIndex} revealed={checked} onReveal={reveal} />
           {checked && (
             <div className="space-y-2">
               {beheersingButtons}
