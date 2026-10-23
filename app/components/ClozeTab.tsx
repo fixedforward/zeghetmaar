@@ -201,7 +201,7 @@ export function ClozeTab(props: Props) {
           {/* Keyed by index so the next card mounts face-up instead of animating
               back and briefly showing its meaning. */}
           <button
-            key={currentIndex}
+            key={`card-${currentIndex}`}
             type="button"
             onClick={reveal}
             disabled={checked}
@@ -257,7 +257,7 @@ export function ClozeTab(props: Props) {
               </div>
             </div>
           </button>
-          <CardScratchField key={currentIndex} revealed={checked} onReveal={reveal} />
+          <CardScratchField key={`scratch-${currentIndex}`} revealed={checked} onReveal={reveal} />
           {checked && (
             <div className="space-y-2">
               {beheersingButtons}
