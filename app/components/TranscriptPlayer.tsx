@@ -7,6 +7,7 @@ import { useWords } from '../hooks/useWords'
 import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
 import { useSwipeGestures } from '../hooks/useSwipeGestures'
 import { useVideoSize } from '../hooks/useVideoSize'
+import { useHardToHearPhrases } from '../hooks/useHardToHearPhrases'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
 import { DEFAULT_MODEL } from '../config/models'
@@ -34,6 +35,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   // This page has no model picker, so AI help in the add form uses the default model.
   const words = useWords(DEFAULT_MODEL)
   const addPhrase = useAddPhraseModal(words)
+  const hardToHear = useHardToHearPhrases(player.lesson?.name ?? null)
   const { skipBy, togglePlay } = player
   const skipBySwipe = useCallback((direction: SwipeDirection) => skipBy(direction * SKIP_SECONDS), [skipBy])
   // Double-tap: left third 5 s back, middle play/pause, right third 5 s forward.
@@ -77,6 +79,13 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
     if (!currentCue) return
     player.pause()
     addPhrase.openWith(currentCue.text)
+  }
+
+  // Saved with the start of the line before it, so jumping back gives a bit of lead-in.
+  const leadInStart = Math.max(0, lesson.cues[player.activeIndex - 1]?.start ?? currentCue?.start ?? 0)
+  const currentCueSaved = !!currentCue && hardToHear.phrases.some(p => p.text === currentCue.text && p.seconds === leadInStart)
+  const addCurrentCueToHardToHear = () => {
+    if (currentCue) hardToHear.addPhraseAsync(currentCue.text, leadInStart)
   }
   return (
     <div className={`flex flex-col gap-6 ${sizeClasses.layout}`}>
@@ -125,6 +134,15 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
               </button>
               <button type="button" onClick={addCurrentCueToFraselijst} disabled={!currentCue} className="px-3 py-1 text-sm border rounded disabled:opacity-50">
                 + Fraselijst
+              </button>
+              <button
+                type="button"
+                onClick={addCurrentCueToHardToHear}
+                disabled={!currentCue || currentCueSaved || hardToHear.saving}
+                title="Zet deze zin bij Moeilijk te verstaan"
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+              >
+                {currentCueSaved ? '✓ Moeilijk te verstaan' : '+ Moeilijk te verstaan'}
               </button>
             </div>
           </div>
@@ -188,10 +206,44 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
             Comprehension controleren
           </button>
         )}
+        {subtitlesFound && (
+          <section className="rounded border border-gray-200 p-3 space-y-2">
+            <h2 className="text-sm font-semibold text-gray-700">Moeilijk te verstaan</h2>
+            {hardToHear.error && <p className="text-sm text-red-500">{hardToHear.error}</p>}
+            {hardToHear.phrases.length === 0 ? (
+              <p className="text-xs text-gray-400">Nog niets. Klik bij een ondertitel op &quot;+ Moeilijk te verstaan&quot;.</p>
+            ) : (
+              <ul className="space-y-1">
+                {hardToHear.phrases.map(phrase => (
+                  <li key={phrase.id} className="flex items-start gap-2 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => player.seekTo(phrase.seconds)}
+                      title="Speel af vanaf de zin ervoor"
+                      className="shrink-0 font-mono text-xs text-blue-600 hover:underline pt-0.5"
+                    >
+                      ▶ {formatClock(Math.floor(phrase.seconds))}
+                    </button>
+                    <span className="flex-1 text-gray-800">{phrase.text}</span>
+                    <button
+                      type="button"
+                      onClick={() => hardToHear.deletePhraseAsync(phrase.id)}
+                      disabled={hardToHear.saving}
+                      title="Verwijderen"
+                      className="shrink-0 text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
         {helpOpen && (
           <p className="text-xs text-gray-500 p-2 rounded border border-gray-200 bg-gray-50">
             Tik twee keer midden op de video (of druk op spatie) om te starten/stoppen, twee keer links voor 5 s terug en twee keer rechts voor 5 s vooruit. Swipen naar links/rechts en ←/→ of a/d werken ook. Met Klein/Middel/Groot/Maximaal kies je hoe groot de video is; dat wordt onthouden.
-            {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
+            {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst, "+ Moeilijk te verstaan" zet hem in de lijst onder de video; ▶ speelt hem daar af vanaf de zin ervoor. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
           </p>
         )}
       </div>

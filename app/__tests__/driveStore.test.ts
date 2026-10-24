@@ -25,7 +25,7 @@ vi.mock('googleapis', () => ({
   },
 }))
 
-import { toApiEntry, renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, updateListeningLinkAsync, deleteListeningLinkAsync } from '../lib/driveStore'
+import { toApiEntry, renameTag, deleteTag, getPracticedDatesAsync, markPracticedDateAsync, unmarkPracticedDateAsync, getAllWords, normalizeMeanings, getMarkedFileIdsAsync, setFileMarkedAsync, getListeningLinksAsync, addListeningLinkAsync, updateListeningLinkAsync, deleteListeningLinkAsync, listeningVideoKey, getHardToHearPhrasesAsync, addHardToHearPhraseAsync, deleteHardToHearPhraseAsync } from '../lib/driveStore'
 import { encodeYearBitmap } from '../lib/practiceLog'
 import type { Phrase } from '../types'
 
@@ -45,7 +45,7 @@ function writtenPhrases(): Phrase[] {
   return JSON.parse(body).phrases
 }
 
-function writtenRoot(): { preparedQuizFileIds: string[]; readArticleIds: string[]; listeningLinks: unknown[] } {
+function writtenRoot(): { preparedQuizFileIds: string[]; readArticleIds: string[]; listeningLinks: unknown[]; hardToHearPhrases: Record<string, unknown[]> } {
   const body = filesUpdateMock.mock.calls[0][0].media.body[0] as string
   return JSON.parse(body)
 }
@@ -302,6 +302,76 @@ describe('listening links', () => {
     await renameTag('werk', 'kantoor')
 
     expect(writtenRoot().listeningLinks).toEqual([link])
+  })
+})
+
+describe('hard-to-hear phrases', () => {
+  const phrase = { id: 'h1', text: 'Dat zie je wel vaker.', seconds: 12.5, createdAt: '2024-01-01T00:00:00.000Z' }
+  const link = { id: 'l1', title: 'Journaal', url: 'https://youtu.be/a', createdAt: '2024-01-01T00:00:00.000Z' }
+
+  beforeEach(() => {
+    filesGetMock.mockReset()
+    filesUpdateMock.mockReset()
+    filesUpdateMock.mockResolvedValue({})
+  })
+
+  it('listeningVideoKey drops spaces and capitals', () => {
+    expect(listeningVideoKey('Het Journaal  12 Mei')).toBe('hetjournaal12mei')
+  })
+
+  it('finds a video by its key, whatever its spaces and capitals', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { hetjournaal: [phrase] } }) })
+
+    expect(await getHardToHearPhrasesAsync('Het  JOURNAAL')).toEqual([phrase])
+    expect(await getHardToHearPhrasesAsync('Iets anders')).toEqual([])
+  })
+
+  it('drops malformed entries when reading', async () => {
+    const badSeconds = { ...phrase, id: 'h2', seconds: -1 }
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { a: [phrase, badSeconds, { id: 'x' }], b: 'nope' } }) })
+
+    expect(await getHardToHearPhrasesAsync('a')).toEqual([phrase])
+    expect(await getHardToHearPhrasesAsync('b')).toEqual([])
+  })
+
+  it('addHardToHearPhraseAsync keeps the list in video order and keeps the rest of the root', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [{ ...base, id: '1', word: 'a' }], listeningLinks: [link], hardToHearPhrases: { hetjournaal: [phrase] } }) })
+
+    const result = await addHardToHearPhraseAsync('Het Journaal', 'Eerder in de video.', 3)
+
+    expect(result.map(p => p.text)).toEqual(['Eerder in de video.', phrase.text])
+    expect(result[0]).toMatchObject({ seconds: 3 })
+    expect(writtenRoot()).toMatchObject({ listeningLinks: [link], hardToHearPhrases: { hetjournaal: result } })
+    expect(writtenPhrases()).toHaveLength(1)
+  })
+
+  it('addHardToHearPhraseAsync does not add the same line twice', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { hetjournaal: [phrase] } }) })
+
+    expect(await addHardToHearPhraseAsync('Het Journaal', phrase.text, phrase.seconds)).toEqual([phrase])
+    expect(filesUpdateMock).not.toHaveBeenCalled()
+  })
+
+  it('deleteHardToHearPhraseAsync removes the line and drops an emptied video', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { hetjournaal: [phrase], ander: [phrase] } }) })
+
+    expect(await deleteHardToHearPhraseAsync('Het Journaal', 'h1')).toEqual([])
+    expect(writtenRoot().hardToHearPhrases).toEqual({ ander: [phrase] })
+  })
+
+  it('deleteHardToHearPhraseAsync does not write when the id is unknown', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { hetjournaal: [phrase] } }) })
+
+    expect(await deleteHardToHearPhraseAsync('Het Journaal', 'nope')).toEqual([phrase])
+    expect(filesUpdateMock).not.toHaveBeenCalled()
+  })
+
+  it('a phrase write preserves the hard-to-hear lines', async () => {
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [{ ...base, id: '1', word: 'a', tags: ['werk'] }], hardToHearPhrases: { hetjournaal: [phrase] } }) })
+
+    await renameTag('werk', 'kantoor')
+
+    expect(writtenRoot().hardToHearPhrases).toEqual({ hetjournaal: [phrase] })
   })
 })
 

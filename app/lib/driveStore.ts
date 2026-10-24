@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase } from '../types'
+import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -153,9 +153,9 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 
 // The file's root used to just be the phrases array. It's now
-// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks } so other, unrelated
-// concerns (which quiz files / articles the user has ticked off, the Luisteren
-// YouTube links) can live in the same
+// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases } so other,
+// unrelated concerns (which quiz files / articles the user has ticked off, the Luisteren
+// YouTube links, the hard-to-hear subtitle lines per video) can live in the same
 // file without a new Drive file (service accounts can't create one). A legacy
 // array-shaped root is still read correctly (the id lists default to empty).
 interface StoredRoot {
@@ -163,6 +163,9 @@ interface StoredRoot {
   preparedQuizFileIds: string[]
   readArticleIds: string[]
   listeningLinks: ListeningLink[]
+  // Keyed by listeningVideoKey(video name), not by Drive file id, so the lines stay with a
+  // video that's moved to another folder.
+  hardToHearPhrases: Record<string, HardToHearPhrase[]>
 }
 
 function toStringArray(value: unknown): string[] {
@@ -188,6 +191,21 @@ function toListeningLinks(value: unknown): ListeningLink[] {
       : { ...l, phrases: Array.isArray(l.phrases) ? l.phrases.filter(isListeningPhrase) : [] })
 }
 
+function isHardToHearPhrase(x: unknown): x is HardToHearPhrase {
+  const p = x as Partial<HardToHearPhrase> | null
+  return !!p && typeof p.id === 'string' && typeof p.text === 'string' && typeof p.createdAt === 'string' &&
+    typeof p.seconds === 'number' && Number.isFinite(p.seconds) && p.seconds >= 0
+}
+
+function toHardToHearPhrases(value: unknown): Record<string, HardToHearPhrase[]> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, phrases]) => Array.isArray(phrases))
+      .map(([key, phrases]) => [key, (phrases as unknown[]).filter(isHardToHearPhrase)])
+  )
+}
+
 async function driveReadRoot(): Promise<StoredRoot> {
   const drive = getDriveClient()
   const res = await drive.files.get(
@@ -197,7 +215,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
   const parsed = JSON.parse(res.data as string) as unknown
 
   if (Array.isArray(parsed)) {
-    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [] }
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {} }
   }
 
   const obj = (parsed ?? {}) as Record<string, unknown>
@@ -207,6 +225,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
     preparedQuizFileIds: toStringArray(obj.preparedQuizFileIds),
     readArticleIds: toStringArray(obj.readArticleIds),
     listeningLinks: toListeningLinks(obj.listeningLinks),
+    hardToHearPhrases: toHardToHearPhrases(obj.hardToHearPhrases),
   }
 }
 
@@ -218,6 +237,7 @@ async function driveWriteRoot(root: StoredRoot): Promise<void> {
       preparedQuizFileIds: root.preparedQuizFileIds,
       readArticleIds: root.readArticleIds,
       listeningLinks: root.listeningLinks,
+      hardToHearPhrases: root.hardToHearPhrases,
     },
     null,
     2
@@ -478,4 +498,42 @@ export async function deleteListeningLinkAsync(id: string): Promise<ListeningLin
   const listeningLinks = root.listeningLinks.filter(l => l.id !== id)
   if (listeningLinks.length !== root.listeningLinks.length) await driveWriteRoot({ ...root, listeningLinks })
   return listeningLinks
+}
+
+// ---------------------------------------------------------------------------
+// Hard-to-hear subtitle lines per Drive video (see StoredRoot), in video order.
+// ---------------------------------------------------------------------------
+
+// "Het Journaal 12 mei" → "hetjournaal12mei".
+export function listeningVideoKey(videoName: string): string {
+  return videoName.toLowerCase().replace(/\s+/g, '')
+}
+
+export async function getHardToHearPhrasesAsync(videoName: string): Promise<HardToHearPhrase[]> {
+  return (await driveReadRoot()).hardToHearPhrases[listeningVideoKey(videoName)] ?? []
+}
+
+// Adding a line that's already in the list (same text and time) changes nothing.
+export async function addHardToHearPhraseAsync(videoName: string, text: string, seconds: number): Promise<HardToHearPhrase[]> {
+  const root = await driveReadRoot()
+  const key = listeningVideoKey(videoName)
+  const current = root.hardToHearPhrases[key] ?? []
+  if (current.some(p => p.text === text && p.seconds === seconds)) return current
+  const phrase: HardToHearPhrase = { id: randomUUID(), text, seconds, createdAt: new Date().toISOString() }
+  const phrases = [...current, phrase].sort((a, b) => a.seconds - b.seconds)
+  await driveWriteRoot({ ...root, hardToHearPhrases: { ...root.hardToHearPhrases, [key]: phrases } })
+  return phrases
+}
+
+export async function deleteHardToHearPhraseAsync(videoName: string, id: string): Promise<HardToHearPhrase[]> {
+  const root = await driveReadRoot()
+  const key = listeningVideoKey(videoName)
+  const current = root.hardToHearPhrases[key] ?? []
+  const phrases = current.filter(p => p.id !== id)
+  if (phrases.length === current.length) return current
+  const hardToHearPhrases = { ...root.hardToHearPhrases }
+  if (phrases.length > 0) hardToHearPhrases[key] = phrases
+  else delete hardToHearPhrases[key]
+  await driveWriteRoot({ ...root, hardToHearPhrases })
+  return phrases
 }

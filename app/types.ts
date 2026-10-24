@@ -61,6 +61,15 @@ export interface ListeningPhrase {
   seconds?: number
 }
 
+// A subtitle line from a Drive video that I couldn't make out the first time.
+export interface HardToHearPhrase {
+  id: string
+  text: string
+  // Start of the subtitle line before this one, so jumping there gives a bit of lead-in.
+  seconds: number
+  createdAt: string
+}
+
 export interface Exercise {
   id: string
   name: string

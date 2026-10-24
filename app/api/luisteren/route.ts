@@ -9,17 +9,9 @@ import {
   type ListeningLinkUpdate,
 } from '@/app/lib/driveStore'
 import { isYouTubeUrl } from '@/app/lib/youtube'
+import { readJsonBody } from '@/app/lib/requestBody'
 
 const UNAUTHORIZED = { error: 'Login om feature te gebruiken.' }
-
-async function readBody(req: NextRequest): Promise<Record<string, unknown>> {
-  try {
-    const body = await req.json()
-    return body && typeof body === 'object' ? body : {}
-  } catch {
-    return {}
-  }
-}
 
 export async function GET() {
   const session = await auth()
@@ -37,7 +29,7 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json(UNAUTHORIZED, { status: 401 })
 
-  const body = await readBody(req)
+  const body = await readJsonBody(req)
   const url = typeof body.url === 'string' ? body.url.trim() : ''
   const title = typeof body.title === 'string' ? body.title.trim() : ''
   if (!isYouTubeUrl(url)) return NextResponse.json({ error: 'Geef een geldige YouTube-link op.' }, { status: 400 })
@@ -54,7 +46,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json(UNAUTHORIZED, { status: 401 })
 
-  const body = await readBody(req)
+  const body = await readJsonBody(req)
   const id = typeof body.id === 'string' ? body.id : ''
   if (!id) return NextResponse.json({ error: 'id is required.' }, { status: 400 })
 
@@ -85,7 +77,7 @@ export async function DELETE(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json(UNAUTHORIZED, { status: 401 })
 
-  const body = await readBody(req)
+  const body = await readJsonBody(req)
   const id = typeof body.id === 'string' ? body.id : ''
   if (!id) return NextResponse.json({ error: 'id is required.' }, { status: 400 })
 
