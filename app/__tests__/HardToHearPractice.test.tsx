@@ -28,7 +28,7 @@ describe('HardToHearPractice', () => {
     fireEvent.click(screen.getByText('Opnieuw afspelen'))
     expect(onPlay).toHaveBeenCalledTimes(2)
 
-    fireEvent.click(screen.getByText('✓ Verstaan'))
+    fireEvent.click(screen.getByText('✓ Verstaan (2)'))
     expect(onPlay).toHaveBeenLastCalledWith(lines[1])
   })
 
@@ -43,8 +43,28 @@ describe('HardToHearPractice', () => {
     expect(details().open).toBe(true)
     expect(screen.getByText('Dat zie je wel vaker.')).toBeTruthy()
 
-    fireEvent.click(screen.getByText('✗ Niet verstaan'))
+    fireEvent.click(screen.getByText('✗ Niet verstaan (1)'))
     expect(details().open).toBe(false)
     expect(screen.getByText(/0 verstaan, 1 niet verstaan/)).toBeTruthy()
+  })
+
+  it('marks with 1 = Niet verstaan and 2 = Verstaan', () => {
+    render(<Harness onPlay={() => {}} />)
+
+    fireEvent.keyDown(window, { key: '1' })
+    expect(screen.getByText(/Fragment 2 van 3 · 0 verstaan, 1 niet verstaan/)).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: '2' })
+    expect(screen.getByText(/1 verstaan, 1 niet verstaan/)).toBeTruthy()
+  })
+
+  it('ignores 1 and 2 while typing in a field, with a modifier, or when held down', () => {
+    render(<><input aria-label="veld" /><Harness onPlay={() => {}} /></>)
+
+    fireEvent.keyDown(screen.getByLabelText('veld'), { key: '2' })
+    fireEvent.keyDown(window, { key: '2', metaKey: true })
+    fireEvent.keyDown(window, { key: '2', repeat: true })
+
+    expect(screen.getByText(/Fragment 1 van 2 · 0 verstaan, 0 niet verstaan/)).toBeTruthy()
   })
 })

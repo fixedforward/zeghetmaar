@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { useHardToHearPractice } from '../hooks/useHardToHearPractice'
 import type { HardToHearPhrase } from '../types'
+import { isModalOpen, isTypingTarget } from '../lib/keyboard'
 
 type Props = {
   practice: ReturnType<typeof useHardToHearPractice>
@@ -16,6 +17,18 @@ export function HardToHearPractice({ practice, onPlay }: Props) {
   useEffect(() => {
     if (current) onPlayRef.current(current)
   }, [index, current])
+
+  // 1 = Niet verstaan, 2 = Verstaan, like the Cloze cards.
+  const hasLine = !!current
+  useEffect(() => {
+    if (!hasLine) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || isTypingTarget(e.target) || isModalOpen()) return
+      if (e.key === '1' || e.key === '2') next(e.key === '2')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [hasLine, next])
 
   if (done) {
     return (
@@ -42,11 +55,11 @@ export function HardToHearPractice({ practice, onPlay }: Props) {
         <p className="mt-1 text-gray-800">{current.text}</p>
       </details>
       <div className="flex gap-2">
-        <button type="button" onClick={() => next(false)} className="px-3 py-1 text-sm rounded bg-red-500 text-white hover:bg-red-600">
-          ✗ Niet verstaan
+        <button type="button" onClick={() => next(false)} title="Sneltoets: 1" className="px-3 py-1 text-sm rounded bg-red-500 text-white hover:bg-red-600">
+          ✗ Niet verstaan (1)
         </button>
-        <button type="button" onClick={() => next(true)} className="px-3 py-1 text-sm rounded bg-green-500 text-white hover:bg-green-600">
-          ✓ Verstaan
+        <button type="button" onClick={() => next(true)} title="Sneltoets: 2" className="px-3 py-1 text-sm rounded bg-green-500 text-white hover:bg-green-600">
+          ✓ Verstaan (2)
         </button>
       </div>
     </div>
