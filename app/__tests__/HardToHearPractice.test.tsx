@@ -25,7 +25,7 @@ describe('HardToHearPractice', () => {
 
     expect(onPlay).toHaveBeenLastCalledWith(lines[0])
 
-    fireEvent.click(screen.getByText('▶ Opnieuw afspelen'))
+    fireEvent.click(screen.getByText('Opnieuw afspelen'))
     expect(onPlay).toHaveBeenCalledTimes(2)
 
     fireEvent.click(screen.getByText('✓ Verstaan'))

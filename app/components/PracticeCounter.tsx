@@ -13,7 +13,7 @@ export function PracticeCounter({ practicedDates, onCheckIn, onCancelCheckIn }: 
   return (
     <div className="flex items-center gap-3 mb-3">
       <p className="text-xs text-gray-500">
-        📅 <span className="font-medium text-gray-700">{count}</span> dag{count === 1 ? '' : 'en'} geoefend
+        <span className="font-medium text-gray-700">{count}</span> dag{count === 1 ? '' : 'en'} geoefend
       </p>
       <button
         type="button"

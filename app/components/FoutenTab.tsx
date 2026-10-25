@@ -100,7 +100,7 @@ export function FoutenTab(fouten: Props) {
       <div className="flex flex-wrap items-center gap-3">
         <PracticeCounter practicedDates={fouten.practicedDates} onCheckIn={fouten.onCheckIn} onCancelCheckIn={fouten.onCancelCheckIn} />
         <p className="text-xs text-gray-500 mb-3" title="Zinnen waarvan je vandaag het antwoord hebt bekeken">
-          📝 Vandaag <span className="font-medium text-gray-700">{fouten.practicedTodayCount}</span> {fouten.practicedTodayCount === 1 ? 'zin' : 'zinnen'} geoefend
+          Vandaag <span className="font-medium text-gray-700">{fouten.practicedTodayCount}</span> {fouten.practicedTodayCount === 1 ? 'zin' : 'zinnen'} geoefend
         </p>
       </div>
     </div>
@@ -184,7 +184,7 @@ export function FoutenTab(fouten: Props) {
   const hasAttempt = fouten.userInput.trim().length > 0
   const skipButton = (
     <button onClick={fouten.skip} title="Deze zin komt deze sessie niet meer terug" className="px-3 py-1 text-sm border rounded text-gray-600 hover:bg-gray-100">
-      Overslaan ⏭
+      Overslaan
     </button>
   )
 

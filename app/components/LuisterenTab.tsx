@@ -19,10 +19,10 @@ export function LuisterenTab({ isLoggedIn, listeningTree }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-sm font-medium text-blue-800 bg-blue-50 border border-blue-100 rounded p-2">
-        🎧 Doel: luister elke dag 10 minuten actief en herhaal elke zin die je niet snapt.
+        Doel: luister elke dag 10 minuten actief en herhaal elke zin die je niet snapt.
       </p>
       <a href="/luisteren-oefenen" className="inline-block px-3 py-1.5 text-sm rounded bg-teal-500 text-white hover:bg-teal-600">
-        🎯 Moeilijk te verstaan oefenen
+        Moeilijk te verstaan oefenen
       </a>
       <section className="border rounded p-3 bg-white space-y-2">
         <h2 className="text-sm font-medium text-gray-700">Video&apos;s en audio uit Drive</h2>

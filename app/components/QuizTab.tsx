@@ -65,7 +65,7 @@ export function QuizTab(quiz: Props) {
         <div className="border rounded p-3 bg-white mb-4 space-y-2">
           <div className="flex justify-between items-center gap-3">
             <span className="font-medium truncate min-w-0">
-              📚 Fraselijst {!quiz.wordsLoading && <span className="text-gray-400">({filteredWords.length} van {quiz.words.length} frasen)</span>}
+              Fraselijst {!quiz.wordsLoading && <span className="text-gray-400">({filteredWords.length} van {quiz.words.length} frasen)</span>}
             </span>
             <button
               onClick={() => quiz.selectFraselijst(filteredWords)}

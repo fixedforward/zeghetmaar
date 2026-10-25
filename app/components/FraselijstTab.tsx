@@ -176,7 +176,7 @@ export function FraselijstTab(words: Props) {
               onClick={() => setManageTagsOpen(true)}
               className="text-xs text-blue-600 hover:underline ml-1"
             >
-              ⚙ Beheren
+              Beheren
             </button>
           )}
         </div>

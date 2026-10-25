@@ -166,17 +166,17 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
               title="Spring naar een punt in de video"
               className="px-2 py-1 rounded border border-gray-300 text-sm text-gray-700 bg-white"
             >
-              <option value="" disabled>⏱ Spring naar…</option>
+              <option value="" disabled>Spring naar…</option>
               {jumpStarts.map(start => <option key={start} value={start}>{formatClock(start)}</option>)}
             </select>
           )}
           {subtitlesFound && (
             <>
               <button onClick={() => player.seekToCueBy(-1)} title="Naar de vorige ondertitel" className={toggleClass(false)}>
-                ⏮ Vorige
+                Vorige
               </button>
               <button onClick={() => player.seekToCueBy(1)} title="Naar de volgende ondertitel" className={toggleClass(false)}>
-                Volgende ⏭
+                Volgende
               </button>
             </>
           )}
@@ -232,7 +232,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
                       title={`Speel deze zin af, met ${SEGMENT_PADDING_SECONDS} s ervoor en erna`}
                       className="shrink-0 font-mono text-xs text-blue-600 hover:underline pt-0.5"
                     >
-                      ▶ {formatClock(Math.floor(phrase.seconds))}
+                      {formatClock(Math.floor(phrase.seconds))}
                     </button>
                     <span className="flex-1 text-gray-800">{phrase.text}</span>
                     <button
@@ -253,7 +253,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
         {helpOpen && (
           <p className="text-xs text-gray-500 p-2 rounded border border-gray-200 bg-gray-50">
             Tik twee keer midden op de video (of druk op spatie) om te starten/stoppen, twee keer links voor 5 s terug en twee keer rechts voor 5 s vooruit. Swipen naar links/rechts en ←/→ of a/d werken ook. Met Klein/Middel/Groot/Maximaal kies je hoe groot de video is; dat wordt onthouden.
-            {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst, "+ Moeilijk te verstaan" zet hem in de lijst onder de video; ▶ speelt hem daar af met 2 s ervoor en erna. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
+            {subtitlesFound && ' Vorige/Volgende springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst, "+ Moeilijk te verstaan" zet hem in de lijst onder de video; klik daar op de tijd om hem af te spelen, met 2 s ervoor en erna. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
           </p>
         )}
       </div>

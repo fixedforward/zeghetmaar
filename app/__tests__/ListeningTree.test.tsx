@@ -21,9 +21,9 @@ describe('ListeningTree', () => {
   it('shows folders and links each file to the player with its folder', () => {
     render(<ListeningTree folder={tree} />)
 
-    expect(screen.getByText('📁 Les 14')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '🎬 Les 14.mp4' })).toHaveAttribute('href', '/luisteren-test?folder=f1&file=v1')
-    expect(screen.getByRole('link', { name: '🎧 Les 14 audio.mp3' })).toHaveAttribute('href', '/luisteren-test?folder=f1&file=a1')
+    expect(screen.getByText('Les 14')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Les 14.mp4' })).toHaveAttribute('href', '/luisteren-test?folder=f1&file=v1')
+    expect(screen.getByRole('link', { name: 'Les 14 audio.mp3' })).toHaveAttribute('href', '/luisteren-test?folder=f1&file=a1')
   })
 
   it('marks files that have no .srt with the same name', () => {

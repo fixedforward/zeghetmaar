@@ -102,7 +102,7 @@ export function ClozeTab(props: Props) {
     return (
       <div className="space-y-4 text-center py-8">
         {isLoggedIn && <div className="flex justify-center"><PracticeCounter {...tracker} /></div>}
-        <p className="text-lg font-semibold text-gray-900">Klaar! 🎉</p>
+        <p className="text-lg font-semibold text-gray-900">Klaar!</p>
         <p className="text-sm text-gray-600">{score.correct} goed, {score.incorrect} fout van {total}.</p>
         <div className="flex justify-center gap-2">
           <button onClick={restart} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
@@ -344,7 +344,7 @@ export function ClozeTab(props: Props) {
                 title="Sneltoets: Tab"
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 text-sm"
               >
-                💡 Hint (Tab)
+                Hint (Tab)
               </button>
               <button onClick={giveUp} className="px-4 py-2 bg-red-50 text-red-700 rounded hover:bg-red-100 text-sm">
                 Opgeven →

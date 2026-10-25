@@ -111,8 +111,8 @@ export function ArtikelenTab(articles: Props) {
               disabled={articles.foldersLoading}
               className="flex-1 min-w-0 text-left border rounded p-3 bg-white hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
             >
-              <span className="shrink-0">{item.kind === 'folder' ? '📁' : '📄'}</span>
               <span className="truncate min-w-0">{item.name}</span>
+              {item.kind === 'folder' && <span className="shrink-0 text-xs text-gray-400">Map</span>}
             </button>
           </li>
         ))}

@@ -91,7 +91,7 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
 
 const ANSWER_AS_TABLE = [
   `Antwoord kort, zonder lange uitleg in zinnen, in deze volgorde:`,
-  `1. Mijn poging: herhaal mijn zin precies zoals ik hem schreef, met ✅ goed of ❌ niet goed erachter.`,
+  `1. Mijn poging: herhaal mijn zin precies zoals ik hem schreef, met "goed" of "niet goed" erachter.`,
   `2. Verbetering / herformulering: de hele verbeterde of natuurlijkere zin op één regel.`,
   `3. Natuurlijker: als het kan en past, een natuurlijkere herformulering zoals een Nederlander het zou zeggen, op één regel. Is de zin al natuurlijk, laat dit dan weg.`,
   `4. Uitleg: een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom (max. 10 woorden).`,

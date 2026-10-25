@@ -154,7 +154,7 @@ export function OefenSessieTab(props: Props) {
     return (
       <div className="space-y-4 text-center py-8">
         {isLoggedIn && <div className="flex justify-center"><PracticeCounter practicedDates={practicedDates} onCheckIn={onCheckIn} onCancelCheckIn={onCancelCheckIn} /></div>}
-        <p className="text-lg font-semibold text-gray-900">Klaar! 🎉</p>
+        <p className="text-lg font-semibold text-gray-900">Klaar!</p>
         <p className="text-sm text-gray-600">Je hebt {sessionPhrases.length} frases geoefend.</p>
         <button
           onClick={() => { stopSession(); refreshPreview(filteredWords) }}

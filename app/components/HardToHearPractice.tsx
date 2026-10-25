@@ -34,7 +34,7 @@ export function HardToHearPractice({ practice, onPlay }: Props) {
         <button type="button" onClick={stop} className="text-xs text-gray-400 hover:text-gray-600">✕ Stoppen</button>
       </div>
       <button type="button" onClick={() => onPlay(current)} className="px-3 py-1 text-sm border rounded text-blue-600">
-        ▶ Opnieuw afspelen
+        Opnieuw afspelen
       </button>
       {/* Keyed by index so the next line starts folded again. */}
       <details key={index} className="rounded border border-gray-200 bg-gray-50 p-2">

@@ -143,9 +143,9 @@ export default function HomeClient() {
             <button
               onClick={tabSettings.open}
               title="Instellingen"
-              className="text-gray-400 hover:text-gray-600 text-lg px-2 shrink-0"
+              className="text-gray-400 hover:text-gray-600 text-sm px-2 shrink-0"
             >
-              ⚙
+              Instellingen
             </button>
           </div>
         </div>
