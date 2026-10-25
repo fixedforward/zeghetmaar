@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ListeningLesson } from '../types'
+import type { HardToHearPhrase, ListeningLesson } from '../types'
 import { findActiveCueIndex, sentencesAroundCues } from '../lib/srt'
 import { buildChatGptExplainUrl, buildChatGptListeningComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { isModalOpen, isTypingTarget } from '../lib/keyboard'
@@ -91,6 +91,12 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
     segmentEndRef.current = end + SEGMENT_PADDING_SECONDS
   }, [seekTo])
 
+  // Lines saved before the end time was stored only have a start to jump to.
+  const playHardToHear = useCallback((phrase: HardToHearPhrase) => {
+    if (phrase.endSeconds === undefined) seekTo(phrase.seconds)
+    else playSegment(phrase.seconds, phrase.endSeconds)
+  }, [seekTo, playSegment])
+
   const togglePlay = useCallback(() => {
     const media = mediaRef.current
     if (!media) return
@@ -152,6 +158,6 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
 
   return {
     mediaRef, lesson, error, activeIndex, subtitlesOn, duration,
-    syncActiveCue, syncDuration, seekTo, playSegment, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
+    syncActiveCue, syncDuration, seekTo, playSegment, playHardToHear, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
   }
 }

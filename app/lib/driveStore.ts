@@ -513,6 +513,10 @@ export function listeningVideoKey(videoName: string): string {
   return videoName.toLowerCase().replace(/\s+/g, '')
 }
 
+export async function getAllHardToHearPhrasesAsync(): Promise<Record<string, HardToHearPhrase[]>> {
+  return (await driveReadRoot()).hardToHearPhrases
+}
+
 export async function getHardToHearPhrasesAsync(videoName: string): Promise<HardToHearPhrase[]> {
   return (await driveReadRoot()).hardToHearPhrases[listeningVideoKey(videoName)] ?? []
 }

@@ -16,7 +16,6 @@ import { DEFAULT_MODEL } from '../config/models'
 import { formatClock, intervalStarts } from '../lib/youtube'
 import { VIDEO_SIZES, type VideoSize } from '../lib/videoSize'
 import type { SwipeDirection, TapZone } from '../lib/swipe'
-import type { HardToHearPhrase } from '../types'
 
 function cueIndexOf(node: Node | null): number {
   const element = node instanceof Element ? node : node?.parentElement
@@ -86,10 +85,6 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   }
 
   const currentCueSaved = !!currentCue && hardToHear.phrases.some(p => p.text === currentCue.text && p.seconds === currentCue.start)
-  // Lines saved before the end time was stored only have a start to jump to.
-  const playHardToHear = (phrase: HardToHearPhrase) => phrase.endSeconds === undefined
-    ? player.seekTo(phrase.seconds)
-    : player.playSegment(phrase.seconds, phrase.endSeconds)
   const addCurrentCueToHardToHear = () => {
     if (currentCue) hardToHear.addPhraseAsync(currentCue.text, currentCue.start, currentCue.end)
   }
@@ -224,7 +219,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
             </div>
             {hardToHear.error && <p className="text-sm text-red-500">{hardToHear.error}</p>}
             {practice.active ? (
-              <HardToHearPractice practice={practice} onPlay={playHardToHear} />
+              <HardToHearPractice practice={practice} onPlay={player.playHardToHear} />
             ) : hardToHear.phrases.length === 0 ? (
               <p className="text-xs text-gray-400">Nog niets. Klik bij een ondertitel op &quot;+ Moeilijk te verstaan&quot;.</p>
             ) : (
@@ -233,7 +228,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
                   <li key={phrase.id} className="flex items-start gap-2 text-sm">
                     <button
                       type="button"
-                      onClick={() => playHardToHear(phrase)}
+                      onClick={() => player.playHardToHear(phrase)}
                       title={`Speel deze zin af, met ${SEGMENT_PADDING_SECONDS} s ervoor en erna`}
                       className="shrink-0 font-mono text-xs text-blue-600 hover:underline pt-0.5"
                     >

@@ -71,6 +71,16 @@ export interface HardToHearPhrase {
   createdAt: string
 }
 
+// A video with saved hard-to-hear lines; folderId/fileId are null when no video in the
+// Luisteren folder has that name (anymore).
+export interface HardToHearVideo {
+  key: string
+  name: string
+  folderId: string | null
+  fileId: string | null
+  phrases: HardToHearPhrase[]
+}
+
 export interface Exercise {
   id: string
   name: string

@@ -1,10 +1,10 @@
 import type { Readable } from 'stream'
 import { config } from './config'
-import { getDriveClient } from './driveStore'
+import { getAllHardToHearPhrasesAsync, getDriveClient, listeningVideoKey } from './driveStore'
 import { readDriveTextFileAsync } from './driveQuizStore'
 import { FOLDER_MIME, listDriveFolderFilesAsync, type DriveFile } from './driveArticleStore'
 import { parseSrt } from './srt'
-import type { ListeningLesson, ListeningTreeFolder } from '../types'
+import type { HardToHearPhrase, HardToHearVideo, ListeningLesson, ListeningTreeFolder } from '../types'
 
 const MAX_TREE_DEPTH = 5
 
@@ -80,6 +80,34 @@ export async function getListeningLessonAsync(folderId: string, mediaFileId: str
     subtitleFileId: srt?.id ?? null,
     cues: srt ? parseSrt(await readDriveTextFileAsync(srt.id)) : [],
   }
+}
+
+// Every video with saved hard-to-hear lines, matched to its file in the tree by name, so a
+// video moved to another folder is still found. Videos are sorted by name.
+export function matchHardToHearVideos(tree: ListeningTreeFolder, phrasesByKey: Record<string, HardToHearPhrase[]>): HardToHearVideo[] {
+  const files = new Map<string, { name: string; folderId: string; fileId: string }>()
+  const walk = (folder: ListeningTreeFolder) => {
+    for (const file of folder.files) {
+      const name = baseName(file.name)
+      const key = listeningVideoKey(name)
+      if (!files.has(key)) files.set(key, { name, folderId: folder.id, fileId: file.id })
+    }
+    folder.folders.forEach(walk)
+  }
+  walk(tree)
+
+  return Object.entries(phrasesByKey)
+    .filter(([, phrases]) => phrases.length > 0)
+    .map(([key, phrases]) => {
+      const file = files.get(key)
+      return { key, name: file?.name ?? key, folderId: file?.folderId ?? null, fileId: file?.fileId ?? null, phrases }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'nl'))
+}
+
+export async function getHardToHearVideosAsync(rootFolderId: string): Promise<HardToHearVideo[]> {
+  const [tree, phrasesByKey] = await Promise.all([getListeningTreeAsync(rootFolderId), getAllHardToHearPhrasesAsync()])
+  return matchHardToHearVideos(tree, phrasesByKey)
 }
 
 export interface DriveMedia {

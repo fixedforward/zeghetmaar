@@ -2,16 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const filesListMock = vi.fn()
 const filesGetMock = vi.fn()
+const allHardToHearMock = vi.fn()
 
 vi.mock('../lib/driveStore', () => ({
   getDriveClient: () => ({ files: { list: filesListMock, get: filesGetMock } }),
+  getAllHardToHearPhrasesAsync: () => allHardToHearMock(),
+  listeningVideoKey: (name: string) => name.toLowerCase().replace(/\s+/g, ''),
 }))
 
 vi.mock('../lib/config', () => ({ config: { database: { googleListeningFolder: { folderId: 'root1' } } } }))
 
 import {
   getListeningLessonAsync, getListeningTreeAsync, getListeningRootFolderId, getDriveMediaAsync,
-  isMediaMimeType, isPlayableFileName, subtitleFileName,
+  isMediaMimeType, isPlayableFileName, subtitleFileName, matchHardToHearVideos, getHardToHearVideosAsync,
 } from '../lib/driveListeningStore'
 
 const FOLDER = 'application/vnd.google-apps.folder'
@@ -158,5 +161,38 @@ describe('getDriveMediaAsync', () => {
     await getDriveMediaAsync('v1', null)
 
     expect(filesGetMock).toHaveBeenCalledWith(expect.anything(), { responseType: 'stream', headers: {} })
+  })
+})
+
+describe('hard-to-hear videos', () => {
+  const line = (id: string) => ({ id, text: `Zin ${id}.`, seconds: 1, endSeconds: 2, createdAt: '2024-01-01T00:00:00.000Z' })
+  const tree = {
+    id: 'root1', name: '',
+    files: [{ id: 'v1', name: 'Het Journaal.mp4', hasSubtitles: true }],
+    folders: [{ id: 'sub', name: 'Podcasts', folders: [], files: [{ id: 'v2', name: 'Aflevering 3.mp3', hasSubtitles: true }] }],
+  }
+
+  it('finds each video by its name, in any folder, sorted by name', () => {
+    const videos = matchHardToHearVideos(tree, { hetjournaal: [line('a')], aflevering3: [line('b'), line('c')] })
+
+    expect(videos).toEqual([
+      { key: 'aflevering3', name: 'Aflevering 3', folderId: 'sub', fileId: 'v2', phrases: [line('b'), line('c')] },
+      { key: 'hetjournaal', name: 'Het Journaal', folderId: 'root1', fileId: 'v1', phrases: [line('a')] },
+    ])
+  })
+
+  it('keeps a video that is no longer in the folder, without a file, and skips empty lists', () => {
+    expect(matchHardToHearVideos(tree, { weg: [line('a')], hetjournaal: [] })).toEqual([
+      { key: 'weg', name: 'weg', folderId: null, fileId: null, phrases: [line('a')] },
+    ])
+  })
+
+  it('getHardToHearVideosAsync reads the tree and the saved lines', async () => {
+    mockDrive({ root1: [file('v1', 'Het Journaal.mp4')] })
+    allHardToHearMock.mockResolvedValue({ hetjournaal: [line('a')] })
+
+    expect(await getHardToHearVideosAsync('root1')).toEqual([
+      { key: 'hetjournaal', name: 'Het Journaal', folderId: 'root1', fileId: 'v1', phrases: [line('a')] },
+    ])
   })
 })

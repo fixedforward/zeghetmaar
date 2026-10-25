@@ -267,6 +267,20 @@ describe('useTranscriptPlayer', () => {
       expect(media.pause).not.toHaveBeenCalled()
     })
 
+    it('playHardToHear plays a saved line with its margins, or jumps to an old line without an end', async () => {
+      const { result, media, playTo } = await playLineAsync(0, 0)
+
+      act(() => result.current.playHardToHear({ id: 'h', text: 'Drie.', seconds: 6, endSeconds: 8, createdAt: '' }))
+      expect(media.currentTime).toBe(4)
+      playTo(10.1)
+      expect(media.pause).toHaveBeenCalledTimes(1)
+
+      act(() => result.current.playHardToHear({ id: 'h', text: 'Drie.', seconds: 6, createdAt: '' }))
+      expect(media.currentTime).toBe(6)
+      playTo(10.1)
+      expect(media.pause).toHaveBeenCalledTimes(1)
+    })
+
     it('does not pause when the native controls jump far past the line', async () => {
       const { media, playTo } = await playLineAsync(6, 8)
 
