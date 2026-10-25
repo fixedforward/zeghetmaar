@@ -67,11 +67,27 @@ describe('/api/luisteren/hard-to-hear', () => {
     [{ video: 'v', seconds: 1, endSeconds: 2 }],
     [{ video: 'v', text: 'a', seconds: -1, endSeconds: 2 }],
     [{ video: 'v', text: 'a', seconds: '1', endSeconds: 2 }],
-    [{ video: 'v', text: 'a', seconds: 1 }],
-    [{ video: 'v', text: 'a', seconds: 3, endSeconds: 2 }],
+    [{ video: 'v', text: 'a', seconds: 1, endSeconds: -2 }],
   ])('POST rejects %j', async body => {
     expect((await POST(jsonRequest('POST', body))).status).toBe(400)
     expect(addMock).not.toHaveBeenCalled()
+  })
+
+  it('POST takes a line without an end, as sent by a tab opened before the end was stored', async () => {
+    addMock.mockResolvedValue([phrase])
+
+    const res = await POST(jsonRequest('POST', { video: 'v', text: 'a', seconds: 3 }))
+
+    expect(res.status).toBe(200)
+    expect(addMock).toHaveBeenCalledWith('v', 'a', 3, undefined)
+  })
+
+  it('POST uses the start as the end when the subtitle line ends before it starts', async () => {
+    addMock.mockResolvedValue([phrase])
+
+    await POST(jsonRequest('POST', { video: 'v', text: 'a', seconds: 3, endSeconds: 2 }))
+
+    expect(addMock).toHaveBeenCalledWith('v', 'a', 3, 3)
   })
 
   it('DELETE removes the line by id', async () => {

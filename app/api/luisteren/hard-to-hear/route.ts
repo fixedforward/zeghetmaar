@@ -34,12 +34,13 @@ export async function POST(req: NextRequest) {
   const { seconds, endSeconds } = body
   if (!video) return NextResponse.json(VIDEO_REQUIRED, { status: 400 })
   if (!text) return NextResponse.json({ error: 'text is required.' }, { status: 400 })
-  if (!isSeconds(seconds) || !isSeconds(endSeconds) || endSeconds < seconds) {
-    return NextResponse.json({ error: 'seconds and endSeconds must be non-negative numbers, endSeconds not before seconds.' }, { status: 400 })
+  if (!isSeconds(seconds) || (endSeconds !== undefined && !isSeconds(endSeconds))) {
+    return NextResponse.json({ error: 'seconds and endSeconds must be non-negative numbers.' }, { status: 400 })
   }
 
   try {
-    return NextResponse.json({ phrases: await addHardToHearPhraseAsync(video, text, seconds, endSeconds) })
+    // A tab opened before endSeconds existed doesn't send it, and an .srt line can end before it starts.
+    return NextResponse.json({ phrases: await addHardToHearPhraseAsync(video, text, seconds, endSeconds === undefined ? undefined : Math.max(seconds, endSeconds)) })
   } catch (err) {
     console.error('[/api/luisteren/hard-to-hear] Failed to add phrase:', err)
     return NextResponse.json({ error: 'Kon frase niet opslaan.' }, { status: 500 })

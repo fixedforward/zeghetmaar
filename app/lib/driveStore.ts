@@ -518,7 +518,7 @@ export async function getHardToHearPhrasesAsync(videoName: string): Promise<Hard
 }
 
 // Adding a line that's already in the list (same text and start) changes nothing.
-export async function addHardToHearPhraseAsync(videoName: string, text: string, seconds: number, endSeconds: number): Promise<HardToHearPhrase[]> {
+export async function addHardToHearPhraseAsync(videoName: string, text: string, seconds: number, endSeconds?: number): Promise<HardToHearPhrase[]> {
   const root = await driveReadRoot()
   const key = listeningVideoKey(videoName)
   const current = root.hardToHearPhrases[key] ?? []
