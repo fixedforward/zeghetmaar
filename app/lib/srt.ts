@@ -38,6 +38,16 @@ export function findActiveCueIndex(cues: TranscriptCue[], seconds: number): numb
   return found
 }
 
+// The subtitle line a saved line came from: the same text, nearest to the saved time
+// (older saves have the start of the line before it). -1 when the text isn't there.
+export function findCueIndexByText(cues: TranscriptCue[], text: string, seconds: number): number {
+  let found = -1
+  cues.forEach((cue, i) => {
+    if (cue.text === text && (found === -1 || Math.abs(cue.start - seconds) < Math.abs(cues[found].start - seconds))) found = i
+  })
+  return found
+}
+
 // Cues are subtitle fragments that often stop mid-sentence, so the cue texts are joined
 // and split into real sentences before taking `around` sentences on each side.
 export function sentencesAroundCues(cues: TranscriptCue[], firstCue: number, lastCue: number, around: number): string {

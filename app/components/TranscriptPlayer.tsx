@@ -219,7 +219,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
             </div>
             {hardToHear.error && <p className="text-sm text-red-500">{hardToHear.error}</p>}
             {practice.active ? (
-              <HardToHearPractice practice={practice} onPlay={player.playHardToHear} />
+              <HardToHearPractice practice={practice} onPlay={player.playHardToHear} linesAround={player.linesAround} />
             ) : hardToHear.phrases.length === 0 ? (
               <p className="text-xs text-gray-400">Nog niets. Klik bij een ondertitel op &quot;+ Moeilijk te verstaan&quot;.</p>
             ) : (

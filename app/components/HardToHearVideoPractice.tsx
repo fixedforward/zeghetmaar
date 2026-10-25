@@ -35,7 +35,7 @@ export function HardToHearVideoPractice({ folderId, fileId }: { folderId: string
       <section className="rounded border border-gray-200 p-3 space-y-2">
         {hardToHear.error && <p className="text-sm text-red-500">{hardToHear.error}</p>}
         {practice.active ? (
-          <HardToHearPractice practice={practice} onPlay={player.playHardToHear} />
+          <HardToHearPractice practice={practice} onPlay={player.playHardToHear} linesAround={player.linesAround} />
         ) : hardToHear.phrases.length === 0 ? (
           <p className="text-sm text-gray-500">Deze video heeft (nog) geen fragmenten.</p>
         ) : (

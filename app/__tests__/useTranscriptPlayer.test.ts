@@ -295,6 +295,16 @@ describe('useTranscriptPlayer', () => {
       expect(media.pause).toHaveBeenCalledTimes(1)
     })
 
+    it('linesAround gives the subtitle lines before and after a saved line', async () => {
+      const { result } = await renderLoadedAsync()
+
+      expect(result.current.linesAround({ id: 'h', text: 'Twee.', seconds: 2, endSeconds: 4, createdAt: '' }))
+        .toEqual({ before: 'Een.', after: 'Drie.' })
+      expect(result.current.linesAround({ id: 'h', text: 'Een.', seconds: 1, endSeconds: 2, createdAt: '' }))
+        .toEqual({ before: undefined, after: 'Twee.' })
+      expect(result.current.linesAround({ id: 'h', text: 'Weg.', seconds: 1, createdAt: '' })).toEqual({})
+    })
+
     it('does not pause when the native controls jump far past the line', async () => {
       const { media, playTo } = await playLineAsync(6, 8)
 

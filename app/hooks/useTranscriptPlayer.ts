@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { HardToHearPhrase, ListeningLesson } from '../types'
-import { findActiveCueIndex, sentencesAroundCues } from '../lib/srt'
+import { findActiveCueIndex, findCueIndexByText, sentencesAroundCues } from '../lib/srt'
 import { buildChatGptExplainUrl, buildChatGptListeningComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { isModalOpen, isTypingTarget } from '../lib/keyboard'
 
@@ -98,12 +98,18 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
       playSegment(phrase.seconds, phrase.endSeconds)
       return
     }
-    const cue = lesson?.cues
-      .filter(c => c.text === phrase.text)
-      .sort((a, b) => Math.abs(a.start - phrase.seconds) - Math.abs(b.start - phrase.seconds))[0]
+    const cue = lesson?.cues[findCueIndexByText(lesson.cues, phrase.text, phrase.seconds)]
     if (cue) playSegment(cue.start, cue.end)
     else playSegment(phrase.seconds, phrase.seconds)
   }, [lesson, playSegment])
+
+  // The subtitle lines just before and after a saved line, to read it in context.
+  const linesAround = useCallback((phrase: HardToHearPhrase) => {
+    const cues = lesson?.cues ?? []
+    const index = findCueIndexByText(cues, phrase.text, phrase.seconds)
+    if (index < 0) return {}
+    return { before: cues[index - 1]?.text, after: cues[index + 1]?.text }
+  }, [lesson])
 
   const togglePlay = useCallback(() => {
     const media = mediaRef.current
@@ -166,6 +172,6 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
 
   return {
     mediaRef, lesson, error, activeIndex, subtitlesOn, duration,
-    syncActiveCue, syncDuration, seekTo, playSegment, playHardToHear, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
+    syncActiveCue, syncDuration, seekTo, playSegment, playHardToHear, linesAround, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
   }
 }

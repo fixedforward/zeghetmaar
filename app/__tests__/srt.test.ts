@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSrt, findActiveCueIndex, sentencesAroundCues } from '../lib/srt'
+import { parseSrt, findActiveCueIndex, sentencesAroundCues, findCueIndexByText } from '../lib/srt'
 
 describe('parseSrt', () => {
   it('reads timings and joins multi-line text', () => {
@@ -72,5 +72,22 @@ describe('sentencesAroundCues', () => {
   it('stops at the start and the end of the transcript', () => {
     expect(sentencesAroundCues(cues, 1, 1, 3)).toBe('Een. Twee. Drie is een lange zin. Vier. Vijf. Zes.')
     expect(sentencesAroundCues(cues, 7, 7, 3)).toBe('Zeven. Acht. Negen. Tien.')
+  })
+})
+
+describe('findCueIndexByText', () => {
+  const cues = [
+    { start: 1, end: 2, text: 'Ja.' },
+    { start: 3, end: 4, text: 'Nee.' },
+    { start: 9, end: 10, text: 'Ja.' },
+  ]
+
+  it('finds the line with that text nearest to the saved time', () => {
+    expect(findCueIndexByText(cues, 'Ja.', 1)).toBe(0)
+    expect(findCueIndexByText(cues, 'Ja.', 8)).toBe(2)
+  })
+
+  it('is -1 when no line has that text', () => {
+    expect(findCueIndexByText(cues, 'Misschien.', 1)).toBe(-1)
   })
 })
