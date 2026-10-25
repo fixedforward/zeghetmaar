@@ -91,11 +91,19 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
     segmentEndRef.current = end + SEGMENT_PADDING_SECONDS
   }, [seekTo])
 
-  // Lines saved before the end time was stored only have a start to jump to.
+  // Lines saved before the end time was stored have the start of the line before them, so
+  // their own subtitle line (same text, nearest to that time) gives the real start and end.
   const playHardToHear = useCallback((phrase: HardToHearPhrase) => {
-    if (phrase.endSeconds === undefined) seekTo(phrase.seconds)
-    else playSegment(phrase.seconds, phrase.endSeconds)
-  }, [seekTo, playSegment])
+    if (phrase.endSeconds !== undefined) {
+      playSegment(phrase.seconds, phrase.endSeconds)
+      return
+    }
+    const cue = lesson?.cues
+      .filter(c => c.text === phrase.text)
+      .sort((a, b) => Math.abs(a.start - phrase.seconds) - Math.abs(b.start - phrase.seconds))[0]
+    if (cue) playSegment(cue.start, cue.end)
+    else playSegment(phrase.seconds, phrase.seconds)
+  }, [lesson, playSegment])
 
   const togglePlay = useCallback(() => {
     const media = mediaRef.current

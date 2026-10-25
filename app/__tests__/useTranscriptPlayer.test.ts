@@ -267,17 +267,31 @@ describe('useTranscriptPlayer', () => {
       expect(media.pause).not.toHaveBeenCalled()
     })
 
-    it('playHardToHear plays a saved line with its margins, or jumps to an old line without an end', async () => {
+    it('playHardToHear plays a saved line from 2 s before to 2 s after it', async () => {
       const { result, media, playTo } = await playLineAsync(0, 0)
 
       act(() => result.current.playHardToHear({ id: 'h', text: 'Drie.', seconds: 6, endSeconds: 8, createdAt: '' }))
       expect(media.currentTime).toBe(4)
       playTo(10.1)
       expect(media.pause).toHaveBeenCalledTimes(1)
+    })
 
-      act(() => result.current.playHardToHear({ id: 'h', text: 'Drie.', seconds: 6, createdAt: '' }))
-      expect(media.currentTime).toBe(6)
+    it('playHardToHear finds the real line of an old save without an end time', async () => {
+      const { result, media, playTo } = await playLineAsync(0, 0)
+
+      // Saved with the start of the line before it ("Twee." at 2), as older saves were.
+      act(() => result.current.playHardToHear({ id: 'h', text: 'Drie.', seconds: 2, createdAt: '' }))
+      expect(media.currentTime).toBe(4)
       playTo(10.1)
+      expect(media.pause).toHaveBeenCalledTimes(1)
+    })
+
+    it('playHardToHear still plays an old save whose line is no longer in the subtitles', async () => {
+      const { result, media, playTo } = await playLineAsync(0, 0)
+
+      act(() => result.current.playHardToHear({ id: 'h', text: 'Weg.', seconds: 5, createdAt: '' }))
+      expect(media.currentTime).toBe(3)
+      playTo(7.1)
       expect(media.pause).toHaveBeenCalledTimes(1)
     })
 
