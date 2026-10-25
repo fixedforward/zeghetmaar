@@ -8,12 +8,15 @@ import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
 import { useSwipeGestures } from '../hooks/useSwipeGestures'
 import { useVideoSize } from '../hooks/useVideoSize'
 import { useHardToHearPhrases } from '../hooks/useHardToHearPhrases'
+import { useHardToHearPractice } from '../hooks/useHardToHearPractice'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
+import { HardToHearPractice } from './HardToHearPractice'
 import { DEFAULT_MODEL } from '../config/models'
 import { formatClock, intervalStarts } from '../lib/youtube'
 import { VIDEO_SIZES, type VideoSize } from '../lib/videoSize'
 import type { SwipeDirection, TapZone } from '../lib/swipe'
+import type { HardToHearPhrase } from '../types'
 
 function cueIndexOf(node: Node | null): number {
   const element = node instanceof Element ? node : node?.parentElement
@@ -36,6 +39,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   const words = useWords(DEFAULT_MODEL)
   const addPhrase = useAddPhraseModal(words)
   const hardToHear = useHardToHearPhrases(player.lesson?.name ?? null)
+  const practice = useHardToHearPractice()
   const { skipBy, togglePlay } = player
   const skipBySwipe = useCallback((direction: SwipeDirection) => skipBy(direction * SKIP_SECONDS), [skipBy])
   // Double-tap: left third 5 s back, middle play/pause, right third 5 s forward.
@@ -82,6 +86,10 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   }
 
   const currentCueSaved = !!currentCue && hardToHear.phrases.some(p => p.text === currentCue.text && p.seconds === currentCue.start)
+  // Lines saved before the end time was stored only have a start to jump to.
+  const playHardToHear = (phrase: HardToHearPhrase) => phrase.endSeconds === undefined
+    ? player.seekTo(phrase.seconds)
+    : player.playSegment(phrase.seconds, phrase.endSeconds)
   const addCurrentCueToHardToHear = () => {
     if (currentCue) hardToHear.addPhraseAsync(currentCue.text, currentCue.start, currentCue.end)
   }
@@ -206,9 +214,18 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
         )}
         {subtitlesFound && (
           <section className="rounded border border-gray-200 p-3 space-y-2">
-            <h2 className="text-sm font-semibold text-gray-700">Moeilijk te verstaan</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-gray-700">Moeilijk te verstaan</h2>
+              {!practice.active && hardToHear.phrases.length > 0 && (
+                <button type="button" onClick={() => practice.start(hardToHear.phrases)} className="px-3 py-1 text-sm rounded bg-teal-500 text-white hover:bg-teal-600">
+                  Oefenen ({hardToHear.phrases.length})
+                </button>
+              )}
+            </div>
             {hardToHear.error && <p className="text-sm text-red-500">{hardToHear.error}</p>}
-            {hardToHear.phrases.length === 0 ? (
+            {practice.active ? (
+              <HardToHearPractice practice={practice} onPlay={playHardToHear} />
+            ) : hardToHear.phrases.length === 0 ? (
               <p className="text-xs text-gray-400">Nog niets. Klik bij een ondertitel op &quot;+ Moeilijk te verstaan&quot;.</p>
             ) : (
               <ul className="space-y-1">
@@ -216,9 +233,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
                   <li key={phrase.id} className="flex items-start gap-2 text-sm">
                     <button
                       type="button"
-                      onClick={() => phrase.endSeconds === undefined
-                        ? player.seekTo(phrase.seconds)
-                        : player.playSegment(phrase.seconds, phrase.endSeconds)}
+                      onClick={() => playHardToHear(phrase)}
                       title={`Speel deze zin af, met ${SEGMENT_PADDING_SECONDS} s ervoor en erna`}
                       className="shrink-0 font-mono text-xs text-blue-600 hover:underline pt-0.5"
                     >
