@@ -7,6 +7,7 @@ const UNAUTHORIZED = { error: 'Login om feature te gebruiken.' }
 const VIDEO_REQUIRED = { error: 'video is required.' }
 
 const videoName = (value: unknown) => typeof value === 'string' ? value.trim() : ''
+const isSeconds = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -30,15 +31,15 @@ export async function POST(req: NextRequest) {
   const body = await readJsonBody(req)
   const video = videoName(body.video)
   const text = typeof body.text === 'string' ? body.text.trim() : ''
-  const seconds = body.seconds
+  const { seconds, endSeconds } = body
   if (!video) return NextResponse.json(VIDEO_REQUIRED, { status: 400 })
   if (!text) return NextResponse.json({ error: 'text is required.' }, { status: 400 })
-  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) {
-    return NextResponse.json({ error: 'seconds must be a non-negative number.' }, { status: 400 })
+  if (!isSeconds(seconds) || !isSeconds(endSeconds) || endSeconds < seconds) {
+    return NextResponse.json({ error: 'seconds and endSeconds must be non-negative numbers, endSeconds not before seconds.' }, { status: 400 })
   }
 
   try {
-    return NextResponse.json({ phrases: await addHardToHearPhraseAsync(video, text, seconds) })
+    return NextResponse.json({ phrases: await addHardToHearPhraseAsync(video, text, seconds, endSeconds) })
   } catch (err) {
     console.error('[/api/luisteren/hard-to-hear] Failed to add phrase:', err)
     return NextResponse.json({ error: 'Kon frase niet opslaan.' }, { status: 500 })

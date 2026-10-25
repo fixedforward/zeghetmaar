@@ -306,7 +306,7 @@ describe('listening links', () => {
 })
 
 describe('hard-to-hear phrases', () => {
-  const phrase = { id: 'h1', text: 'Dat zie je wel vaker.', seconds: 12.5, createdAt: '2024-01-01T00:00:00.000Z' }
+  const phrase = { id: 'h1', text: 'Dat zie je wel vaker.', seconds: 12.5, endSeconds: 14, createdAt: '2024-01-01T00:00:00.000Z' }
   const link = { id: 'l1', title: 'Journaal', url: 'https://youtu.be/a', createdAt: '2024-01-01T00:00:00.000Z' }
 
   beforeEach(() => {
@@ -328,19 +328,21 @@ describe('hard-to-hear phrases', () => {
 
   it('drops malformed entries when reading', async () => {
     const badSeconds = { ...phrase, id: 'h2', seconds: -1 }
-    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { a: [phrase, badSeconds, { id: 'x' }], b: 'nope' } }) })
+    const badEnd = { ...phrase, id: 'h3', endSeconds: 'x' }
+    const { endSeconds: _, ...withoutEnd } = { ...phrase, id: 'h4' }
+    filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { a: [phrase, badSeconds, badEnd, withoutEnd, { id: 'x' }], b: 'nope' } }) })
 
-    expect(await getHardToHearPhrasesAsync('a')).toEqual([phrase])
+    expect(await getHardToHearPhrasesAsync('a')).toEqual([phrase, withoutEnd])
     expect(await getHardToHearPhrasesAsync('b')).toEqual([])
   })
 
   it('addHardToHearPhraseAsync keeps the list in video order and keeps the rest of the root', async () => {
     filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [{ ...base, id: '1', word: 'a' }], listeningLinks: [link], hardToHearPhrases: { hetjournaal: [phrase] } }) })
 
-    const result = await addHardToHearPhraseAsync('Het Journaal', 'Eerder in de video.', 3)
+    const result = await addHardToHearPhraseAsync('Het Journaal', 'Eerder in de video.', 3, 4.5)
 
     expect(result.map(p => p.text)).toEqual(['Eerder in de video.', phrase.text])
-    expect(result[0]).toMatchObject({ seconds: 3 })
+    expect(result[0]).toMatchObject({ seconds: 3, endSeconds: 4.5 })
     expect(writtenRoot()).toMatchObject({ listeningLinks: [link], hardToHearPhrases: { hetjournaal: result } })
     expect(writtenPhrases()).toHaveLength(1)
   })
@@ -348,7 +350,7 @@ describe('hard-to-hear phrases', () => {
   it('addHardToHearPhraseAsync does not add the same line twice', async () => {
     filesGetMock.mockResolvedValue({ data: JSON.stringify({ phrases: [], hardToHearPhrases: { hetjournaal: [phrase] } }) })
 
-    expect(await addHardToHearPhraseAsync('Het Journaal', phrase.text, phrase.seconds)).toEqual([phrase])
+    expect(await addHardToHearPhraseAsync('Het Journaal', phrase.text, phrase.seconds, phrase.endSeconds)).toEqual([phrase])
     expect(filesUpdateMock).not.toHaveBeenCalled()
   })
 

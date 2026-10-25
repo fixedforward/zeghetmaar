@@ -65,8 +65,9 @@ export interface ListeningPhrase {
 export interface HardToHearPhrase {
   id: string
   text: string
-  // Start of the subtitle line before this one, so jumping there gives a bit of lead-in.
+  // Where the subtitle line starts and ends; lines saved before endSeconds existed have none.
   seconds: number
+  endSeconds?: number
   createdAt: string
 }
 

@@ -191,10 +191,14 @@ function toListeningLinks(value: unknown): ListeningLink[] {
       : { ...l, phrases: Array.isArray(l.phrases) ? l.phrases.filter(isListeningPhrase) : [] })
 }
 
+function isSeconds(x: unknown): x is number {
+  return typeof x === 'number' && Number.isFinite(x) && x >= 0
+}
+
 function isHardToHearPhrase(x: unknown): x is HardToHearPhrase {
   const p = x as Partial<HardToHearPhrase> | null
   return !!p && typeof p.id === 'string' && typeof p.text === 'string' && typeof p.createdAt === 'string' &&
-    typeof p.seconds === 'number' && Number.isFinite(p.seconds) && p.seconds >= 0
+    isSeconds(p.seconds) && (p.endSeconds === undefined || isSeconds(p.endSeconds))
 }
 
 function toHardToHearPhrases(value: unknown): Record<string, HardToHearPhrase[]> {
@@ -513,13 +517,13 @@ export async function getHardToHearPhrasesAsync(videoName: string): Promise<Hard
   return (await driveReadRoot()).hardToHearPhrases[listeningVideoKey(videoName)] ?? []
 }
 
-// Adding a line that's already in the list (same text and time) changes nothing.
-export async function addHardToHearPhraseAsync(videoName: string, text: string, seconds: number): Promise<HardToHearPhrase[]> {
+// Adding a line that's already in the list (same text and start) changes nothing.
+export async function addHardToHearPhraseAsync(videoName: string, text: string, seconds: number, endSeconds: number): Promise<HardToHearPhrase[]> {
   const root = await driveReadRoot()
   const key = listeningVideoKey(videoName)
   const current = root.hardToHearPhrases[key] ?? []
   if (current.some(p => p.text === text && p.seconds === seconds)) return current
-  const phrase: HardToHearPhrase = { id: randomUUID(), text, seconds, createdAt: new Date().toISOString() }
+  const phrase: HardToHearPhrase = { id: randomUUID(), text, seconds, endSeconds, createdAt: new Date().toISOString() }
   const phrases = [...current, phrase].sort((a, b) => a.seconds - b.seconds)
   await driveWriteRoot({ ...root, hardToHearPhrases: { ...root.hardToHearPhrases, [key]: phrases } })
   return phrases

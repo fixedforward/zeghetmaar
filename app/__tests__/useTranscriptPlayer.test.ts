@@ -223,6 +223,60 @@ describe('useTranscriptPlayer', () => {
     expect(media.play).toHaveBeenCalled()
   })
 
+  describe('playSegment', () => {
+    async function playLineAsync(start: number, end: number) {
+      const loaded = await renderLoadedAsync()
+      const media = fakeMedia()
+      loaded.result.current.mediaRef.current = media as unknown as HTMLVideoElement
+      act(() => loaded.result.current.playSegment(start, end))
+      const playTo = (seconds: number) => {
+        media.currentTime = seconds
+        act(() => loaded.result.current.syncActiveCue())
+      }
+      return { ...loaded, media, playTo }
+    }
+
+    it('plays a line from 2 s before it, never before the start of the video', async () => {
+      expect((await playLineAsync(6, 8)).media.currentTime).toBe(4)
+      expect((await playLineAsync(1, 2)).media.currentTime).toBe(0)
+    })
+
+    it('pauses 2 s after the line, once', async () => {
+      const { media, playTo } = await playLineAsync(6, 8)
+
+      playTo(9.9)
+      expect(media.pause).not.toHaveBeenCalled()
+
+      playTo(10.1)
+      expect(media.pause).toHaveBeenCalledTimes(1)
+
+      playTo(10.3)
+      expect(media.pause).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not pause after seeking or skipping away from the line', async () => {
+      const { result, media, playTo } = await playLineAsync(6, 8)
+
+      act(() => result.current.skipBy(-5))
+      playTo(10.1)
+      expect(media.pause).not.toHaveBeenCalled()
+
+      act(() => result.current.playSegment(6, 8))
+      act(() => result.current.seekTo(1))
+      playTo(10.1)
+      expect(media.pause).not.toHaveBeenCalled()
+    })
+
+    it('does not pause when the native controls jump far past the line', async () => {
+      const { media, playTo } = await playLineAsync(6, 8)
+
+      playTo(60)
+      playTo(60.2)
+
+      expect(media.pause).not.toHaveBeenCalled()
+    })
+  })
+
   it('skips back and forward, never before the start', async () => {
     const { result } = await renderLoadedAsync()
     const media = fakeMedia(3)

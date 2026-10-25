@@ -51,7 +51,8 @@ export function useHardToHearPhrases(videoName: string | null) {
     }
   }
 
-  const addPhraseAsync = (text: string, seconds: number) => saveAsync('POST', { text, seconds }, 'Kon frase niet opslaan.')
+  const addPhraseAsync = (text: string, seconds: number, endSeconds: number) =>
+    saveAsync('POST', { text, seconds, endSeconds }, 'Kon frase niet opslaan.')
 
   const deletePhraseAsync = (id: string) => saveAsync('DELETE', { id }, 'Kon frase niet verwijderen.')
 

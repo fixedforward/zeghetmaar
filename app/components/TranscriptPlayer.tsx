@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { JUMP_INTERVAL_SECONDS, SKIP_SECONDS, useTranscriptPlayer } from '../hooks/useTranscriptPlayer'
+import { JUMP_INTERVAL_SECONDS, SEGMENT_PADDING_SECONDS, SKIP_SECONDS, useTranscriptPlayer } from '../hooks/useTranscriptPlayer'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
 import { useWords } from '../hooks/useWords'
 import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
@@ -81,11 +81,9 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
     addPhrase.openWith(currentCue.text)
   }
 
-  // Saved with the start of the line before it, so jumping back gives a bit of lead-in.
-  const leadInStart = Math.max(0, lesson.cues[player.activeIndex - 1]?.start ?? currentCue?.start ?? 0)
-  const currentCueSaved = !!currentCue && hardToHear.phrases.some(p => p.text === currentCue.text && p.seconds === leadInStart)
+  const currentCueSaved = !!currentCue && hardToHear.phrases.some(p => p.text === currentCue.text && p.seconds === currentCue.start)
   const addCurrentCueToHardToHear = () => {
-    if (currentCue) hardToHear.addPhraseAsync(currentCue.text, leadInStart)
+    if (currentCue) hardToHear.addPhraseAsync(currentCue.text, currentCue.start, currentCue.end)
   }
   return (
     <div className={`flex flex-col gap-6 ${sizeClasses.layout}`}>
@@ -218,8 +216,10 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
                   <li key={phrase.id} className="flex items-start gap-2 text-sm">
                     <button
                       type="button"
-                      onClick={() => player.seekTo(phrase.seconds)}
-                      title="Speel af vanaf de zin ervoor"
+                      onClick={() => phrase.endSeconds === undefined
+                        ? player.seekTo(phrase.seconds)
+                        : player.playSegment(phrase.seconds, phrase.endSeconds)}
+                      title={`Speel deze zin af, met ${SEGMENT_PADDING_SECONDS} s ervoor en erna`}
                       className="shrink-0 font-mono text-xs text-blue-600 hover:underline pt-0.5"
                     >
                       ▶ {formatClock(Math.floor(phrase.seconds))}
@@ -243,7 +243,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
         {helpOpen && (
           <p className="text-xs text-gray-500 p-2 rounded border border-gray-200 bg-gray-50">
             Tik twee keer midden op de video (of druk op spatie) om te starten/stoppen, twee keer links voor 5 s terug en twee keer rechts voor 5 s vooruit. Swipen naar links/rechts en ←/→ of a/d werken ook. Met Klein/Middel/Groot/Maximaal kies je hoe groot de video is; dat wordt onthouden.
-            {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst, "+ Moeilijk te verstaan" zet hem in de lijst onder de video; ▶ speelt hem daar af vanaf de zin ervoor. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
+            {subtitlesFound && ' ⏮/⏭ springen naar de vorige/volgende ondertitel. Tik op de ondertitel om te pauzeren; "+ Fraselijst" zet hem in de Fraselijst, "+ Moeilijk te verstaan" zet hem in de lijst onder de video; ▶ speelt hem daar af met 2 s ervoor en erna. Klik op "Uitleg" naast een zin, of selecteer tekst in het transcript om het in ChatGPT uit te laten leggen of aan de Fraselijst toe te voegen.'}
           </p>
         )}
       </div>

@@ -7,10 +7,16 @@ import { isModalOpen, isTypingTarget } from '../lib/keyboard'
 const CONTEXT_SENTENCES = 3
 export const SKIP_SECONDS = 5
 export const JUMP_INTERVAL_SECONDS = 5 * 60
+export const SEGMENT_PADDING_SECONDS = 2
+// timeupdate fires about every 250 ms, so normal playback passes a segment's end by less than this;
+// a bigger jump past it is a seek, which shouldn't pause.
+const SEGMENT_END_TOLERANCE_SECONDS = 1
 
 export function useTranscriptPlayer(folderId: string, fileId: string) {
   const mediaRef = useRef<HTMLVideoElement>(null)
   const subtitleTrackRef = useRef<TextTrack | null>(null)
+  // Where playSegment should pause; null when playing normally.
+  const segmentEndRef = useRef<number | null>(null)
   const [lesson, setLesson] = useState<ListeningLesson | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -57,8 +63,14 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
   const toggleSubtitles = useCallback(() => setSubtitlesOn(on => !on), [])
 
   const syncActiveCue = useCallback(() => {
-    if (!lesson || !mediaRef.current) return
-    setActiveIndex(findActiveCueIndex(lesson.cues, mediaRef.current.currentTime))
+    const media = mediaRef.current
+    if (!lesson || !media) return
+    setActiveIndex(findActiveCueIndex(lesson.cues, media.currentTime))
+    const segmentEnd = segmentEndRef.current
+    if (segmentEnd !== null && media.currentTime >= segmentEnd) {
+      segmentEndRef.current = null
+      if (media.currentTime < segmentEnd + SEGMENT_END_TOLERANCE_SECONDS) media.pause()
+    }
   }, [lesson])
 
   const syncDuration = useCallback(() => {
@@ -68,9 +80,16 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
   const seekTo = useCallback((seconds: number) => {
     const media = mediaRef.current
     if (!media) return
+    segmentEndRef.current = null
     media.currentTime = seconds
     media.play().catch((err: Error) => console.error('[useTranscriptPlayer]', err.message))
   }, [])
+
+  // Plays from 2 s before start to 2 s after end, then pauses.
+  const playSegment = useCallback((start: number, end: number) => {
+    seekTo(Math.max(0, start - SEGMENT_PADDING_SECONDS))
+    segmentEndRef.current = end + SEGMENT_PADDING_SECONDS
+  }, [seekTo])
 
   const togglePlay = useCallback(() => {
     const media = mediaRef.current
@@ -92,7 +111,9 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
 
   const skipBy = useCallback((seconds: number) => {
     const media = mediaRef.current
-    if (media) media.currentTime = Math.max(0, media.currentTime + seconds)
+    if (!media) return
+    segmentEndRef.current = null
+    media.currentTime = Math.max(0, media.currentTime + seconds)
   }, [])
 
   // Space = play/pause, a or ← = 5 s back, d or → = 5 s forward; not while typing in a field,
@@ -131,6 +152,6 @@ export function useTranscriptPlayer(folderId: string, fileId: string) {
 
   return {
     mediaRef, lesson, error, activeIndex, subtitlesOn, duration,
-    syncActiveCue, syncDuration, seekTo, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
+    syncActiveCue, syncDuration, seekTo, playSegment, seekToCueBy, togglePlay, pause, skipBy, toggleSubtitles, contextAroundCues, explainCueInChatGpt, checkComprehensionInChatGpt,
   }
 }

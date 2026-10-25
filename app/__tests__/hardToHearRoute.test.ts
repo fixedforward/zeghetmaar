@@ -34,7 +34,7 @@ describe('/api/luisteren/hard-to-hear', () => {
     authMock.mockResolvedValue(null)
 
     expect((await GET(new NextRequest(`${URL}?video=Journaal`))).status).toBe(401)
-    expect((await POST(jsonRequest('POST', { video: 'Journaal', text: 'a', seconds: 1 }))).status).toBe(401)
+    expect((await POST(jsonRequest('POST', { video: 'Journaal', text: 'a', seconds: 1, endSeconds: 2 }))).status).toBe(401)
     expect((await DELETE(jsonRequest('DELETE', { video: 'Journaal', id: 'h1' }))).status).toBe(401)
     expect(getMock).not.toHaveBeenCalled()
   })
@@ -56,17 +56,19 @@ describe('/api/luisteren/hard-to-hear', () => {
   it('POST adds the trimmed line', async () => {
     addMock.mockResolvedValue([phrase])
 
-    const res = await POST(jsonRequest('POST', { video: 'Het Journaal', text: '  Dat zie je wel vaker. ', seconds: 12.5 }))
+    const res = await POST(jsonRequest('POST', { video: 'Het Journaal', text: '  Dat zie je wel vaker. ', seconds: 12.5, endSeconds: 14 }))
 
     expect(res.status).toBe(200)
-    expect(addMock).toHaveBeenCalledWith('Het Journaal', 'Dat zie je wel vaker.', 12.5)
+    expect(addMock).toHaveBeenCalledWith('Het Journaal', 'Dat zie je wel vaker.', 12.5, 14)
   })
 
   it.each([
-    [{ text: 'a', seconds: 1 }],
-    [{ video: 'v', seconds: 1 }],
-    [{ video: 'v', text: 'a', seconds: -1 }],
-    [{ video: 'v', text: 'a', seconds: '1' }],
+    [{ text: 'a', seconds: 1, endSeconds: 2 }],
+    [{ video: 'v', seconds: 1, endSeconds: 2 }],
+    [{ video: 'v', text: 'a', seconds: -1, endSeconds: 2 }],
+    [{ video: 'v', text: 'a', seconds: '1', endSeconds: 2 }],
+    [{ video: 'v', text: 'a', seconds: 1 }],
+    [{ video: 'v', text: 'a', seconds: 3, endSeconds: 2 }],
   ])('POST rejects %j', async body => {
     expect((await POST(jsonRequest('POST', body))).status).toBe(400)
     expect(addMock).not.toHaveBeenCalled()

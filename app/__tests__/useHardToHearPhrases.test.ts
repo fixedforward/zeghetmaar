@@ -33,12 +33,12 @@ describe('useHardToHearPhrases', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
 
     let saved = false
-    await act(async () => { saved = await result.current.addPhraseAsync(phrase.text, 12.5) })
+    await act(async () => { saved = await result.current.addPhraseAsync(phrase.text, 12.5, 14) })
 
     expect(saved).toBe(true)
     expect(fetch).toHaveBeenLastCalledWith('/api/luisteren/hard-to-hear', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ video: 'Het Journaal', text: phrase.text, seconds: 12.5 }),
+      body: JSON.stringify({ video: 'Het Journaal', text: phrase.text, seconds: 12.5, endSeconds: 14 }),
     }))
     expect(result.current.phrases).toEqual([phrase])
   })
