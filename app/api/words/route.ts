@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { auth } from '@/auth'
 import {
   getAllWords,
@@ -14,6 +14,7 @@ import {
   isValidObjectId,
 } from '@/app/lib/driveStore'
 import { isDriveId } from '@/app/lib/driveArticleStore'
+import { deletePhrasePicturesAsync } from '@/app/lib/drivePictureStore'
 
 export async function GET() {
   try {
@@ -196,6 +197,14 @@ export async function DELETE(req: NextRequest) {
     if (!deleted) {
       return NextResponse.json({ error: 'Word not found.' }, { status: 404 })
     }
+    // Runs after the response is sent; a picture that can't be removed is only logged.
+    after(async () => {
+      try {
+        await deletePhrasePicturesAsync(deleted, await getAllWords())
+      } catch (err) {
+        console.error('[/api/words] Failed to remove the pictures of a deleted word:', err)
+      }
+    })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[/api/words] Failed to delete word:', err)
