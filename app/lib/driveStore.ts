@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase } from '../types'
+import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase, LanguageIsland } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -153,7 +153,7 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 
 // The file's root used to just be the phrases array. It's now
-// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases } so other,
+// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases, languageIslands } so other,
 // unrelated concerns (which quiz files / articles the user has ticked off, the Luisteren
 // YouTube links, the hard-to-hear subtitle lines per video) can live in the same
 // file without a new Drive file (service accounts can't create one). A legacy
@@ -166,6 +166,7 @@ interface StoredRoot {
   // Keyed by listeningVideoKey(video name), not by Drive file id, so the lines stay with a
   // video that's moved to another folder.
   hardToHearPhrases: Record<string, HardToHearPhrase[]>
+  languageIslands: LanguageIsland[]
 }
 
 function toStringArray(value: unknown): string[] {
@@ -210,6 +211,16 @@ function toHardToHearPhrases(value: unknown): Record<string, HardToHearPhrase[]>
   )
 }
 
+function toLanguageIslands(value: unknown): LanguageIsland[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((x): x is LanguageIsland =>
+      !!x && typeof x.id === 'string' && typeof x.english === 'string' &&
+      typeof x.createdAt === 'string' && Array.isArray(x.options)
+    )
+    .map(i => ({ ...i, options: i.options.filter((o: unknown): o is string => typeof o === 'string') }))
+}
+
 async function driveReadRoot(): Promise<StoredRoot> {
   const drive = getDriveClient()
   const res = await drive.files.get(
@@ -219,7 +230,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
   const parsed = JSON.parse(res.data as string) as unknown
 
   if (Array.isArray(parsed)) {
-    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {} }
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {}, languageIslands: [] }
   }
 
   const obj = (parsed ?? {}) as Record<string, unknown>
@@ -230,6 +241,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
     readArticleIds: toStringArray(obj.readArticleIds),
     listeningLinks: toListeningLinks(obj.listeningLinks),
     hardToHearPhrases: toHardToHearPhrases(obj.hardToHearPhrases),
+    languageIslands: toLanguageIslands(obj.languageIslands),
   }
 }
 
@@ -242,6 +254,7 @@ async function driveWriteRoot(root: StoredRoot): Promise<void> {
       readArticleIds: root.readArticleIds,
       listeningLinks: root.listeningLinks,
       hardToHearPhrases: root.hardToHearPhrases,
+      languageIslands: root.languageIslands,
     },
     null,
     2
@@ -544,4 +557,40 @@ export async function deleteHardToHearPhraseAsync(videoName: string, id: string)
   else delete hardToHearPhrases[key]
   await driveWriteRoot({ ...root, hardToHearPhrases })
   return phrases
+}
+
+// ---------------------------------------------------------------------------
+// Taaleilanden — my most-used English phrases with Dutch ways to say them,
+// stored on the same root (see StoredRoot), newest first.
+// ---------------------------------------------------------------------------
+export async function getLanguageIslandsAsync(): Promise<LanguageIsland[]> {
+  return (await driveReadRoot()).languageIslands
+}
+
+export async function addLanguageIslandAsync(english: string): Promise<LanguageIsland[]> {
+  const root = await driveReadRoot()
+  const island: LanguageIsland = { id: randomUUID(), english, options: [], createdAt: new Date().toISOString() }
+  const languageIslands = [island, ...root.languageIslands]
+  await driveWriteRoot({ ...root, languageIslands })
+  return languageIslands
+}
+
+export interface LanguageIslandUpdate {
+  english?: string
+  options?: string[]
+}
+
+export async function updateLanguageIslandAsync(id: string, update: LanguageIslandUpdate): Promise<LanguageIsland[]> {
+  const root = await driveReadRoot()
+  if (!root.languageIslands.some(i => i.id === id)) return root.languageIslands
+  const languageIslands = root.languageIslands.map(i => i.id === id ? { ...i, ...update } : i)
+  await driveWriteRoot({ ...root, languageIslands })
+  return languageIslands
+}
+
+export async function deleteLanguageIslandAsync(id: string): Promise<LanguageIsland[]> {
+  const root = await driveReadRoot()
+  const languageIslands = root.languageIslands.filter(i => i.id !== id)
+  if (languageIslands.length !== root.languageIslands.length) await driveWriteRoot({ ...root, languageIslands })
+  return languageIslands
 }

@@ -1,6 +1,6 @@
 import type { Tab } from '../types'
 
-export const ALL_TABS: Tab[] = ['quiz', 'oefensessie', 'cloze', 'fraselijst', 'vertaler', 'oefeningen', 'herschrijver', 'artikelen', 'luisteren', 'fouten']
+export const ALL_TABS: Tab[] = ['quiz', 'oefensessie', 'cloze', 'fraselijst', 'vertaler', 'oefeningen', 'herschrijver', 'artikelen', 'luisteren', 'fouten', 'taaleilanden']
 
 export const DEFAULT_HIDDEN_TABS: Tab[] = ['vertaler', 'oefeningen', 'herschrijver']
 
@@ -15,4 +15,5 @@ export const TAB_LABELS: Record<Tab, string> = {
   artikelen: 'Artikelen',
   luisteren: 'Luisteren',
   fouten: 'Vertaling oefenen',
+  taaleilanden: 'Taaleilanden',
 }

@@ -1,4 +1,4 @@
-export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'fouten'
+export type Tab = 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'fouten' | 'taaleilanden'
 
 // One row of the mistakes .tsv on Drive; `row` is its line index in the file (the header is 0).
 export interface Mistake {
@@ -79,6 +79,14 @@ export interface HardToHearVideo {
   folderId: string | null
   fileId: string | null
   phrases: HardToHearPhrase[]
+}
+
+// One of my most-used phrases (in English) with the Dutch ways I can say it.
+export interface LanguageIsland {
+  id: string
+  english: string
+  options: string[]
+  createdAt: string
 }
 
 export interface Exercise {

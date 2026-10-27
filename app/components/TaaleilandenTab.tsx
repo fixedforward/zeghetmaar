@@ -1,0 +1,157 @@
+import { useEffect, useState } from 'react'
+import type { LanguageIsland } from '../types'
+import type { useLanguageIslands } from '../hooks/useLanguageIslands'
+import { ConfirmDeleteButton } from './ConfirmDeleteButton'
+
+type Islands = ReturnType<typeof useLanguageIslands>
+
+type Props = Islands & {
+  isLoggedIn: boolean
+}
+
+function OptionRow({ option, saving, onSave, onDelete }: {
+  option: string
+  saving: boolean
+  onSave: (text: string) => Promise<unknown>
+  onDelete: () => void
+}) {
+  const [draft, setDraft] = useState<string | null>(null)
+
+  if (draft === null) {
+    return (
+      <li className="flex items-start justify-between gap-2 group">
+        <span className="text-green-700">{option}</span>
+        <span className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100">
+          <button onClick={() => setDraft(option)} className="text-xs text-gray-500 hover:underline">Bewerken</button>
+          <button onClick={onDelete} disabled={saving} title="Optie verwijderen" className="text-xs text-red-400 hover:text-red-600">✕</button>
+        </span>
+      </li>
+    )
+  }
+
+  const save = async () => {
+    if (!draft.trim() || draft.trim() === option) return setDraft(null)
+    await onSave(draft.trim())
+    setDraft(null)
+  }
+
+  return (
+    <li className="flex gap-2">
+      <input
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setDraft(null) }}
+        autoFocus
+        className="flex-1 border rounded px-2 py-1 text-sm"
+      />
+      <button onClick={save} disabled={saving} className="text-xs text-blue-600 hover:underline">Opslaan</button>
+      <button onClick={() => setDraft(null)} className="text-xs text-gray-500 hover:underline">Annuleren</button>
+    </li>
+  )
+}
+
+function IslandCard({ island, islands }: { island: LanguageIsland; islands: Islands }) {
+  const [newOption, setNewOption] = useState('')
+  const generating = islands.generatingId === island.id
+
+  const addOption = async () => {
+    if (!newOption.trim()) return
+    if (await islands.addOptionAsync(island, newOption)) setNewOption('')
+  }
+
+  return (
+    <details className="border rounded bg-white">
+      <summary className="cursor-pointer p-3 flex items-center justify-between gap-2">
+        <span className="font-medium text-gray-800">{island.english}</span>
+        <span className="text-xs text-gray-400 shrink-0">{island.options.length} opties</span>
+      </summary>
+      <div className="px-3 pb-3 space-y-3">
+        {island.options.length > 0
+          ? (
+            <ul className="space-y-1 text-sm">
+              {island.options.map((option, i) => (
+                <OptionRow
+                  key={`${i}-${option}`}
+                  option={option}
+                  saving={islands.saving}
+                  onSave={text => islands.setOptionsAsync(island.id, island.options.map((o, j) => j === i ? text : o))}
+                  onDelete={() => islands.deleteOptionAsync(island, i)}
+                />
+              ))}
+            </ul>
+          )
+          : <p className="text-sm text-gray-400">{generating ? 'Opties genereren...' : 'Nog geen opties.'}</p>}
+        <div className="flex gap-2">
+          <input
+            value={newOption}
+            onChange={e => setNewOption(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addOption()}
+            placeholder="Eigen optie toevoegen..."
+            className="flex-1 border rounded px-2 py-1 text-sm"
+          />
+          <button onClick={addOption} disabled={islands.saving || !newOption.trim()} className="px-3 py-1 text-sm rounded border hover:bg-gray-50 disabled:opacity-50">
+            Toevoegen
+          </button>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => islands.generateOptionsAsync(island)}
+            disabled={generating || islands.saving}
+            className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+          >
+            {generating ? 'Genereren...' : 'Meer opties (AI)'}
+          </button>
+          <ConfirmDeleteButton onDelete={() => islands.deleteIslandAsync(island.id)} deleting={false} title="Taaleiland verwijderen" />
+        </div>
+      </div>
+    </details>
+  )
+}
+
+export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
+  const [english, setEnglish] = useState('')
+  const { loadIslands } = islands
+
+  useEffect(() => {
+    if (isLoggedIn) loadIslands()
+  }, [isLoggedIn, loadIslands])
+
+  if (!isLoggedIn) {
+    return <p className="text-sm text-gray-500">Log in om je taaleilanden te zien.</p>
+  }
+
+  const add = async () => {
+    if (!english.trim()) return
+    if (await islands.addIslandAsync(english.trim())) setEnglish('')
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-500">
+        Zet hier de frases die je het vaakst zegt, in het Engels. Klap er een open om te zien hoe je hem in het Nederlands kunt zeggen.
+      </p>
+      <div className="flex gap-2">
+        <input
+          value={english}
+          onChange={e => setEnglish(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && add()}
+          placeholder="Bijv. I usually work from home on Fridays"
+          className="flex-1 p-2 border rounded"
+        />
+        <button
+          onClick={add}
+          disabled={islands.saving || !english.trim()}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+        >
+          Toevoegen
+        </button>
+      </div>
+      {islands.error && <p className="text-sm text-red-500">{islands.error}</p>}
+      {islands.loading && <p className="text-sm text-gray-400">Laden...</p>}
+      {!islands.loading && islands.islands.length === 0 && <p className="text-sm text-gray-400">Nog geen taaleilanden.</p>}
+      <div className="space-y-2">
+        {islands.islands.map(island => <IslandCard key={island.id} island={island} islands={islands} />)}
+      </div>
+    </div>
+  )
+}

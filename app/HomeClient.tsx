@@ -14,6 +14,7 @@ import { useCloze } from './hooks/useCloze'
 import { useArticles } from './hooks/useArticles'
 import { useListeningTree } from './hooks/useListeningTree'
 import { useMistakes } from './hooks/useMistakes'
+import { useLanguageIslands } from './hooks/useLanguageIslands'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { ALL_TABS, TAB_LABELS } from './config/tabs'
@@ -27,6 +28,7 @@ import { ClozeTab } from './components/ClozeTab'
 import { ArtikelenTab } from './components/ArtikelenTab'
 import { LuisterenTab } from './components/LuisterenTab'
 import { FoutenTab } from './components/FoutenTab'
+import { TaaleilandenTab } from './components/TaaleilandenTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
 import { SettingsModal } from './components/SettingsModal'
@@ -58,6 +60,7 @@ export default function HomeClient() {
   const articles = useArticles()
   const listeningTree = useListeningTree()
   const fouten = useMistakes(foutenTracker.markPracticedToday)
+  const languageIslands = useLanguageIslands(activeModel)
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {
@@ -205,6 +208,7 @@ export default function HomeClient() {
             />
           </ErrorBoundary>
         )}
+        {activeTab === 'taaleilanden' && <ErrorBoundary><TaaleilandenTab {...languageIslands} isLoggedIn={!!session} /></ErrorBoundary>}
       </main>
 
       {chat.selectionPopup && (

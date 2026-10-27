@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useMistakes } from '../hooks/useMistakes'
 import { PracticeCounter } from './PracticeCounter'
+import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 import { matchesPracticedFilter, PRACTICED_FILTER_OPTIONS } from '../lib/mistakes'
 
 type Props = ReturnType<typeof useMistakes> & {
@@ -8,26 +9,6 @@ type Props = ReturnType<typeof useMistakes> & {
   practicedDates: Set<string>
   onCheckIn: () => void
   onCancelCheckIn: () => void
-}
-
-function DeleteMistakeButton({ onDelete, deleting }: { onDelete: () => void; deleting: boolean }) {
-  const [confirming, setConfirming] = useState(false)
-
-  if (deleting) return <span className="text-xs text-gray-400 shrink-0">Verwijderen...</span>
-  if (!confirming) {
-    return (
-      <button onClick={() => setConfirming(true)} title="Rij verwijderen" className="text-xs text-red-400 hover:text-red-600 shrink-0">
-        ✕ Verwijderen
-      </button>
-    )
-  }
-  return (
-    <span className="flex items-center gap-2 shrink-0">
-      <span className="text-xs text-gray-600">Verwijderen?</span>
-      <button onClick={() => { setConfirming(false); onDelete() }} className="text-xs text-red-600 hover:underline font-medium">Ja</button>
-      <button onClick={() => setConfirming(false)} className="text-xs text-gray-500 hover:underline">Nee</button>
-    </span>
-  )
 }
 
 function CorrectionEditor({ correction, saving, onSave }: { correction: string; saving: boolean; onSave: (text: string) => Promise<boolean> }) {
@@ -71,7 +52,7 @@ function MistakesOverview({ fouten }: { fouten: Props }) {
               {m.rewording && <p className="text-blue-700">{m.rewording}</p>}
               <p className="text-xs text-gray-400">{m.type && `${m.type} · `}✓ {m.timesPracticed}× goed</p>
             </div>
-            <DeleteMistakeButton onDelete={() => fouten.deleteMistakeAsync(m.row)} deleting={fouten.deletingRow === m.row} />
+            <ConfirmDeleteButton onDelete={() => fouten.deleteMistakeAsync(m.row)} deleting={fouten.deletingRow === m.row} title="Rij verwijderen" />
           </li>
         ))}
       </ul>
@@ -197,7 +178,7 @@ export function FoutenTab(fouten: Props) {
           <span className="flex items-center gap-3">
             <button onClick={fouten.stop} className="text-xs text-gray-400 hover:text-gray-600">✕ Stoppen</button>
             <span title="Aantal keer goed (noOfTimesPracticed)">✓ {current.timesPracticed}× goed</span>
-            <DeleteMistakeButton key={current.row} onDelete={() => fouten.deleteMistakeAsync(current.row)} deleting={fouten.deletingRow === current.row} />
+            <ConfirmDeleteButton key={current.row} onDelete={() => fouten.deleteMistakeAsync(current.row)} deleting={fouten.deletingRow === current.row} title="Rij verwijderen" />
           </span>
         </div>
 
