@@ -154,7 +154,14 @@ export const REWRITE_DUTCH_SENTENCE_PROMPT = `When the user types a Dutch senten
 
 export const TRANSLATE_TO_DUTCH_PROMPT = 'Give 2 or 3 different natural ways to say the following English sentence in Dutch. Number each option and briefly note any difference in tone or formality if relevant.'
 
-// One option per line so parseIslandOptions can split them without numbering or notes.
-export const LANGUAGE_ISLAND_OPTIONS_PROMPT = 'I say the following English phrase a lot and want to be able to say it in Dutch. Give 3 to 5 different natural ways a native Dutch speaker would say it, from everyday to more formal. Put each option on its own line. Return ONLY the Dutch options: no numbering, no bullets, no translations, no explanation.'
-
 export const EXPLAIN_SELECTION_PROMPT = 'The user is learning Dutch. They highlighted the following word or phrase and want to know what it means. Give a short, clear explanation in English: what it means, and (if it is Dutch) how it is typically used. Keep it to 2-3 sentences max.'
+
+export function languageIslandPrompt(english: string, options: string[]): string {
+  return [
+    `Ik leer Nederlands. Dit zeg ik vaak in het Engels: "${english}"`,
+    `Geef 3 tot 5 natuurlijke manieren om dit in het Nederlands te zeggen, van informeel tot formeel, en zet bij elke optie kort wanneer je hem gebruikt.`,
+    options.length > 0
+      ? `Deze opties heb ik al:\n${options.map(o => `- ${o}`).join('\n')}\nZeg of ze goed zijn en natuurlijk klinken, en geef andere opties dan deze.`
+      : null,
+  ].filter(Boolean).join('\n')
+}

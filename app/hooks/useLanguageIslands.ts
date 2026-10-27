@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { LanguageIsland } from '../types'
-import { chatRequest } from '../lib/apiClient'
-import { LANGUAGE_ISLAND_OPTIONS_PROMPT } from '../lib/prompts'
-import { mergeIslandOptions, parseIslandOptions } from '../lib/languageIslands'
+import { buildChatGptLanguageIslandUrl, openChatGptInBackground } from '../lib/chatgpt'
+import { mergeIslandOptions } from '../lib/languageIslands'
 
 const ISLANDS_URL = '/api/language-islands'
 
@@ -13,12 +12,11 @@ async function requestIslandsAsync(init: RequestInit | undefined, fallbackError:
   return data.islands
 }
 
-export function useLanguageIslands(selectedModel: string) {
+export function useLanguageIslands() {
   const [islands, setIslands] = useState<LanguageIsland[]>([])
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [generatingId, setGeneratingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const loadIslands = useCallback((force = false) => {
@@ -57,32 +55,10 @@ export function useLanguageIslands(selectedModel: string) {
     }
   }
 
-  const generateOptionsAsync = async (island: LanguageIsland): Promise<boolean> => {
-    setGeneratingId(island.id)
-    setError(null)
-    try {
-      const data = await chatRequest(island.english, LANGUAGE_ISLAND_OPTIONS_PROMPT, selectedModel)
-      const generated = data.response ? parseIslandOptions(data.response) : []
-      if (generated.length === 0) throw new Error(data.error || 'De AI gaf geen opties terug.')
-      const options = mergeIslandOptions(island.options, generated)
-      return (await saveAsync('PUT', { id: island.id, options }, 'Kon opties niet opslaan.')) !== null
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Kon geen opties genereren.'
-      console.error('[useLanguageIslands]', message)
-      setError(message)
-      return false
-    } finally {
-      setGeneratingId(null)
-    }
-  }
+  const addIslandAsync = async (english: string): Promise<boolean> =>
+    (await saveAsync('POST', { english }, 'Kon taaleiland niet opslaan.')) !== null
 
-  // A new island gets its first options from the AI right away.
-  const addIslandAsync = async (english: string): Promise<boolean> => {
-    const saved = await saveAsync('POST', { english }, 'Kon taaleiland niet opslaan.')
-    if (!saved) return false
-    await generateOptionsAsync(saved[0])
-    return true
-  }
+  const askChatGpt = (island: LanguageIsland) => openChatGptInBackground(buildChatGptLanguageIslandUrl(island))
 
   const setEnglishAsync = (id: string, english: string) =>
     saveAsync('PUT', { id, english }, 'Kon frase niet opslaan.')
@@ -99,7 +75,7 @@ export function useLanguageIslands(selectedModel: string) {
   const deleteIslandAsync = (id: string) => saveAsync('DELETE', { id }, 'Kon taaleiland niet verwijderen.')
 
   return {
-    islands, loading, saving, generatingId, error, loadIslands, addIslandAsync, generateOptionsAsync,
+    islands, loading, saving, error, loadIslands, addIslandAsync, askChatGpt,
     setEnglishAsync, setOptionsAsync, addOptionAsync, deleteOptionAsync, deleteIslandAsync,
   }
 }

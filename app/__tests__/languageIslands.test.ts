@@ -1,18 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeIslandOptions, parseIslandOptions } from '../lib/languageIslands'
-
-describe('parseIslandOptions', () => {
-  it('gives one option per non-empty line', () => {
-    expect(parseIslandOptions('Ik werk vrijdags thuis.\n\nOp vrijdag werk ik thuis.\n')).toEqual([
-      'Ik werk vrijdags thuis.',
-      'Op vrijdag werk ik thuis.',
-    ])
-  })
-
-  it('strips numbering and bullets', () => {
-    expect(parseIslandOptions('1. Een\n2) Twee\n- Drie\n* Vier\n• Vijf')).toEqual(['Een', 'Twee', 'Drie', 'Vier', 'Vijf'])
-  })
-})
+import { mergeIslandOptions } from '../lib/languageIslands'
 
 describe('mergeIslandOptions', () => {
   it('keeps the existing options first and skips duplicates, ignoring case', () => {

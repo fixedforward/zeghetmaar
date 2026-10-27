@@ -60,7 +60,7 @@ export default function HomeClient() {
   const articles = useArticles()
   const listeningTree = useListeningTree()
   const fouten = useMistakes(foutenTracker.markPracticedToday)
-  const languageIslands = useLanguageIslands(activeModel)
+  const languageIslands = useLanguageIslands()
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {

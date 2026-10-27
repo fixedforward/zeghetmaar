@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, mistakeFixCheckPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt } from '../lib/prompts'
+import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, mistakeFixCheckPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt, languageIslandPrompt } from '../lib/prompts'
 import type { WordEntry } from '../types'
 
 const basePhrase: WordEntry = {
@@ -190,5 +190,21 @@ describe('translateWordPrompt', () => {
 describe('generateExamplePrompt', () => {
   it('includes the word', () => {
     expect(generateExamplePrompt('hoewel')).toContain('hoewel')
+  })
+})
+
+describe('languageIslandPrompt', () => {
+  it('asks for Dutch ways to say the English phrase', () => {
+    const prompt = languageIslandPrompt('See you later', [])
+
+    expect(prompt).toContain('"See you later"')
+    expect(prompt).not.toContain('Deze opties heb ik al')
+  })
+
+  it('lists the options I already have and asks for other ones', () => {
+    const prompt = languageIslandPrompt('See you later', ['Tot straks.', 'Tot zo.'])
+
+    expect(prompt).toContain('Deze opties heb ik al:\n- Tot straks.\n- Tot zo.')
+    expect(prompt).toContain('andere opties dan deze')
   })
 })

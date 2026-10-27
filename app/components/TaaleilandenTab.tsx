@@ -52,7 +52,6 @@ function OptionRow({ option, saving, onSave, onDelete }: {
 
 function IslandCard({ island, islands }: { island: LanguageIsland; islands: Islands }) {
   const [newOption, setNewOption] = useState('')
-  const generating = islands.generatingId === island.id
 
   const addOption = async () => {
     if (!newOption.trim()) return
@@ -80,7 +79,7 @@ function IslandCard({ island, islands }: { island: LanguageIsland; islands: Isla
               ))}
             </ul>
           )
-          : <p className="text-sm text-gray-400">{generating ? 'Opties genereren...' : 'Nog geen opties.'}</p>}
+          : <p className="text-sm text-gray-400">Nog geen opties.</p>}
         <div className="flex gap-2">
           <input
             value={newOption}
@@ -95,11 +94,10 @@ function IslandCard({ island, islands }: { island: LanguageIsland; islands: Isla
         </div>
         <div className="flex items-center justify-between gap-2">
           <button
-            onClick={() => islands.generateOptionsAsync(island)}
-            disabled={generating || islands.saving}
-            className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+            onClick={() => islands.askChatGpt(island)}
+            className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
           >
-            {generating ? 'Genereren...' : 'Meer opties (AI)'}
+            Vraag ChatGPT
           </button>
           <ConfirmDeleteButton onDelete={() => islands.deleteIslandAsync(island.id)} deleting={false} title="Taaleiland verwijderen" />
         </div>
@@ -128,7 +126,7 @@ export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
-        Zet hier de frases die je het vaakst zegt, in het Engels. Klap er een open om te zien hoe je hem in het Nederlands kunt zeggen.
+        Zet hier de frases die je het vaakst zegt, in het Engels. Klap er een open om je Nederlandse opties te zien, of vraag ChatGPT om meer.
       </p>
       <div className="flex gap-2">
         <input
