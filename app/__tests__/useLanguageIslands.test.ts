@@ -94,6 +94,20 @@ describe('useLanguageIslands', () => {
     expect(bodyOf(calls[1])).toEqual({ id: 'i1', options: [] })
   })
 
+  it('setEnglishAsync saves the changed English phrase', async () => {
+    const saved = { ...island, english: 'See you soon' }
+    global.fetch = vi.fn().mockResolvedValue(ok({ islands: [saved] }))
+    const { result } = renderHook(() => useLanguageIslands())
+
+    await act(async () => { await result.current.setEnglishAsync('i1', 'See you soon') })
+
+    expect(fetch).toHaveBeenCalledWith('/api/language-islands', expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({ id: 'i1', english: 'See you soon' }),
+    }))
+    expect(result.current.islands).toEqual([saved])
+  })
+
   it('deleteIslandAsync sends a DELETE with the id', async () => {
     global.fetch = vi.fn().mockResolvedValue(ok({ islands: [] }))
     const { result } = renderHook(() => useLanguageIslands())

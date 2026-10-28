@@ -9,34 +9,35 @@ type Props = Islands & {
   isLoggedIn: boolean
 }
 
-function OptionRow({ option, saving, onSave, onDelete }: {
-  option: string
+function EditableText({ text, saving, onSave, onDelete, textClassName }: {
+  text: string
   saving: boolean
   onSave: (text: string) => Promise<unknown>
-  onDelete: () => void
+  onDelete?: () => void
+  textClassName: string
 }) {
   const [draft, setDraft] = useState<string | null>(null)
 
   if (draft === null) {
     return (
-      <li className="flex items-start justify-between gap-2 group">
-        <span className="text-green-700">{option}</span>
+      <div className="flex items-start justify-between gap-2 group">
+        <span className={textClassName}>{text}</span>
         <span className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100">
-          <button onClick={() => setDraft(option)} className="text-xs text-gray-500 hover:underline">Bewerken</button>
-          <button onClick={onDelete} disabled={saving} title="Optie verwijderen" className="text-xs text-red-400 hover:text-red-600">✕</button>
+          <button onClick={() => setDraft(text)} className="text-xs text-gray-500 hover:underline">Bewerken</button>
+          {onDelete && <button onClick={onDelete} disabled={saving} title="Optie verwijderen" className="text-xs text-red-400 hover:text-red-600">✕</button>}
         </span>
-      </li>
+      </div>
     )
   }
 
   const save = async () => {
-    if (!draft.trim() || draft.trim() === option) return setDraft(null)
+    if (!draft.trim() || draft.trim() === text) return setDraft(null)
     await onSave(draft.trim())
     setDraft(null)
   }
 
   return (
-    <li className="flex gap-2">
+    <div className="flex gap-2">
       <input
         value={draft}
         onChange={e => setDraft(e.target.value)}
@@ -46,7 +47,7 @@ function OptionRow({ option, saving, onSave, onDelete }: {
       />
       <button onClick={save} disabled={saving} className="text-xs text-blue-600 hover:underline">Opslaan</button>
       <button onClick={() => setDraft(null)} className="text-xs text-gray-500 hover:underline">Annuleren</button>
-    </li>
+    </div>
   )
 }
 
@@ -65,17 +66,28 @@ function IslandCard({ island, islands }: { island: LanguageIsland; islands: Isla
         <span className="text-xs text-gray-400 shrink-0">{island.options.length} opties</span>
       </summary>
       <div className="px-3 pb-3 space-y-3">
+        <div className="text-sm">
+          <span className="text-xs text-gray-400">Engelse frase</span>
+          <EditableText
+            text={island.english}
+            saving={islands.saving}
+            onSave={text => islands.setEnglishAsync(island.id, text)}
+            textClassName="text-gray-800"
+          />
+        </div>
         {island.options.length > 0
           ? (
             <ul className="space-y-1 text-sm">
               {island.options.map((option, i) => (
-                <OptionRow
-                  key={`${i}-${option}`}
-                  option={option}
-                  saving={islands.saving}
-                  onSave={text => islands.setOptionsAsync(island.id, island.options.map((o, j) => j === i ? text : o))}
-                  onDelete={() => islands.deleteOptionAsync(island, i)}
-                />
+                <li key={`${i}-${option}`}>
+                  <EditableText
+                    text={option}
+                    saving={islands.saving}
+                    onSave={text => islands.setOptionsAsync(island.id, island.options.map((o, j) => j === i ? text : o))}
+                    onDelete={() => islands.deleteOptionAsync(island, i)}
+                    textClassName="text-green-700"
+                  />
+                </li>
               ))}
             </ul>
           )
