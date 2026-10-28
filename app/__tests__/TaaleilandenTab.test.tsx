@@ -4,9 +4,9 @@ import { TaaleilandenTab } from '../components/TaaleilandenTab'
 
 const island = { id: 'i1', english: 'See you later', options: ['Tot straks.'], createdAt: '2026-01-01T00:00:00.000Z' }
 
-function renderTab() {
+function renderTab(islands = [island]) {
   const props = {
-    islands: [island],
+    islands,
     loading: false,
     saving: false,
     error: null,
@@ -21,6 +21,10 @@ function renderTab() {
   }
   render(<TaaleilandenTab {...props} isLoggedIn />)
   return props
+}
+
+function shownPhrases(): string[] {
+  return [...document.querySelectorAll('summary > span:first-child')].map(el => el.textContent ?? '')
 }
 
 function englishSection() {
@@ -59,5 +63,40 @@ describe('TaaleilandenTab', () => {
 
     expect(within(englishSection()).queryByTitle('Optie verwijderen')).toBeNull()
     expect(screen.getAllByTitle('Optie verwijderen')).toHaveLength(1)
+  })
+
+  it('searches on the English phrase and the Dutch options', () => {
+    renderTab([island, { ...island, id: 'i2', english: "I'm getting bored with it", options: ['Ik raak het beu.'] }])
+    const search = screen.getByPlaceholderText('Zoeken op Engelse frase of Nederlandse optie...')
+
+    fireEvent.change(search, { target: { value: 'beu' } })
+    expect(shownPhrases()).toEqual(["I'm getting bored with it"])
+
+    fireEvent.change(search, { target: { value: 'later' } })
+    expect(shownPhrases()).toEqual(['See you later'])
+
+    fireEvent.change(search, { target: { value: 'nothing' } })
+    expect(shownPhrases()).toEqual([])
+    expect(screen.getByText('Geen taaleilanden gevonden voor "nothing".')).toBeTruthy()
+  })
+
+  it('shows 10 islands per page and goes back to page 1 on a new search', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ ...island, id: `i${i}`, english: `Phrase ${i + 1}` }))
+    renderTab(many)
+
+    expect(shownPhrases()).toHaveLength(10)
+    expect(shownPhrases()[9]).toBe('Phrase 10')
+
+    fireEvent.click(screen.getByRole('button', { name: '2' }))
+    expect(shownPhrases()).toEqual(['Phrase 11', 'Phrase 12'])
+
+    fireEvent.change(screen.getByPlaceholderText('Zoeken op Engelse frase of Nederlandse optie...'), { target: { value: 'Phrase' } })
+    expect(shownPhrases()[0]).toBe('Phrase 1')
+  })
+
+  it('shows no page bar for 10 islands or fewer', () => {
+    renderTab()
+
+    expect(screen.queryByRole('button', { name: '›' })).toBeNull()
   })
 })

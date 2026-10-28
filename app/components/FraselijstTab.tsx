@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import type { useWords } from '../hooks/useWords'
 import type { WordEntry } from '../types'
 import { buildChatGptExplainUrl, openChatGptInBackground } from '../lib/chatgpt'
-import { buildPageList } from '../lib/pagination'
 import { PhraseDetailModal } from './PhraseDetailModal'
 import { AddPhraseForm } from './AddPhraseForm'
 import { TagsManageModal } from './TagsManageModal'
+import { Pagination } from './Pagination'
+import { SearchInput } from './SearchInput'
 import { joinMeanings } from '../lib/meanings'
 
 type Props = ReturnType<typeof useWords> & { isLoggedIn: boolean; onPractice: (entry: WordEntry) => void }
@@ -92,24 +93,11 @@ export function FraselijstTab(words: Props) {
       )}
 
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <div className="relative flex-1 min-w-[160px]">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            placeholder="Zoeken op woord of vertaling..."
-            className="w-full p-1.5 pr-7 text-sm border rounded"
-          />
-          {search && (
-            <button
-              onClick={() => { setSearch(''); setPage(1) }}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
-              title="Wissen"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={search}
+          onChange={value => { setSearch(value); setPage(1) }}
+          placeholder="Zoeken op woord of vertaling..."
+        />
         <button
           onClick={() => setSortAsc(a => !a)}
           title={sortAsc ? 'Oplopend' : 'Aflopend'}
@@ -279,39 +267,7 @@ export function FraselijstTab(words: Props) {
 
       <PhraseDetailModal {...words} />
 
-      {totalPages > 1 && (
-        <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={safePage === 1}
-            className="px-3 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40"
-          >
-            ‹
-          </button>
-          {buildPageList(safePage, totalPages).map((item, i) =>
-            item === 'ellipsis' ? (
-              <span key={`ellipsis-${i}`} className="px-1 text-sm text-gray-400">
-                …
-              </span>
-            ) : (
-              <button
-                key={item}
-                onClick={() => setPage(item)}
-                className={`px-3 py-1 text-sm border rounded ${item === safePage ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-              >
-                {item}
-              </button>
-            )
-          )}
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={safePage === totalPages}
-            className="px-3 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40"
-          >
-            ›
-          </button>
-        </div>
-      )}
+      <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }
