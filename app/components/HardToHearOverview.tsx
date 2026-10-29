@@ -2,6 +2,7 @@
 
 import { useHardToHearVideos } from '../hooks/useHardToHearVideos'
 import { listeningPlayerUrl } from './ListeningTree'
+import { practiceSize } from '../hooks/useHardToHearPractice'
 
 export function hardToHearPracticeUrl(folderId: string, fileId: string): string {
   return `/luisteren-oefenen?folder=${encodeURIComponent(folderId)}&file=${encodeURIComponent(fileId)}`
@@ -33,7 +34,7 @@ export function HardToHearOverview() {
                   href={hardToHearPracticeUrl(video.folderId, video.fileId)}
                   className="px-3 py-1 text-sm rounded bg-teal-500 text-white hover:bg-teal-600"
                 >
-                  Oefenen ({video.phrases.length})
+                  Oefenen ({practiceSize(video.phrases.length)})
                 </a>
               </div>
             ) : (

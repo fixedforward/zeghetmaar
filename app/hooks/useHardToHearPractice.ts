@@ -2,7 +2,14 @@ import { useState } from 'react'
 import type { HardToHearPhrase } from '../types'
 import { shuffleArray } from '../lib/shuffle'
 
-// Listening practice on a video's hard-to-hear lines: hear a line, check the subtitle if
+export const PRACTICE_SIZE = 10
+
+// How many lines one session practices: 10 random ones, or all of them when there are fewer.
+export function practiceSize(lineCount: number): number {
+  return Math.min(lineCount, PRACTICE_SIZE)
+}
+
+// Listening practice on up to 10 random hard-to-hear lines of a video: hear a line, check the subtitle if
 // needed, and go to the previous or next one.
 export function useHardToHearPractice() {
   const [queue, setQueue] = useState<HardToHearPhrase[]>([])
@@ -18,7 +25,7 @@ export function useHardToHearPractice() {
     setIndex(0)
   }
 
-  const start = (phrases: HardToHearPhrase[]) => reset(shuffleArray(phrases))
+  const start = (phrases: HardToHearPhrase[]) => reset(shuffleArray(phrases).slice(0, PRACTICE_SIZE))
 
   const stop = () => reset([])
 
