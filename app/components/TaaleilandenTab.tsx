@@ -5,6 +5,8 @@ import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 import { Pagination } from './Pagination'
 import { SearchInput } from './SearchInput'
 import { filterIslands } from '../lib/languageIslands'
+import { PRACTICE_SIZE, useIslandPractice } from '../hooks/useIslandPractice'
+import { IslandPractice } from './IslandPractice'
 
 type Islands = ReturnType<typeof useLanguageIslands>
 
@@ -127,6 +129,7 @@ export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
   const [english, setEnglish] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const practice = useIslandPractice()
   const { loadIslands } = islands
 
   useEffect(() => {
@@ -141,6 +144,12 @@ export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
   const totalPages = Math.max(1, Math.ceil(searchedIslands.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
   const pageIslands = searchedIslands.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const practiceCount = islands.islands.filter(i => i.options.length > 0).length
+
+  if (practice.active) {
+    return <IslandPractice practice={practice} onRestart={() => practice.start(islands.islands)} />
+  }
 
   const add = async () => {
     if (!english.trim()) return
@@ -170,6 +179,14 @@ export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
       </div>
       {islands.error && <p className="text-sm text-red-500">{islands.error}</p>}
       {islands.loading && <p className="text-sm text-gray-400">Laden...</p>}
+      {practiceCount > 0 && (
+        <button
+          onClick={() => practice.start(islands.islands)}
+          className="px-3 py-1.5 text-sm rounded bg-teal-500 text-white hover:bg-teal-600"
+        >
+          Oefenen ({Math.min(PRACTICE_SIZE, practiceCount)} willekeurige)
+        </button>
+      )}
       {islands.islands.length > 0 && (
         <SearchInput
           value={search}

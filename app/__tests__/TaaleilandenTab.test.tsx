@@ -99,4 +99,28 @@ describe('TaaleilandenTab', () => {
 
     expect(screen.queryByRole('button', { name: '›' })).toBeNull()
   })
+
+  it('Oefenen shows a card: Space shows the options, 2 marks it Goed', () => {
+    renderTab()
+
+    fireEvent.click(screen.getByText('Oefenen (1 willekeurige)'))
+    expect(screen.getByText('See you later')).toBeTruthy()
+    expect(screen.queryByText('Tot straks.')).toBeNull()
+    expect(screen.getByText('10 s')).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: ' ' })
+    expect(screen.getByText('Tot straks.')).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: '2' })
+    expect(screen.getByText('1 van 1 meteen goed')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Terug naar de lijst'))
+    expect(screen.getByPlaceholderText('Zoeken op Engelse frase of Nederlandse optie...')).toBeTruthy()
+  })
+
+  it('has no Oefenen button when no island has options', () => {
+    renderTab([{ ...island, options: [] }])
+
+    expect(screen.queryByText(/^Oefenen/)).toBeNull()
+  })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { filterIslands, mergeIslandOptions } from '../lib/languageIslands'
+import { filterIslands, mergeIslandOptions, pickPracticeIslands } from '../lib/languageIslands'
 
 describe('mergeIslandOptions', () => {
   it('keeps the existing options first and skips duplicates, ignoring case', () => {
@@ -28,5 +28,21 @@ describe('filterIslands', () => {
 
   it('matches a Dutch option', () => {
     expect(filterIslands([later, bored], 'straks')).toEqual([later])
+  })
+})
+
+describe('pickPracticeIslands', () => {
+  const withOptions = Array.from({ length: 8 }, (_, i) => ({ id: `i${i}`, options: ['x'] }))
+  const empty = { id: 'empty', options: [] }
+
+  it('picks at most count islands, each once', () => {
+    const picked = pickPracticeIslands(withOptions, 5)
+
+    expect(picked).toHaveLength(5)
+    expect(new Set(picked.map(i => i.id)).size).toBe(5)
+  })
+
+  it('leaves out islands without options', () => {
+    expect(pickPracticeIslands([empty, withOptions[0]], 5)).toEqual([withOptions[0]])
   })
 })

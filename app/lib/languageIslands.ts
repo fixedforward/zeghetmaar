@@ -1,3 +1,5 @@
+import { shuffleArray } from './shuffle'
+
 // Keeps the existing options first and leaves out exact (case-insensitive) duplicates.
 export function mergeIslandOptions(existing: string[], added: string[]): string[] {
   const merged: string[] = []
@@ -13,4 +15,9 @@ export function filterIslands<T extends { english: string; options: string[] }>(
   const q = query.trim().toLowerCase()
   if (!q) return islands
   return islands.filter(i => i.english.toLowerCase().includes(q) || i.options.some(o => o.toLowerCase().includes(q)))
+}
+
+// Only islands with at least one Dutch option have an answer to show.
+export function pickPracticeIslands<T extends { options: string[] }>(islands: T[], count: number): T[] {
+  return shuffleArray(islands.filter(i => i.options.length > 0)).slice(0, count)
 }
