@@ -42,6 +42,7 @@ describe('HardToHearPractice', () => {
 
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByText(/verstaan/i)).toBeNull()
+    expect(screen.getByText(/Herhaal de uitdrukking hardop/)).toBeTruthy()
     const details = () => screen.getByText('Ondertitel tonen').closest('details')!
     expect(details().open).toBe(false)
 

@@ -53,6 +53,9 @@ export function HardToHearPractice({ practice, onPlay, linesAround }: Props) {
           {after && <p className="text-sm text-gray-500">{after}</p>}
         </div>
       </details>
+      <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+        🗣️ Herhaal de uitdrukking hardop voordat je naar de volgende gaat.
+      </p>
       <div className="flex gap-2">
         <button type="button" onClick={previous} disabled={!hasPrevious} title="Sneltoets: 1" className="px-3 py-1 text-sm border rounded disabled:opacity-50">
           Vorige (1)
