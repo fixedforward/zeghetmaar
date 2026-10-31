@@ -2,7 +2,7 @@
 
 import { useTranscriptPlayer } from '../hooks/useTranscriptPlayer'
 import { useHardToHearPhrases } from '../hooks/useHardToHearPhrases'
-import { practiceSize, useHardToHearPractice } from '../hooks/useHardToHearPractice'
+import { useHardToHearPractice } from '../hooks/useHardToHearPractice'
 import { HardToHearPractice } from './HardToHearPractice'
 import { listeningPlayerUrl } from './ListeningTree'
 
@@ -44,7 +44,7 @@ export function HardToHearVideoPractice({ folderId, fileId }: { folderId: string
             onClick={() => practice.start(hardToHear.phrases)}
             className="px-4 py-2 text-sm rounded bg-teal-500 text-white hover:bg-teal-600"
           >
-            Start ({practiceSize(hardToHear.phrases.length)} {practiceSize(hardToHear.phrases.length) === 1 ? 'fragment' : 'fragmenten'})
+            Start ({hardToHear.phrases.length} {hardToHear.phrases.length === 1 ? 'fragment' : 'fragmenten'})
           </button>
         )}
       </section>

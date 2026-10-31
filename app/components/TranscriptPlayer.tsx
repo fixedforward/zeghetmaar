@@ -8,7 +8,7 @@ import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
 import { useSwipeGestures } from '../hooks/useSwipeGestures'
 import { useVideoSize } from '../hooks/useVideoSize'
 import { useHardToHearPhrases } from '../hooks/useHardToHearPhrases'
-import { practiceSize, useHardToHearPractice } from '../hooks/useHardToHearPractice'
+import { useHardToHearPractice } from '../hooks/useHardToHearPractice'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
 import { HardToHearPractice } from './HardToHearPractice'
@@ -213,7 +213,7 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
               <h2 className="text-sm font-semibold text-gray-700">Moeilijk te verstaan</h2>
               {!practice.active && hardToHear.phrases.length > 0 && (
                 <button type="button" onClick={() => practice.start(hardToHear.phrases)} className="px-3 py-1 text-sm rounded bg-teal-500 text-white hover:bg-teal-600">
-                  Oefenen ({practiceSize(hardToHear.phrases.length)})
+                  Oefenen ({hardToHear.phrases.length})
                 </button>
               )}
             </div>
