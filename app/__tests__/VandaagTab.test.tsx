@@ -17,6 +17,12 @@ function renderVandaag(overrides: Partial<ComponentProps<typeof VandaagTab>> = {
     recentWords: [],
     onSelect: vi.fn(),
     onCheckInListening: vi.fn(),
+    chatGptGoals: [
+      { type: 'schrijven', label: 'Schrijfoefening in ChatGPT', done: false },
+      { type: 'voorzetsels', label: 'Voorzetseloefening in ChatGPT', done: true },
+    ],
+    onCheckInChatGpt: vi.fn(),
+    onCancelChatGpt: vi.fn(),
     onSignIn: vi.fn(),
     ...overrides,
   }
@@ -44,6 +50,18 @@ describe('VandaagTab', () => {
     const props = renderVandaag()
     fireEvent.click(screen.getByText('Ik heb vandaag geluisterd'))
     expect(props.onCheckInListening).toHaveBeenCalledOnce()
+  })
+
+  it('checks in a ChatGPT exercise by hand, and cancels one that is done', () => {
+    const props = renderVandaag()
+    const writing = screen.getByText('Schrijfoefening in ChatGPT').closest('article') as HTMLElement
+    const prepositions = screen.getByText('Voorzetseloefening in ChatGPT').closest('article') as HTMLElement
+
+    fireEvent.click(within(writing).getByText('Vandaag gedaan'))
+    fireEvent.click(within(prepositions).getByText('Annuleren'))
+
+    expect(props.onCheckInChatGpt).toHaveBeenCalledWith('schrijven')
+    expect(props.onCancelChatGpt).toHaveBeenCalledWith('voorzetsels')
   })
 
   it('shows the streak', () => {

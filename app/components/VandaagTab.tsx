@@ -1,6 +1,6 @@
 import type { Tab, WordEntry } from '../types'
 import { TAB_LABELS } from '../config/tabs'
-import { weekDates, type DailyGoal } from '../lib/dailyGoals'
+import { weekDates, type ChatGptGoal, type ChatGptGoalType, type DailyGoal } from '../lib/dailyGoals'
 import { dutchWeekday, formatDutchWeekdayDate } from '../lib/date'
 import { TabIcon } from './TabIcon'
 
@@ -13,6 +13,9 @@ type Props = {
   recentWords: WordEntry[]
   onSelect: (tab: Tab) => void
   onCheckInListening: () => void
+  chatGptGoals: ChatGptGoal[]
+  onCheckInChatGpt: (type: ChatGptGoalType) => void
+  onCancelChatGpt: (type: ChatGptGoalType) => void
   onSignIn: () => void
 }
 
@@ -21,7 +24,7 @@ function goalDetail(goal: DailyGoal): string | null {
   return null
 }
 
-export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, recentWords, onSelect, onCheckInListening, onSignIn }: Props) {
+export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, recentWords, onSelect, onCheckInListening, chatGptGoals, onCheckInChatGpt, onCancelChatGpt, onSignIn }: Props) {
   const doneCount = goals.filter(g => g.done).length
   const next = goals.find(g => !g.done)
 
@@ -124,6 +127,32 @@ export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, re
                   </article>
                 )
               })}
+            </div>
+          </section>
+
+          <section aria-labelledby="chatgpt-oefeningen" className="space-y-3">
+            <h3 id="chatgpt-oefeningen" className="text-lg font-semibold">In ChatGPT</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {chatGptGoals.map(goal => (
+                <article key={goal.type} className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-semibold">{goal.label}</h4>
+                    <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${goal.done ? 'bg-green-50 text-green-800' : 'bg-orange-50 text-orange-800'}`}>
+                      {goal.done ? 'Gedaan' : 'Nog niet'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => goal.done ? onCancelChatGpt(goal.type) : onCheckInChatGpt(goal.type)}
+                    className={[
+                      'mt-auto w-full min-h-11 rounded-lg text-sm font-semibold',
+                      goal.done ? 'border border-gray-200 text-gray-700 hover:bg-gray-50' : 'bg-blue-700 text-white hover:bg-blue-800',
+                    ].join(' ')}
+                  >
+                    {goal.done ? 'Annuleren' : 'Vandaag gedaan'}
+                  </button>
+                </article>
+              ))}
             </div>
           </section>
         </>

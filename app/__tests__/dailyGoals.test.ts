@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { currentStreak, dailyGoalsFor, mergeDates, weekDates } from '../lib/dailyGoals'
+import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates, weekDates } from '../lib/dailyGoals'
 import type { Tab } from '../types'
 
 const noDates = () => ({
   quiz: new Set<string>(), cloze: new Set<string>(), oefensessie: new Set<string>(), taaleilanden: new Set<string>(), luisteren: new Set<string>(),
+  schrijven: new Set<string>(), voorzetsels: new Set<string>(),
 })
 const allTabs: Tab[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'luisteren']
 
@@ -21,6 +22,16 @@ describe('dailyGoalsFor', () => {
 
   it('leaves out the goals of hidden tabs', () => {
     expect(dailyGoalsFor(noDates(), ['cloze', 'fraselijst'], '2026-11-10')).toEqual([{ tab: 'cloze', done: false }])
+  })
+})
+
+describe('chatGptGoalsFor', () => {
+  it('marks each ChatGPT exercise done only when its own log has today', () => {
+    const dates = { ...noDates(), voorzetsels: new Set(['2026-11-10']), schrijven: new Set(['2026-11-09']) }
+    expect(chatGptGoalsFor(dates, '2026-11-10')).toEqual([
+      { type: 'schrijven', label: 'Schrijfoefening in ChatGPT', done: false },
+      { type: 'voorzetsels', label: 'Voorzetseloefening in ChatGPT', done: true },
+    ])
   })
 })
 

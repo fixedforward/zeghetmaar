@@ -2,12 +2,32 @@ import type { Tab } from '../types'
 import type { PracticeLogType } from './practiceLog'
 import { addDaysIso } from './date'
 
+type TabLogType = Extract<PracticeLogType, Tab>
+
 // The tabs with a daily counter, in the order the Vandaag page shows them.
-export const DAILY_GOALS: PracticeLogType[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'luisteren']
+export const DAILY_GOALS: TabLogType[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'luisteren']
 
 export interface DailyGoal {
-  tab: PracticeLogType
+  tab: TabLogType
   done: boolean
+}
+
+// Exercises I do in ChatGPT, outside the app: only checked in by hand.
+export const CHATGPT_GOALS = [
+  { type: 'schrijven', label: 'Schrijfoefening in ChatGPT' },
+  { type: 'voorzetsels', label: 'Voorzetseloefening in ChatGPT' },
+] as const satisfies readonly { type: Exclude<PracticeLogType, Tab>; label: string }[]
+
+export type ChatGptGoalType = (typeof CHATGPT_GOALS)[number]['type']
+
+export interface ChatGptGoal {
+  type: ChatGptGoalType
+  label: string
+  done: boolean
+}
+
+export function chatGptGoalsFor(practicedDates: Record<PracticeLogType, Set<string>>, today: string): ChatGptGoal[] {
+  return CHATGPT_GOALS.map(({ type, label }) => ({ type, label, done: practicedDates[type].has(today) }))
 }
 
 // Only the goals of tabs that are shown: a hidden tab isn't a goal.

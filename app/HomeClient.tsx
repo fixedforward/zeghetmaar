@@ -17,7 +17,7 @@ import { useLanguageIslands } from './hooks/useLanguageIslands'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { TAB_LABELS, isTab } from './config/tabs'
-import { currentStreak, dailyGoalsFor, mergeDates } from './lib/dailyGoals'
+import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates } from './lib/dailyGoals'
 import { todayLocalIso } from './lib/date'
 import { newestWords } from './lib/wordFilters'
 import { SideNav, BottomNav } from './components/AppNav'
@@ -53,6 +53,10 @@ export default function HomeClient() {
   const clozeTracker = usePracticeTracker('cloze', !!session)
   const taaleilandenTracker = usePracticeTracker('taaleilanden', !!session)
   const luisterenTracker = usePracticeTracker('luisteren', !!session)
+  const chatGptTrackers = {
+    schrijven: usePracticeTracker('schrijven', !!session),
+    voorzetsels: usePracticeTracker('voorzetsels', !!session),
+  }
 
   const exercises = useExercises()
   const words = useWords(activeModel)
@@ -99,12 +103,15 @@ export default function HomeClient() {
       clozeTracker.loadPracticeLog()
       taaleilandenTracker.loadPracticeLog()
       luisterenTracker.loadPracticeLog()
+      chatGptTrackers.schrijven.loadPracticeLog()
+      chatGptTrackers.voorzetsels.loadPracticeLog()
       quiz.loadPreparedFileIds()
     }
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
     taaleilandenTracker.loadPracticeLog, luisterenTracker.loadPracticeLog,
+    chatGptTrackers.schrijven.loadPracticeLog, chatGptTrackers.voorzetsels.loadPracticeLog,
     quiz.loadPreparedFileIds,
   ])
 
@@ -123,6 +130,8 @@ export default function HomeClient() {
     oefensessie: oefenSessieTracker.practicedDates,
     taaleilanden: taaleilandenTracker.practicedDates,
     luisteren: luisterenTracker.practicedDates,
+    schrijven: chatGptTrackers.schrijven.practicedDates,
+    voorzetsels: chatGptTrackers.voorzetsels.practicedDates,
   }
   const goals = dailyGoalsFor(practicedDates, tabSettings.visibleTabs, today)
   const practicedDays = mergeDates(Object.values(practicedDates))
@@ -165,6 +174,9 @@ export default function HomeClient() {
                 recentWords={newestWords(words.words, 4)}
                 onSelect={selectTab}
                 onCheckInListening={luisterenTracker.markPracticedToday}
+                chatGptGoals={chatGptGoalsFor(practicedDates, today)}
+                onCheckInChatGpt={type => chatGptTrackers[type].markPracticedToday()}
+                onCancelChatGpt={type => chatGptTrackers[type].cancelPracticedToday()}
                 onSignIn={() => signIn('google')}
               />
             </ErrorBoundary>
