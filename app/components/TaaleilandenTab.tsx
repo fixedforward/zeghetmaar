@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
 import type { LanguageIsland } from '../types'
 import type { useLanguageIslands } from '../hooks/useLanguageIslands'
 import { ConfirmDeleteButton } from './ConfirmDeleteButton'
@@ -7,6 +7,7 @@ import { SearchInput } from './SearchInput'
 import { filterIslands } from '../lib/languageIslands'
 import { PRACTICE_SIZE, useIslandPractice } from '../hooks/useIslandPractice'
 import { IslandPractice } from './IslandPractice'
+import { PracticeCounter } from './PracticeCounter'
 
 type Islands = ReturnType<typeof useLanguageIslands>
 
@@ -14,6 +15,7 @@ const PAGE_SIZE = 10
 
 type Props = Islands & {
   isLoggedIn: boolean
+  tracker: ComponentProps<typeof PracticeCounter>
 }
 
 function EditableText({ text, saving, onSave, onDelete, textClassName }: {
@@ -125,11 +127,11 @@ function IslandCard({ island, islands }: { island: LanguageIsland; islands: Isla
   )
 }
 
-export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
+export function TaaleilandenTab({ isLoggedIn, tracker, ...islands }: Props) {
   const [english, setEnglish] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const practice = useIslandPractice()
+  const practice = useIslandPractice(tracker.onCheckIn)
   const { loadIslands } = islands
 
   useEffect(() => {
@@ -158,6 +160,7 @@ export function TaaleilandenTab({ isLoggedIn, ...islands }: Props) {
 
   return (
     <div className="space-y-4">
+      <PracticeCounter {...tracker} />
       <p className="text-sm text-gray-500">
         Zet hier de frases die je het vaakst zegt, in het Engels. Klap er een open om je Nederlandse opties te zien, of vraag ChatGPT om meer.
       </p>

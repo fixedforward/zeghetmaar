@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   isValidIsoDate,
+  isPracticeLogType,
   isoDateToYearDay,
   yearDayToIsoDate,
   encodeYearBitmap,
@@ -114,5 +115,12 @@ describe('computeFullStreak', () => {
   it('treats a single fully-checked-off set as one streak', () => {
     const a = new Set(['2026-09-24'])
     expect(computeFullStreak([a], '2026-09-24')).toBe(1)
+  })
+})
+
+describe('isPracticeLogType', () => {
+  it('accepts taaleilanden and no longer accepts the removed fouten log', () => {
+    expect(isPracticeLogType('taaleilanden')).toBe(true)
+    expect(isPracticeLogType('fouten')).toBe(false)
   })
 })

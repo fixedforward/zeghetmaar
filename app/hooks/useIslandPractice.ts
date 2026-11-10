@@ -6,7 +6,7 @@ import { insertLater, randomRequeueGap } from '../lib/requeue'
 export const PRACTICE_SIZE = 10
 export const SECONDS_PER_CARD = 10
 
-export function useIslandPractice() {
+export function useIslandPractice(onPractice?: () => void) {
   const [queue, setQueue] = useState<LanguageIsland[]>([])
   const [index, setIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
@@ -62,6 +62,7 @@ export function useIslandPractice() {
 
   const markAndNext = useCallback((correct: boolean) => {
     if (!current || !revealed) return
+    onPractice?.()
     setFirstTry(prev => current.id in prev ? prev : { ...prev, [current.id]: correct })
     const nextQueue = correct ? queue : insertLater(queue, index, randomRequeueGap(), current)
     setQueue(nextQueue)
@@ -71,7 +72,7 @@ export function useIslandPractice() {
     }
     setIndex(index + 1)
     startCard()
-  }, [current, revealed, queue, index])
+  }, [current, revealed, queue, index, onPractice])
 
   const results = Object.values(firstTry)
 

@@ -32,7 +32,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/HomeClient.tsx` | Thin shell: opens on Vandaag, tab switching via the side menu (desktop) or bottom bar (phone), a heading with the open tab's name, the five practice trackers, wires hooks to tab components |
 | `app/components/AppNav.tsx` + `app/components/TabIcon.tsx` | `SideNav` (md and up: brand, Vandaag, the shown tabs under their group headings, ✓ after a goal done today, Instellingen at the bottom) and `BottomNav` (phone: Vandaag, Oefenen, Fraselijst, Luisteren, Meer; Oefenen and Meer open a sheet with the tabs of their groups, Meer also holds Instellingen); one stroke icon per tab |
 | `app/config/tabs.ts` | `ALL_TABS` (the tabs Instellingen can show/hide/order; `vandaag` isn't one of them, it's always in the menu), `TAB_LABELS`, `TAB_GROUPS` (Oefenen, Lezen & luisteren, Mijn lijsten, Hulpmiddelen), `groupVisibleTabs` (groups with only the shown tabs, in the Instellingen order, empty ones dropped) and `isTab` (for `?tab=`) |
-| `app/components/VandaagTab.tsx` + `app/lib/dailyGoals.ts` | Vandaag start page: the date, how many daily goals are done and a "Volgende: …" button to the first open one, the streak (`currentStreak`: days in a row with any goal done; today not done yet counts back from yesterday) with this week Monday–Sunday (`weekDates`), a card per goal (`dailyGoalsFor`: Quiz, Cloze, Oefensessie, Luisteren — only the tabs that are shown) with Start/Nog een ronde, a manual "Ik heb vandaag geluisterd" check-in, and the 4 newest phrases (`newestWords` in `wordFilters.ts`); logged out it asks you to log in instead of showing goals |
+| `app/components/VandaagTab.tsx` + `app/lib/dailyGoals.ts` | Vandaag start page: the date, how many daily goals are done and a "Volgende: …" button to the first open one, the streak (`currentStreak`: days in a row with any goal done; today not done yet counts back from yesterday) with this week Monday–Sunday (`weekDates`), a card per goal (`dailyGoalsFor`: Quiz, Cloze, Oefensessie, Taaleilanden, Luisteren — only the tabs that are shown) with Start/Nog een ronde, a manual "Ik heb vandaag geluisterd" check-in, and the 4 newest phrases (`newestWords` in `wordFilters.ts`); logged out it asks you to log in instead of showing goals |
 | `app/components/FocusScreen.tsx` + `app/components/MarkButtons.tsx` | The dark full-screen view every practice session runs in (Cloze, Quiz, Taaleilanden): "✕ Stoppen", title, `n / total` with a progress bar, a status line and the shortcuts below; it stops the page behind it from scrolling. Its content keeps its normal Tailwind classes: `.focus-mode` in `globals.css` redefines Tailwind's color variables to dark ones. `MarkButtons` is the shared "✗ Fout (1)" / "✓ Goed (2)" pair, big and stuck to the bottom on a phone |
 | `app/hooks/useRevealMarkShortcuts.ts` | Space/Enter shows the answer, then 1 = Fout and 2 = Goed (not in a text field or with ⌘/Ctrl/Alt); shared by Cloze kaarten, Quiz and Taaleilanden |
 | `app/hooks/useWords.ts` | Fraselijst state + CRUD calls to `/api/words` |
@@ -54,7 +54,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/quiz/files/[id]/route.ts` | GET handler: reads and parses one quiz file into sentence pairs; login required |
 | `app/api/articles/route.ts` | GET handler: lists subfolders + articles (Google Docs / `.txt`) in a Drive folder (`?folderId=`, defaults to the configured root); login required |
 | `app/api/articles/[id]/route.ts` | GET handler: reads one article as plain text, split into paragraphs; login required |
-| `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie`, `quiz`, `cloze` or `luisteren`, each tracked independently) — DELETE undoes a check-in; login required |
+| `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie`, `quiz`, `cloze`, `taaleilanden` or `luisteren`, each tracked independently) — DELETE undoes a check-in; login required |
 | `app/api/marked-files/[kind]/route.ts` | GET/POST/DELETE for ticked-off Drive files (`kind` is `quiz` → "voorbereid" quiz files, or `articles` → "gelezen" articles); POST marks, DELETE unmarks; login required |
 | `app/api/luisteren/route.ts` | GET/POST/DELETE for the Luisteren YouTube links (POST `{ url, title }` rejects non-YouTube URLs, PUT `{ id, positionSeconds?, phrases? }` updates a link — where you left off (`null` clears it) and/or its noted phrases, DELETE `{ id }`); login required |
 | `app/api/luisteren/lessons/[folderId]/route.ts` | GET handler (`?file=<mediaFileId>`): one listening lesson = an .mp3/.mp4 in that Drive folder plus the `.srt` with the **same name** next to it; returns the media file id, the expected `.srt` name, the `.srt`'s file id (`subtitleFileId`, null when missing) and the parsed cues (empty when the `.srt` is missing), 404 if the file isn't a playable file in that folder; login required. The folder id is passed in because Drive doesn't return `parents` for link-shared files |
@@ -70,7 +70,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/pictures/[id]/route.ts` | GET handler: streams one Drive image to `<img>` (refuses non-images with 415); login required |
 | `app/api/language-islands/route.ts` | GET/POST `{ english }`/PUT `{ id, english?, options? }`/DELETE `{ id }` for the Taaleilanden (`languageIslands` on the phrase-list JSON root, newest first, via `get/add/update/deleteLanguageIslandAsync` in `driveStore.ts`); login required |
 | `app/hooks/useLanguageIslands.ts` + `app/components/TaaleilandenTab.tsx` + `app/lib/languageIslands.ts` | Taaleilanden tab (key `taaleilanden`): register a phrase I say a lot, in English (editable afterwards); each one is a collapsible `<details>` with its Dutch options, which I add, edit and remove by hand (both through the shared `EditableText` row in the tab); a search box (`SearchInput`, matching the English phrase or any option via `filterIslands`) and 10 per page (`Pagination`) (`mergeIslandOptions` keeps existing ones first and skips case-insensitive duplicates). No AI calls: "Vraag ChatGPT" opens ChatGPT asking for natural Dutch ways to say it, listing the options I already have (`languageIslandPrompt`, `buildChatGptLanguageIslandUrl`) |
-| `app/hooks/useIslandPractice.ts` + `app/components/IslandPractice.tsx` | Taaleilanden "Oefenen": 10 random islands that have options (`pickPracticeIslands`) as flash cards; the English phrase with a 10 s countdown (the answer shows itself when time is up), an unchecked `CardScratchField`, Space/Enter shows my Dutch options, then Fout/Goed with 1/2; a wrong card comes back 2–5 cards later (`insertLater`); the end shows how many were right the first time and the total time. No daily counter |
+| `app/hooks/useIslandPractice.ts` + `app/components/IslandPractice.tsx` | Taaleilanden "Oefenen": 10 random islands that have options (`pickPracticeIslands`) as flash cards; the English phrase with a 10 s countdown (the answer shows itself when time is up), an unchecked `CardScratchField`, Space/Enter shows my Dutch options, then Fout/Goed with 1/2; a wrong card comes back 2–5 cards later (`insertLater`); the end shows how many were right the first time and the total time. Marking a card Fout/Goed marks the `taaleilanden` day counter (`PracticeCounter` at the top of the tab) |
 | `app/components/Pagination.tsx` + `app/components/SearchInput.tsx` | Shared ‹ 1 … 5 › page bar (built with `buildPageList` in `app/lib/pagination.ts`, hidden for a single page) and search box with a ✕ clear button, used by Fraselijst and Taaleilanden |
 | `app/components/ConfirmDeleteButton.tsx` | "✕ Verwijderen" with a Ja/Nee confirm, used by Taaleilanden |
 | `app/lib/requeue.ts` | `randomRequeueGap` + `insertLater`: the "wrong answer comes back 2–5 cards later" step shared by Quiz and Cloze |
@@ -82,7 +82,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/lib/practiceLog.ts` | Pure helpers for the practice counters: log-type namespacing, ISO-date ↔ (year, day-of-year), per-year bitmap encode/decode |
 | `app/lib/date.ts` | `todayLocalIso()` — today's date as `YYYY-MM-DD` in the browser's local timezone |
 | `app/hooks/usePracticeTracker.ts` | Client state for one practice counter (a `PracticeLogType`): loads/marks practiced days, calls `/api/practice-log/[type]` |
-| `app/components/PracticeCounter.tsx` | "X dagen geoefend" count plus a check-in button that also lets you cancel today's check-in, used in Oefensessie, Quiz, Cloze and Luisteren |
+| `app/components/PracticeCounter.tsx` | "X dagen geoefend" count plus a check-in button that also lets you cancel today's check-in, used in Oefensessie, Quiz, Cloze, Taaleilanden and Luisteren |
 | `app/components/TagsSelect.tsx` | Dropdown for picking existing tags (checkboxes) or creating a new one, used in the add form and `PhraseDetailModal` |
 | `app/components/TagsManageModal.tsx` | "Tags beheren" modal: rename or delete a tag across every phrase that has it, via `/api/tags` |
 | `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs; also exports `readDriveTextFileAsync` (Google Doc → plain-text export, other files → raw download) |
@@ -232,7 +232,7 @@ Herschrijver/Vertaler.
 
 ## Practice Tracker
 
-Oefensessie, Quiz, Cloze and Luisteren each show a small counter (`PracticeCounter.tsx`) when logged in: "X
+Oefensessie, Quiz, Cloze, Taaleilanden and Luisteren each show a small counter (`PracticeCounter.tsx`) when logged in: "X
 dagen geoefend" plus a check-in button that toggles between "Vandaag inchecken" and "✓
 Vandaag ingecheckt (annuleren)" — clicking it again undoes today's check-in. The two are
 tracked completely independently — Oefensessie only counts submitting an answer in
@@ -245,7 +245,7 @@ two tabs (Fraselijst, Herschrijver, Vertaler, the phrase practice modal) affects
 counter.
 
 `HomeClient.tsx` holds a `usePracticeTracker` instance per log type (`PRACTICE_LOG_TYPES`:
-`oefensessie`, `quiz`, `cloze`, `luisteren`; Luisteren has no action that counts, so
+`oefensessie`, `quiz`, `cloze`, `taaleilanden`, `luisteren`; Luisteren has no action that counts, so
 it's only checked in by hand), and the Vandaag page reads all of them; each independently loading/marking/canceling via `GET`/`POST`/`DELETE
 /api/practice-log/[type]` (login-gated).
 

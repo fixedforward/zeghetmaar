@@ -3,7 +3,7 @@ import type { PracticeLogType } from './practiceLog'
 import { addDaysIso } from './date'
 
 // The tabs with a daily counter, in the order the Vandaag page shows them.
-export const DAILY_GOALS: PracticeLogType[] = ['quiz', 'cloze', 'oefensessie', 'luisteren']
+export const DAILY_GOALS: PracticeLogType[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'luisteren']
 
 export interface DailyGoal {
   tab: PracticeLogType

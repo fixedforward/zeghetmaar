@@ -51,6 +51,7 @@ export default function HomeClient() {
   const oefenSessieTracker = usePracticeTracker('oefensessie', !!session)
   const quizTracker = usePracticeTracker('quiz', !!session)
   const clozeTracker = usePracticeTracker('cloze', !!session)
+  const taaleilandenTracker = usePracticeTracker('taaleilanden', !!session)
   const luisterenTracker = usePracticeTracker('luisteren', !!session)
 
   const exercises = useExercises()
@@ -96,13 +97,14 @@ export default function HomeClient() {
       oefenSessieTracker.loadPracticeLog()
       quizTracker.loadPracticeLog()
       clozeTracker.loadPracticeLog()
+      taaleilandenTracker.loadPracticeLog()
       luisterenTracker.loadPracticeLog()
       quiz.loadPreparedFileIds()
     }
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
-    luisterenTracker.loadPracticeLog,
+    taaleilandenTracker.loadPracticeLog, luisterenTracker.loadPracticeLog,
     quiz.loadPreparedFileIds,
   ])
 
@@ -119,6 +121,7 @@ export default function HomeClient() {
     quiz: quizTracker.practicedDates,
     cloze: clozeTracker.practicedDates,
     oefensessie: oefenSessieTracker.practicedDates,
+    taaleilanden: taaleilandenTracker.practicedDates,
     luisteren: luisterenTracker.practicedDates,
   }
   const goals = dailyGoalsFor(practicedDates, tabSettings.visibleTabs, today)
@@ -222,7 +225,19 @@ export default function HomeClient() {
               />
             </ErrorBoundary>
           )}
-          {activeTab === 'taaleilanden' && <ErrorBoundary><TaaleilandenTab {...languageIslands} isLoggedIn={!!session} /></ErrorBoundary>}
+          {activeTab === 'taaleilanden' && (
+            <ErrorBoundary>
+              <TaaleilandenTab
+                {...languageIslands}
+                isLoggedIn={!!session}
+                tracker={{
+                  practicedDates: taaleilandenTracker.practicedDates,
+                  onCheckIn: taaleilandenTracker.markPracticedToday,
+                  onCancelCheckIn: taaleilandenTracker.cancelPracticedToday,
+                }}
+              />
+            </ErrorBoundary>
+          )}
         </main>
       </div>
       <BottomNav {...navProps} />

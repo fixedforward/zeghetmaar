@@ -19,7 +19,7 @@ function renderTab(islands = [island]) {
     deleteOptionAsync: vi.fn(),
     deleteIslandAsync: vi.fn(),
   }
-  render(<TaaleilandenTab {...props} isLoggedIn />)
+  render(<TaaleilandenTab {...props} isLoggedIn tracker={{ practicedDates: new Set<string>(), onCheckIn: vi.fn(), onCancelCheckIn: vi.fn() }} />)
   return props
 }
 

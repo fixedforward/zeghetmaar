@@ -3,9 +3,9 @@ import { currentStreak, dailyGoalsFor, mergeDates, weekDates } from '../lib/dail
 import type { Tab } from '../types'
 
 const noDates = () => ({
-  quiz: new Set<string>(), cloze: new Set<string>(), oefensessie: new Set<string>(), luisteren: new Set<string>(),
+  quiz: new Set<string>(), cloze: new Set<string>(), oefensessie: new Set<string>(), taaleilanden: new Set<string>(), luisteren: new Set<string>(),
 })
-const allTabs: Tab[] = ['quiz', 'cloze', 'oefensessie', 'luisteren']
+const allTabs: Tab[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'luisteren']
 
 describe('dailyGoalsFor', () => {
   it('marks a goal done only when its own log has today', () => {
@@ -14,6 +14,7 @@ describe('dailyGoalsFor', () => {
       { tab: 'quiz', done: false },
       { tab: 'cloze', done: true },
       { tab: 'oefensessie', done: false },
+      { tab: 'taaleilanden', done: false },
       { tab: 'luisteren', done: false },
     ])
   })

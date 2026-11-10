@@ -105,6 +105,18 @@ describe('useIslandPractice', () => {
     expect(result.current.total).toBe(PRACTICE_SIZE)
   })
 
+  it('counts a marked card as practice, but not a card that is only shown', () => {
+    const onPractice = vi.fn()
+    const { result } = renderHook(() => useIslandPractice(onPractice))
+    act(() => { result.current.start(islands) })
+
+    act(() => { result.current.reveal() })
+    expect(onPractice).not.toHaveBeenCalled()
+
+    act(() => { result.current.markAndNext(false) })
+    expect(onPractice).toHaveBeenCalledTimes(1)
+  })
+
   it('stop goes back to the list', () => {
     const { result } = renderHook(() => useIslandPractice())
     act(() => { result.current.start(islands) })
