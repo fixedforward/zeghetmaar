@@ -1,17 +1,4 @@
-export type Tab = 'vandaag' | 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'fouten' | 'taaleilanden'
-
-// One row of the mistakes .tsv on Drive; `row` is its line index in the file (the header is 0).
-export interface Mistake {
-  row: number
-  mistake: string
-  correction: string
-  type: string
-  timesPracticed: number
-  // English version of the sentence: the prompt for translation practice. Empty when the file has none.
-  translation: string
-  // A simpler or more natural way to say it than the plain correction. Empty when there is none.
-  rewording: string
-}
+export type Tab = 'vandaag' | 'herschrijver' | 'vertaler' | 'fraselijst' | 'oefeningen' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'taaleilanden'
 
 export interface QuizFile {
   id: string

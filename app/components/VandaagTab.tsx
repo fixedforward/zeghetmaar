@@ -10,20 +10,18 @@ type Props = {
   goals: DailyGoal[]
   streak: number
   practicedDays: Set<string>
-  translationsToday: number
   recentWords: WordEntry[]
   onSelect: (tab: Tab) => void
   onCheckInListening: () => void
   onSignIn: () => void
 }
 
-function goalDetail(goal: DailyGoal, translationsToday: number): string | null {
-  if (goal.tab === 'fouten') return `${translationsToday} ${translationsToday === 1 ? 'zin' : 'zinnen'} vandaag`
+function goalDetail(goal: DailyGoal): string | null {
   if (goal.tab === 'luisteren') return '10 minuten actief luisteren'
   return null
 }
 
-export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, translationsToday, recentWords, onSelect, onCheckInListening, onSignIn }: Props) {
+export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, recentWords, onSelect, onCheckInListening, onSignIn }: Props) {
   const doneCount = goals.filter(g => g.done).length
   const next = goals.find(g => !g.done)
 
@@ -91,7 +89,7 @@ export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, tr
             {goals.length === 0 && <p className="text-sm text-gray-500">Alle tabs met een dagteller staan uit in Instellingen.</p>}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {goals.map(goal => {
-                const detail = goalDetail(goal, translationsToday)
+                const detail = goalDetail(goal)
                 return (
                   <article key={goal.tab} className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4">
                     <div className="flex items-center justify-between gap-2">

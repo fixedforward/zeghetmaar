@@ -13,7 +13,6 @@ import { useQuiz } from './hooks/useQuiz'
 import { useCloze } from './hooks/useCloze'
 import { useArticles } from './hooks/useArticles'
 import { useListeningTree } from './hooks/useListeningTree'
-import { useMistakes } from './hooks/useMistakes'
 import { useLanguageIslands } from './hooks/useLanguageIslands'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
@@ -32,7 +31,6 @@ import { QuizTab } from './components/QuizTab'
 import { ClozeTab } from './components/ClozeTab'
 import { ArtikelenTab } from './components/ArtikelenTab'
 import { LuisterenTab } from './components/LuisterenTab'
-import { FoutenTab } from './components/FoutenTab'
 import { TaaleilandenTab } from './components/TaaleilandenTab'
 import { SelectionPopup } from './components/SelectionPopup'
 import { PracticeModal } from './components/PracticeModal'
@@ -53,7 +51,6 @@ export default function HomeClient() {
   const oefenSessieTracker = usePracticeTracker('oefensessie', !!session)
   const quizTracker = usePracticeTracker('quiz', !!session)
   const clozeTracker = usePracticeTracker('cloze', !!session)
-  const foutenTracker = usePracticeTracker('fouten', !!session)
   const luisterenTracker = usePracticeTracker('luisteren', !!session)
 
   const exercises = useExercises()
@@ -65,7 +62,6 @@ export default function HomeClient() {
   const cloze = useCloze(clozeTracker.markPracticedToday)
   const articles = useArticles()
   const listeningTree = useListeningTree()
-  const fouten = useMistakes(foutenTracker.markPracticedToday)
   const languageIslands = useLanguageIslands()
   const tabSettings = useTabSettings()
 
@@ -100,14 +96,13 @@ export default function HomeClient() {
       oefenSessieTracker.loadPracticeLog()
       quizTracker.loadPracticeLog()
       clozeTracker.loadPracticeLog()
-      foutenTracker.loadPracticeLog()
       luisterenTracker.loadPracticeLog()
       quiz.loadPreparedFileIds()
     }
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
-    foutenTracker.loadPracticeLog, luisterenTracker.loadPracticeLog,
+    luisterenTracker.loadPracticeLog,
     quiz.loadPreparedFileIds,
   ])
 
@@ -124,7 +119,6 @@ export default function HomeClient() {
     quiz: quizTracker.practicedDates,
     cloze: clozeTracker.practicedDates,
     oefensessie: oefenSessieTracker.practicedDates,
-    fouten: foutenTracker.practicedDates,
     luisteren: luisterenTracker.practicedDates,
   }
   const goals = dailyGoalsFor(practicedDates, tabSettings.visibleTabs, today)
@@ -165,7 +159,6 @@ export default function HomeClient() {
                 goals={goals}
                 streak={currentStreak(practicedDays, today)}
                 practicedDays={practicedDays}
-                translationsToday={fouten.practicedTodayCount}
                 recentWords={newestWords(words.words, 4)}
                 onSelect={selectTab}
                 onCheckInListening={luisterenTracker.markPracticedToday}
@@ -226,17 +219,6 @@ export default function HomeClient() {
                   onCheckIn: luisterenTracker.markPracticedToday,
                   onCancelCheckIn: luisterenTracker.cancelPracticedToday,
                 }}
-              />
-            </ErrorBoundary>
-          )}
-          {activeTab === 'fouten' && (
-            <ErrorBoundary>
-              <FoutenTab
-                {...fouten}
-                isLoggedIn={!!session}
-                practicedDates={foutenTracker.practicedDates}
-                onCheckIn={foutenTracker.markPracticedToday}
-                onCancelCheckIn={foutenTracker.cancelPracticedToday}
               />
             </ErrorBoundary>
           )}

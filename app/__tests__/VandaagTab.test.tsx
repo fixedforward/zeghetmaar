@@ -14,7 +14,6 @@ function renderVandaag(overrides: Partial<ComponentProps<typeof VandaagTab>> = {
     ],
     streak: 12,
     practicedDays: new Set(['2026-11-09', '2026-11-10']),
-    translationsToday: 0,
     recentWords: [],
     onSelect: vi.fn(),
     onCheckInListening: vi.fn(),

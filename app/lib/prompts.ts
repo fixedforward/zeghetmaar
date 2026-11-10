@@ -1,4 +1,4 @@
-import type { Mistake, WordEntry } from '../types'
+import type { WordEntry } from '../types'
 
 export function practiceScenarioPrompt(phrase: WordEntry, extraWords: WordEntry[] = []): string {
   // Ground the generated situation in the phrase's own meanings/examples, not
@@ -87,39 +87,6 @@ export function listeningComprehensionPrompt(title: string, transcriptUrl: strin
     ONE_QUESTION_AT_A_TIME,
     `Kun je de link niet openen? Zeg dat dan meteen, in plaats van te raden wat erin staat.`,
   ].join('\n')
-}
-
-const ANSWER_AS_TABLE = [
-  `Antwoord kort, zonder lange uitleg in zinnen, in deze volgorde:`,
-  `1. Mijn poging: herhaal mijn zin precies zoals ik hem schreef, met "goed" of "niet goed" erachter.`,
-  `2. Verbetering / herformulering: de hele verbeterde of natuurlijkere zin op één regel.`,
-  `3. Natuurlijker: als het kan en past, een natuurlijkere herformulering zoals een Nederlander het zou zeggen, op één regel. Is de zin al natuurlijk, laat dit dan weg.`,
-  `4. Uitleg: een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom (max. 10 woorden).`,
-  `Is alles goed, laat de tabel dan weg.`,
-].join('\n')
-
-// With an English translation the exercise is translation practice; without one it falls back to fixing the mistake.
-export function mistakeFixCheckPrompt(mistake: Pick<Mistake, 'mistake' | 'correction' | 'type' | 'translation'>, attempt: string): string {
-  if (mistake.translation) {
-    return [
-      `Ik leer Nederlands en oefen met vertalen, om me duidelijker en natuurlijker uit te drukken.`,
-      `Ik moest deze Engelse zin naar het Nederlands vertalen: "${mistake.translation}"`,
-      `Mijn vertaling: "${attempt}"`,
-      `Een mogelijke vertaling: "${mistake.correction}"`,
-      `Eerder schreef ik het zo, met een fout: "${mistake.mistake}"`,
-      `Zeg of mijn vertaling goed is: klopt de grammatica, zegt hij hetzelfde als de Engelse zin, en klinkt hij natuurlijk? Hij hoeft niet precies gelijk te zijn aan de mogelijke vertaling. Zet ook in de tabel wat duidelijker of natuurlijker kan.`,
-      ANSWER_AS_TABLE,
-    ].join('\n')
-  }
-  return [
-    `Ik leer Nederlands en oefen met mijn eigen fouten. Ik moest deze zin verbeteren.`,
-    `Mijn fout: "${mistake.mistake}"`,
-    mistake.type ? `Type fout: ${mistake.type}` : null,
-    `Mijn poging: "${attempt}"`,
-    `Een mogelijke verbetering: "${mistake.correction}"`,
-    `Zeg of mijn poging goed is. Mijn poging hoeft niet precies gelijk te zijn aan de mogelijke verbetering, als hij ook correct en natuurlijk Nederlands is.`,
-    ANSWER_AS_TABLE,
-  ].filter(line => line !== null).join('\n')
 }
 
 export function checkAnswerPrompt(phrase: string, situation: string, answer: string, extraWords: string[] = []): string {

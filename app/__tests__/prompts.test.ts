@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, mistakeFixCheckPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt, languageIslandPrompt } from '../lib/prompts'
+import { practiceScenarioPrompt, evaluateAnswerPrompt, explainPhrasePrompt, comprehensionCheckPrompt, listeningComprehensionPrompt, checkAnswerPrompt, translateWordPrompt, generateExamplePrompt, languageIslandPrompt } from '../lib/prompts'
 import type { WordEntry } from '../types'
 
 const basePhrase: WordEntry = {
@@ -122,45 +122,6 @@ describe('listeningComprehensionPrompt', () => {
     expect(prompt).toContain('Kun je de link niet openen?')
     expect(prompt).toContain('op welk tijdstip in het transcript het antwoord zit')
     expect(prompt).toContain('nieuwe of moeilijke woorden of uitdrukkingen uit het transcript die ik in mijn antwoord moet gebruiken')
-  })
-})
-
-describe('mistakeFixCheckPrompt', () => {
-  it('includes my mistake, its type, my attempt and the possible correction, and asks if I got it right', () => {
-    const prompt = mistakeFixCheckPrompt(
-      { mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix', translation: '' },
-      'Ik ben het met jou eens.',
-    )
-
-    expect(prompt).toContain('Mijn fout: "ik ben eens met jou"')
-    expect(prompt).toContain('Type fout: Grammar fix')
-    expect(prompt).toContain('Mijn poging: "Ik ben het met jou eens."')
-    expect(prompt).toContain('Een mogelijke verbetering: "Ik ben het eens met jou."')
-    expect(prompt).toContain('Zeg of mijn poging goed is.')
-    expect(prompt).toContain('een tabel met per fout één rij en de kolommen: Mijn tekst | Verbetering | Waarom')
-    expect(prompt.indexOf('1. Mijn poging')).toBeLessThan(prompt.indexOf('2. Verbetering / herformulering'))
-    expect(prompt.indexOf('2. Verbetering / herformulering')).toBeLessThan(prompt.indexOf('3. Natuurlijker:'))
-    expect(prompt.indexOf('3. Natuurlijker:')).toBeLessThan(prompt.indexOf('4. Uitleg: een tabel'))
-    expect(prompt).toContain('als het kan en past, een natuurlijkere herformulering')
-  })
-
-  it('asks about my translation of the English sentence when there is one', () => {
-    const prompt = mistakeFixCheckPrompt(
-      { mistake: 'ik ben eens met jou', correction: 'Ik ben het eens met jou.', type: 'Grammar fix', translation: 'I agree with you.' },
-      'Ik ben het met je eens.',
-    )
-
-    expect(prompt).toContain('deze Engelse zin naar het Nederlands vertalen: "I agree with you."')
-    expect(prompt).toContain('Mijn vertaling: "Ik ben het met je eens."')
-    expect(prompt).toContain('Een mogelijke vertaling: "Ik ben het eens met jou."')
-    expect(prompt).toContain('met een fout: "ik ben eens met jou"')
-    expect(prompt).toContain('klinkt hij natuurlijk?')
-    expect(prompt).toContain('zonder lange uitleg in zinnen')
-    expect(prompt).toContain('een tabel met per fout één rij')
-  })
-
-  it('leaves out the type line when there is no type', () => {
-    expect(mistakeFixCheckPrompt({ mistake: 'a', correction: 'b', type: '', translation: '' }, 'c')).not.toContain('Type fout')
   })
 })
 
