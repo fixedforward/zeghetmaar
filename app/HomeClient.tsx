@@ -52,6 +52,7 @@ export default function HomeClient() {
   const quizTracker = usePracticeTracker('quiz', !!session)
   const clozeTracker = usePracticeTracker('cloze', !!session)
   const taaleilandenTracker = usePracticeTracker('taaleilanden', !!session)
+  const artikelenTracker = usePracticeTracker('artikelen', !!session)
   const luisterenTracker = usePracticeTracker('luisteren', !!session)
   const chatGptTrackers = {
     schrijven: usePracticeTracker('schrijven', !!session),
@@ -65,7 +66,7 @@ export default function HomeClient() {
   const oefenSessie = useOefenSessie(activeModel, oefenSessieTracker.markPracticedToday)
   const quiz = useQuiz(quizTracker.markPracticedToday)
   const cloze = useCloze(clozeTracker.markPracticedToday)
-  const articles = useArticles()
+  const articles = useArticles(artikelenTracker.markPracticedToday)
   const listeningTree = useListeningTree()
   const languageIslands = useLanguageIslands()
   const tabSettings = useTabSettings()
@@ -102,6 +103,7 @@ export default function HomeClient() {
       quizTracker.loadPracticeLog()
       clozeTracker.loadPracticeLog()
       taaleilandenTracker.loadPracticeLog()
+      artikelenTracker.loadPracticeLog()
       luisterenTracker.loadPracticeLog()
       chatGptTrackers.schrijven.loadPracticeLog()
       chatGptTrackers.voorzetsels.loadPracticeLog()
@@ -110,7 +112,7 @@ export default function HomeClient() {
   }, [
     session,
     oefenSessieTracker.loadPracticeLog, quizTracker.loadPracticeLog, clozeTracker.loadPracticeLog,
-    taaleilandenTracker.loadPracticeLog, luisterenTracker.loadPracticeLog,
+    taaleilandenTracker.loadPracticeLog, artikelenTracker.loadPracticeLog, luisterenTracker.loadPracticeLog,
     chatGptTrackers.schrijven.loadPracticeLog, chatGptTrackers.voorzetsels.loadPracticeLog,
     quiz.loadPreparedFileIds,
   ])
@@ -129,6 +131,7 @@ export default function HomeClient() {
     cloze: clozeTracker.practicedDates,
     oefensessie: oefenSessieTracker.practicedDates,
     taaleilanden: taaleilandenTracker.practicedDates,
+    artikelen: artikelenTracker.practicedDates,
     luisteren: luisterenTracker.practicedDates,
     schrijven: chatGptTrackers.schrijven.practicedDates,
     voorzetsels: chatGptTrackers.voorzetsels.practicedDates,
@@ -223,7 +226,20 @@ export default function HomeClient() {
               />
             </ErrorBoundary>
           )}
-          {activeTab === 'artikelen' && <ErrorBoundary><ArtikelenTab {...articles} isLoggedIn={!!session} words={words} /></ErrorBoundary>}
+          {activeTab === 'artikelen' && (
+            <ErrorBoundary>
+              <ArtikelenTab
+                {...articles}
+                isLoggedIn={!!session}
+                words={words}
+                tracker={{
+                  practicedDates: artikelenTracker.practicedDates,
+                  onCheckIn: artikelenTracker.markPracticedToday,
+                  onCancelCheckIn: artikelenTracker.cancelPracticedToday,
+                }}
+              />
+            </ErrorBoundary>
+          )}
           {activeTab === 'luisteren' && (
             <ErrorBoundary>
               <LuisterenTab

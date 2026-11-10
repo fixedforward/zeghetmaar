@@ -75,4 +75,16 @@ describe('useArticles', () => {
       body: JSON.stringify({ fileId: 'd1' }),
     }))
   })
+
+  it('counts ticking an article off as read as practice, but not unticking it', async () => {
+    global.fetch = vi.fn().mockResolvedValue(ok({}))
+    const onPractice = vi.fn()
+    const { result } = renderHook(() => useArticles(onPractice))
+
+    await act(async () => { result.current.toggleArticleRead('d1') })
+    expect(onPractice).toHaveBeenCalledTimes(1)
+
+    await act(async () => { result.current.toggleArticleRead('d1') })
+    expect(onPractice).toHaveBeenCalledTimes(1)
+  })
 })

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type ComponentProps } from 'react'
 import type { useArticles } from '../hooks/useArticles'
 import type { useWords } from '../hooks/useWords'
 import { useChatGptSelection } from '../hooks/useChatGptSelection'
@@ -6,10 +6,12 @@ import { useAddPhraseModal } from '../hooks/useAddPhraseModal'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { buildChatGptComprehensionUrl, openChatGptInBackground } from '../lib/chatgpt'
 import { AddPhraseModal } from './AddPhraseModal'
+import { PracticeCounter } from './PracticeCounter'
 
 type Props = ReturnType<typeof useArticles> & {
   isLoggedIn: boolean
   words: ReturnType<typeof useWords>
+  tracker: ComponentProps<typeof PracticeCounter>
 }
 
 export function ArtikelenTab(articles: Props) {
@@ -88,6 +90,7 @@ export function ArtikelenTab(articles: Props) {
 
   return (
     <div>
+      <PracticeCounter {...articles.tracker} />
       {breadcrumb}
       {articles.foldersLoading && <p className="text-sm text-gray-400">Laden...</p>}
       {articles.foldersError && <p className="text-sm text-red-500">{articles.foldersError}</p>}

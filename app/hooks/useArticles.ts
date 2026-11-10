@@ -9,7 +9,7 @@ async function fetchJsonAsync<T>(url: string, fallbackError: string): Promise<T>
   return data as T
 }
 
-export function useArticles() {
+export function useArticles(onPractice?: () => void) {
   const [folderStack, setFolderStack] = useState<ArticleFolder[]>([])
   const [foldersLoading, setFoldersLoading] = useState(false)
   const [foldersError, setFoldersError] = useState<string | null>(null)
@@ -19,7 +19,13 @@ export function useArticles() {
   const [articleError, setArticleError] = useState<string | null>(null)
 
   const rootRequested = useRef(false)
-  const { markedIds: readArticleIds, loadMarkedIds: loadReadArticleIds, toggleMarked: toggleArticleRead } = useMarkedFiles('articles')
+  const { markedIds: readArticleIds, loadMarkedIds: loadReadArticleIds, toggleMarked } = useMarkedFiles('articles')
+
+  // Ticking an article off as read counts as practice; unticking it doesn't undo the day.
+  const toggleArticleRead = (fileId: string) => {
+    if (!readArticleIds.has(fileId)) onPractice?.()
+    toggleMarked(fileId)
+  }
 
   const currentFolder = folderStack[folderStack.length - 1] ?? null
 

@@ -3,10 +3,10 @@ import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates, weekDates } 
 import type { Tab } from '../types'
 
 const noDates = () => ({
-  quiz: new Set<string>(), cloze: new Set<string>(), oefensessie: new Set<string>(), taaleilanden: new Set<string>(), luisteren: new Set<string>(),
+  quiz: new Set<string>(), cloze: new Set<string>(), oefensessie: new Set<string>(), taaleilanden: new Set<string>(), artikelen: new Set<string>(), luisteren: new Set<string>(),
   schrijven: new Set<string>(), voorzetsels: new Set<string>(),
 })
-const allTabs: Tab[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'luisteren']
+const allTabs: Tab[] = ['quiz', 'cloze', 'oefensessie', 'taaleilanden', 'artikelen', 'luisteren']
 
 describe('dailyGoalsFor', () => {
   it('marks a goal done only when its own log has today', () => {
@@ -16,6 +16,7 @@ describe('dailyGoalsFor', () => {
       { tab: 'cloze', done: true },
       { tab: 'oefensessie', done: false },
       { tab: 'taaleilanden', done: false },
+      { tab: 'artikelen', done: false },
       { tab: 'luisteren', done: false },
     ])
   })
