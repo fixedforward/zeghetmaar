@@ -25,7 +25,8 @@ function goalDetail(goal: DailyGoal): string | null {
 }
 
 export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, recentWords, onSelect, onCheckInListening, chatGptGoals, onCheckInChatGpt, onCancelChatGpt, onSignIn }: Props) {
-  const doneCount = goals.filter(g => g.done).length
+  const goalCount = goals.length + chatGptGoals.length
+  const doneCount = [...goals, ...chatGptGoals].filter(g => g.done).length
   const next = goals.find(g => !g.done)
 
   return (
@@ -34,9 +35,9 @@ export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, re
         <div>
           <p className="text-sm text-gray-500 first-letter:uppercase">{formatDutchWeekdayDate(today)}</p>
           <h2 className="text-4xl font-bold tracking-tight">Vandaag</h2>
-          {isLoggedIn && goals.length > 0 && (
+          {isLoggedIn && goalCount > 0 && (
             <p className="mt-1 text-gray-600">
-              {next ? `Je hebt ${doneCount} van de ${goals.length} dagdoelen gehaald.` : 'Alle dagdoelen gehaald. Goed bezig!'}
+              {doneCount < goalCount ? `Je hebt ${doneCount} van de ${goalCount} dagdoelen gehaald.` : 'Alle dagdoelen gehaald. Goed bezig!'}
             </p>
           )}
         </div>
@@ -127,20 +128,17 @@ export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, re
                   </article>
                 )
               })}
-            </div>
-          </section>
-
-          <section aria-labelledby="chatgpt-oefeningen" className="space-y-3">
-            <h3 id="chatgpt-oefeningen" className="text-lg font-semibold">In ChatGPT</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {chatGptGoals.map(goal => (
                 <article key={goal.type} className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-semibold">{goal.label}</h4>
-                    <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${goal.done ? 'bg-green-50 text-green-800' : 'bg-orange-50 text-orange-800'}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${goal.done ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
+                      <TabIcon name="chatgpt" />
+                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${goal.done ? 'bg-green-50 text-green-800' : 'bg-orange-50 text-orange-800'}`}>
                       {goal.done ? 'Gedaan' : 'Nog niet'}
                     </span>
                   </div>
+                  <h4 className="font-semibold">{goal.label}</h4>
                   <button
                     type="button"
                     onClick={() => goal.done ? onCancelChatGpt(goal.type) : onCheckInChatGpt(goal.type)}

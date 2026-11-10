@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Tab } from '../types'
 
-export type IconName = Tab | 'meer' | 'instellingen'
+export type IconName = Tab | 'meer' | 'instellingen' | 'chatgpt'
 
 const ICON_PATHS: Record<IconName, ReactNode> = {
   vandaag: <path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" />,
@@ -15,6 +15,7 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
   herschrijver: <path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" />,
   vertaler: <path d="M4 8h14l-3-3M20 16H6l3 3" />,
   oefeningen: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
+  chatgpt: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" />,
   meer: <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3} />,
   instellingen: <><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></>,
 }

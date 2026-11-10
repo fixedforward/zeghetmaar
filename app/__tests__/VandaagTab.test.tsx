@@ -31,9 +31,9 @@ function renderVandaag(overrides: Partial<ComponentProps<typeof VandaagTab>> = {
 }
 
 describe('VandaagTab', () => {
-  it('says how many goals are done and offers the first open one next', () => {
+  it('says how many goals are done, ChatGPT exercises included, and offers the first open tab next', () => {
     const props = renderVandaag()
-    expect(screen.getByText('Je hebt 1 van de 3 dagdoelen gehaald.')).toBeTruthy()
+    expect(screen.getByText('Je hebt 2 van de 5 dagdoelen gehaald.')).toBeTruthy()
     fireEvent.click(screen.getByText('▶ Volgende: Quiz'))
     expect(props.onSelect).toHaveBeenCalledWith('quiz')
   })
@@ -64,13 +64,29 @@ describe('VandaagTab', () => {
     expect(props.onCancelChatGpt).toHaveBeenCalledWith('voorzetsels')
   })
 
+  it('shows the ChatGPT exercises among the daily goals', () => {
+    renderVandaag()
+    const dagdoelen = screen.getByRole('region', { name: 'Dagdoelen' })
+    expect(within(dagdoelen).getByText('Schrijfoefening in ChatGPT')).toBeTruthy()
+    expect(within(dagdoelen).getByText('Voorzetseloefening in ChatGPT')).toBeTruthy()
+  })
+
+  it('has no Volgende button when only ChatGPT exercises are left', () => {
+    renderVandaag({ goals: [{ tab: 'cloze', done: true }] })
+    expect(screen.getByText('Je hebt 2 van de 3 dagdoelen gehaald.')).toBeTruthy()
+    expect(screen.queryByText(/Volgende/)).toBeNull()
+  })
+
   it('shows the streak', () => {
     renderVandaag()
     expect(screen.getByText('12 dagen op rij')).toBeTruthy()
   })
 
   it('has no Volgende button once every goal is done', () => {
-    renderVandaag({ goals: [{ tab: 'cloze', done: true }] })
+    renderVandaag({
+      goals: [{ tab: 'cloze', done: true }],
+      chatGptGoals: [{ type: 'schrijven', label: 'Schrijfoefening in ChatGPT', done: true }],
+    })
     expect(screen.getByText('Alle dagdoelen gehaald. Goed bezig!')).toBeTruthy()
     expect(screen.queryByText(/Volgende/)).toBeNull()
   })
