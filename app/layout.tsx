@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Zeg het maar',
+  title: 'Zeg Het Maar',
   description: 'Learn Dutch with AI feedback',
 }
 

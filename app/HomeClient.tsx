@@ -115,7 +115,7 @@ export default function HomeClient() {
     <div className="min-h-screen">
       <main className="p-4 max-w-2xl mx-auto">
         <div className="flex justify-between items-center mb-1">
-          <h1 className="text-2xl font-bold">Zeg het maar</h1>
+          <h1 className="text-2xl font-bold">Zeg Het Maar</h1>
         </div>
         {authError && (
           <div className="flex items-start justify-between gap-3 mb-3 p-3 rounded border border-red-200 bg-red-50 text-sm text-red-700">
