@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, type ComponentProps } from 'react'
 import type { useListeningTree } from '../hooks/useListeningTree'
 import { ListeningTree } from './ListeningTree'
+import { PracticeCounter } from './PracticeCounter'
 
 type Props = {
   isLoggedIn: boolean
   listeningTree: ReturnType<typeof useListeningTree>
+  tracker: ComponentProps<typeof PracticeCounter>
 }
 
-export function LuisterenTab({ isLoggedIn, listeningTree }: Props) {
+export function LuisterenTab({ isLoggedIn, listeningTree, tracker }: Props) {
   useEffect(() => {
     if (isLoggedIn) listeningTree.loadTree()
   }, [isLoggedIn, listeningTree.loadTree])
@@ -18,6 +20,7 @@ export function LuisterenTab({ isLoggedIn, listeningTree }: Props) {
 
   return (
     <div className="space-y-4">
+      <PracticeCounter {...tracker} />
       <p className="text-sm font-medium text-blue-800 bg-blue-50 border border-blue-100 rounded p-2">
         Doel: luister elke dag 10 minuten actief en herhaal elke zin die je niet snapt.
       </p>

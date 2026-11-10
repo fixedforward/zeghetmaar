@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { filterWordsByDaysSinceAdded } from '../lib/wordFilters'
+import { filterWordsByDaysSinceAdded, newestWords } from '../lib/wordFilters'
 import type { WordEntry } from '../types'
 
 const make = (id: string, createdAt?: string): WordEntry => ({
@@ -37,5 +37,16 @@ describe('filterWordsByDaysSinceAdded', () => {
   it('excludes a word with no createdAt once a filter is set', () => {
     const noDate = make('1', undefined)
     expect(filterWordsByDaysSinceAdded([noDate], { from: 0, to: 7 }, NOW)).toEqual([])
+  })
+})
+
+describe('newestWords', () => {
+  it('gives the newest words first, up to the count', () => {
+    const words = [make('a', '2024-01-01T00:00:00.000Z'), make('b', '2024-01-03T00:00:00.000Z'), make('c', '2024-01-02T00:00:00.000Z')]
+    expect(newestWords(words, 2).map(w => w.id)).toEqual(['b', 'c'])
+  })
+
+  it('leaves out words without a createdAt', () => {
+    expect(newestWords([make('a'), make('b', '2024-01-01T00:00:00.000Z')], 4).map(w => w.id)).toEqual(['b'])
   })
 })

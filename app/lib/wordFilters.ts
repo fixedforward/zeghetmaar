@@ -30,3 +30,11 @@ export function filterWordsByDaysSinceAdded(words: WordEntry[], range: DayRange 
     return created > oldest && created <= newest
   })
 }
+
+// The words added last, newest first; words without a createdAt are left out.
+export function newestWords(words: WordEntry[], count: number): WordEntry[] {
+  return words
+    .filter(w => w.createdAt !== undefined)
+    .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+    .slice(0, count)
+}

@@ -29,7 +29,12 @@ Everything is served from a single Next.js process on a single port.
 | Path | Purpose |
 |---|---|
 | `app/page.tsx` | Server component wrapper; delegates to `HomeClient` |
-| `app/HomeClient.tsx` | Thin shell: tab switching, model picker, login/logout UI, wires hooks to tab components |
+| `app/HomeClient.tsx` | Thin shell: opens on Vandaag, tab switching via the side menu (desktop) or bottom bar (phone), a heading with the open tab's name, the five practice trackers, wires hooks to tab components |
+| `app/components/AppNav.tsx` + `app/components/TabIcon.tsx` | `SideNav` (md and up: brand, Vandaag, the shown tabs under their group headings, ✓ after a goal done today, Instellingen at the bottom) and `BottomNav` (phone: Vandaag, Oefenen, Fraselijst, Luisteren, Meer; Oefenen and Meer open a sheet with the tabs of their groups, Meer also holds Instellingen); one stroke icon per tab |
+| `app/config/tabs.ts` | `ALL_TABS` (the tabs Instellingen can show/hide/order; `vandaag` isn't one of them, it's always in the menu), `TAB_LABELS`, `TAB_GROUPS` (Oefenen, Lezen & luisteren, Mijn lijsten, Hulpmiddelen), `groupVisibleTabs` (groups with only the shown tabs, in the Instellingen order, empty ones dropped) and `isTab` (for `?tab=`) |
+| `app/components/VandaagTab.tsx` + `app/lib/dailyGoals.ts` | Vandaag start page: the date, how many daily goals are done and a "Volgende: …" button to the first open one, the streak (`currentStreak`: days in a row with any goal done; today not done yet counts back from yesterday) with this week Monday–Sunday (`weekDates`), a card per goal (`dailyGoalsFor`: Quiz, Cloze, Oefensessie, Vertaling oefenen, Luisteren — only the tabs that are shown) with Start/Nog een ronde, a manual "Ik heb vandaag geluisterd" check-in, and the 4 newest phrases (`newestWords` in `wordFilters.ts`); logged out it asks you to log in instead of showing goals |
+| `app/components/FocusScreen.tsx` + `app/components/MarkButtons.tsx` | The dark full-screen view every practice session runs in (Cloze, Quiz, Vertaling oefenen, Taaleilanden): "✕ Stoppen", title, `n / total` with a progress bar, a status line and the shortcuts below; it stops the page behind it from scrolling. Its content keeps its normal Tailwind classes: `.focus-mode` in `globals.css` redefines Tailwind's color variables to dark ones. `MarkButtons` is the shared "✗ Fout (1)" / "✓ Goed (2)" pair, big and stuck to the bottom on a phone |
+| `app/hooks/useRevealMarkShortcuts.ts` | Space/Enter shows the answer, then 1 = Fout and 2 = Goed (not in a text field or with ⌘/Ctrl/Alt); shared by Cloze kaarten, Quiz and Taaleilanden |
 | `app/hooks/useWords.ts` | Fraselijst state + CRUD calls to `/api/words` |
 | `app/hooks/useAiChat.ts` | Herschrijver + Vertaler state, selection popup, calls to `/api/chat` |
 | `app/hooks/usePracticeEngine.ts` | Shared prompt-generation + answer-evaluation for a single phrase, used by both `usePhrasePractice` and `useOefenSessie`; exposes both a stateful `generatePrompt` and a raw `fetchPromptFor` for prefetch-aware callers |
@@ -49,7 +54,7 @@ Everything is served from a single Next.js process on a single port.
 | `app/api/quiz/files/[id]/route.ts` | GET handler: reads and parses one quiz file into sentence pairs; login required |
 | `app/api/articles/route.ts` | GET handler: lists subfolders + articles (Google Docs / `.txt`) in a Drive folder (`?folderId=`, defaults to the configured root); login required |
 | `app/api/articles/[id]/route.ts` | GET handler: reads one article as plain text, split into paragraphs; login required |
-| `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie` or `quiz`, tracked independently) — DELETE undoes a check-in; login required |
+| `app/api/practice-log/[type]/route.ts` | GET/POST/DELETE for a daily practice counter (`type` is `oefensessie`, `quiz`, `cloze`, `fouten` or `luisteren`, each tracked independently) — DELETE undoes a check-in; login required |
 | `app/api/marked-files/[kind]/route.ts` | GET/POST/DELETE for ticked-off Drive files (`kind` is `quiz` → "voorbereid" quiz files, or `articles` → "gelezen" articles); POST marks, DELETE unmarks; login required |
 | `app/api/luisteren/route.ts` | GET/POST/DELETE for the Luisteren YouTube links (POST `{ url, title }` rejects non-YouTube URLs, PUT `{ id, positionSeconds?, phrases? }` updates a link — where you left off (`null` clears it) and/or its noted phrases, DELETE `{ id }`); login required |
 | `app/api/luisteren/lessons/[folderId]/route.ts` | GET handler (`?file=<mediaFileId>`): one listening lesson = an .mp3/.mp4 in that Drive folder plus the `.srt` with the **same name** next to it; returns the media file id, the expected `.srt` name, the `.srt`'s file id (`subtitleFileId`, null when missing) and the parsed cues (empty when the `.srt` is missing), 404 if the file isn't a playable file in that folder; login required. The folder id is passed in because Drive doesn't return `parents` for link-shared files |
@@ -79,8 +84,8 @@ Everything is served from a single Next.js process on a single port.
 | `app/lib/wordFilters.ts` + `app/components/DayRangeSelect.tsx` | "Toegevoegd" filter shared by Cloze, Quiz (Fraselijst) and Oefensessie: phrases added vandaag–3, 3–7, 7–14 or 14–21 days ago (`from` inclusive, `to` exclusive), or alle; default vandaag–3 |
 | `app/lib/practiceLog.ts` | Pure helpers for the practice counters: log-type namespacing, ISO-date ↔ (year, day-of-year), per-year bitmap encode/decode |
 | `app/lib/date.ts` | `todayLocalIso()` — today's date as `YYYY-MM-DD` in the browser's local timezone |
-| `app/hooks/usePracticeTracker.ts` | Client state for one practice counter (`oefensessie` or `quiz`): loads/marks practiced days, calls `/api/practice-log/[type]` |
-| `app/components/PracticeCounter.tsx` | "X dagen geoefend" count plus a check-in button that also lets you cancel today's check-in, used in Oefensessie and Quiz |
+| `app/hooks/usePracticeTracker.ts` | Client state for one practice counter (a `PracticeLogType`): loads/marks practiced days, calls `/api/practice-log/[type]` |
+| `app/components/PracticeCounter.tsx` | "X dagen geoefend" count plus a check-in button that also lets you cancel today's check-in, used in Oefensessie, Quiz, Cloze, Vertaling oefenen and Luisteren |
 | `app/components/TagsSelect.tsx` | Dropdown for picking existing tags (checkboxes) or creating a new one, used in the add form and `PhraseDetailModal` |
 | `app/components/TagsManageModal.tsx` | "Tags beheren" modal: rename or delete a tag across every phrase that has it, via `/api/tags` |
 | `app/lib/driveQuizStore.ts` | Lists/reads quiz files from a Drive folder and parses them into sentence pairs; also exports `readDriveTextFileAsync` (Google Doc → plain-text export, other files → raw download) |
@@ -178,6 +183,11 @@ See `app/config.example.json` for the full shape. The default selectable model i
 - **Free models are raced, not just called:** `/api/chat` sends free-tier requests to several
   models in parallel batches and returns whichever responds first, to work around free-model
   rate limits and downtime.
+- **Focus screen theme through Tailwind's color variables:** Tailwind 4 color classes read
+  `var(--color-…)`, so `.focus-mode` (`globals.css`) redefines those variables: white and light
+  grays become dark surfaces, dark grays light text, and each color swaps its light and dark
+  ends. That makes the practice components dark inside `FocusScreen` without a second set of
+  classes. A new color shade a practice component uses may need a line there too.
 - **Service accounts can't create Drive files:** they have no storage quota of their own
   (Google's API rejects `files.create` outside a Shared Drive with "Service Accounts do not
   have storage quota"). Every Drive-backed feature must reuse a file the service account
@@ -188,13 +198,14 @@ See `app/config.example.json` for the full shape. The default selectable model i
 
 | Tab | Description |
 |---|---|
+| **Vandaag** | The start page: today's daily goals, the streak and this week, and the newest phrases (see `VandaagTab.tsx` above). Not in Instellingen, always in the menu |
 | **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete/favorite (login required), tags per phrase picked from a dropdown of existing tags (or typed to create a new one) with a tag filter bar and a "Tags beheren" modal to rename/delete tags across all phrases, collapsible examples, launches phrase practice, and a "ChatGPT" button per entry that opens a ChatGPT popup window with a prompt to explain that word |
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
 | **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
 | **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, click "Comprehension controleren" (below the article) to open ChatGPT with the whole article and a request for 7 comprehension questions, each with the rough paragraph that holds the answer and 1–3 new/difficult words from the text to use in my answer, and select text to open a ChatGPT explanation (the whole article is sent along as context) or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
 | **Cloze** | Fill-in-the-blank and flashcards on the Fraselijst, in one mixed session ("Start gemengd"): typen questions (type the missing word in an example sentence, letter hints, the meaning's picture after checking) and Anki-style cards (phrase on the front, click/Space flips it to its meanings, then self-mark Goed/Fout with 1/2; any phrase with a meaning qualifies; both frase → vertaling and vertaling → frase; an unchecked answer field below the card) shuffled together. One daily counter (`cloze`) |
-| **Luisteren** | Shows a daily goal (listen at least 5 minutes a day). A "Moeilijk te verstaan oefenen" link opens `/luisteren-oefenen`, where the saved hard-to-hear lines can be practiced per video. A Drive tree (`googleListeningFolder`) lists the .mp3/.mp4 files; clicking one opens the player page with its same-name `.srt` as a synced transcript. Save YouTube links (stored on Drive, so they sync across devices) and click one to open the video, starting where you left off if you filled that in; note words/phrases per video and import them into the Fraselijst; login required |
+| **Luisteren** | Shows a daily goal (listen 10 minutes a day) with its own day counter (`luisteren`), checked in by hand here or on Vandaag. A "Moeilijk te verstaan oefenen" link opens `/luisteren-oefenen`, where the saved hard-to-hear lines can be practiced per video. A Drive tree (`googleListeningFolder`) lists the .mp3/.mp4 files; clicking one opens the player page with its same-name `.srt` as a synced transcript. Save YouTube links (stored on Drive, so they sync across devices) and click one to open the video, starting where you left off if you filled that in; note words/phrases per video and import them into the Fraselijst; login required |
 | **Vertaling oefenen** | Translation practice on my own mistakes from a `.tsv` on Drive, to express myself more clearly: translate the English sentence into Dutch, check it against the possible translation or ask ChatGPT, and mark it Goed to add 1 to its `noOfTimesPracticed`; own daily counter (`fouten`); login required |
 | **Taaleilanden** | My most-used phrases (typed in English), each a collapsible list of Dutch ways to say it that I add and edit by hand, with a "Vraag ChatGPT" button for ideas, and an "Oefenen" round of 10 random ones against the clock; stored on Drive; login required |
 | **Quiz** | Flashcard self-check on sentences from a `.txt` file in a configured Drive folder; login required |
@@ -228,7 +239,7 @@ Herschrijver/Vertaler.
 
 ## Practice Tracker
 
-Oefensessie and Quiz each show a small counter (`PracticeCounter.tsx`) when logged in: "X
+Oefensessie, Quiz, Cloze, Vertaling oefenen and Luisteren each show a small counter (`PracticeCounter.tsx`) when logged in: "X
 dagen geoefend" plus a check-in button that toggles between "Vandaag inchecken" and "✓
 Vandaag ingecheckt (annuleren)" — clicking it again undoes today's check-in. The two are
 tracked completely independently — Oefensessie only counts submitting an answer in
@@ -240,8 +251,9 @@ later real action (or another manual check-in) from re-marking it. Nothing outsi
 two tabs (Fraselijst, Herschrijver, Vertaler, the phrase practice modal) affects either
 counter.
 
-`HomeClient.tsx` holds two `usePracticeTracker` instances (`'oefensessie'` and `'quiz'`),
-each independently loading/marking/canceling via `GET`/`POST`/`DELETE
+`HomeClient.tsx` holds a `usePracticeTracker` instance per log type (`PRACTICE_LOG_TYPES`:
+`oefensessie`, `quiz`, `cloze`, `fouten`, `luisteren`; Luisteren has no action that counts, so
+it's only checked in by hand), and the Vandaag page reads all of them; each independently loading/marking/canceling via `GET`/`POST`/`DELETE
 /api/practice-log/[type]` (login-gated).
 
 Storage needed to sync across devices without a new Drive file (service accounts can't
