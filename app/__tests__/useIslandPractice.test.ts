@@ -11,7 +11,7 @@ vi.mock('../lib/requeue', async importOriginal => ({
 const island = (n: number, options = ['optie']): LanguageIsland =>
   ({ id: `i${n}`, english: `Phrase ${n}`, options, createdAt: '2026-01-01T00:00:00.000Z' })
 
-const islands = Array.from({ length: 8 }, (_, i) => island(i + 1))
+const islands = Array.from({ length: 12 }, (_, i) => island(i + 1))
 
 function answer(result: { current: ReturnType<typeof useIslandPractice> }, correct: boolean) {
   act(() => { result.current.reveal() })
@@ -27,7 +27,7 @@ describe('useIslandPractice', () => {
     vi.useRealTimers()
   })
 
-  it('starts with 5 random islands that have options', () => {
+  it('starts with random islands that have options', () => {
     const { result } = renderHook(() => useIslandPractice())
 
     act(() => { result.current.start([...islands, island(99, [])]) })
@@ -68,7 +68,7 @@ describe('useIslandPractice', () => {
     expect(result.current.total).toBe(0)
   })
 
-  it('finishes after 5 correct cards with score and time', () => {
+  it('finishes after every card is correct with score and time', () => {
     const { result } = renderHook(() => useIslandPractice())
     act(() => { result.current.start(islands) })
 
@@ -79,9 +79,9 @@ describe('useIslandPractice', () => {
 
     expect(result.current.finished).toBe(true)
     expect(result.current.current).toBeNull()
-    expect(result.current.score).toBe(5)
-    expect(result.current.total).toBe(5)
-    expect(result.current.totalSeconds).toBe(10)
+    expect(result.current.score).toBe(PRACTICE_SIZE)
+    expect(result.current.total).toBe(PRACTICE_SIZE)
+    expect(result.current.totalSeconds).toBe(PRACTICE_SIZE * 2)
   })
 
   it('brings a wrong card back later and counts only the first answer', () => {
@@ -98,13 +98,11 @@ describe('useIslandPractice', () => {
     expect(seen).not.toContain(wrong.id)
     expect(result.current.current?.id).toBe(wrong.id)
 
-    answer(result, true)
-    answer(result, true)
-    answer(result, true)
+    for (let i = 0; i < PRACTICE_SIZE - 2; i++) answer(result, true)
 
     expect(result.current.finished).toBe(true)
-    expect(result.current.score).toBe(4)
-    expect(result.current.total).toBe(5)
+    expect(result.current.score).toBe(PRACTICE_SIZE - 1)
+    expect(result.current.total).toBe(PRACTICE_SIZE)
   })
 
   it('stop goes back to the list', () => {

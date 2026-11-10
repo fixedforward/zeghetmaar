@@ -3,7 +3,7 @@ import type { LanguageIsland } from '../types'
 import { pickPracticeIslands } from '../lib/languageIslands'
 import { insertLater, randomRequeueGap } from '../lib/requeue'
 
-export const PRACTICE_SIZE = 5
+export const PRACTICE_SIZE = 10
 export const SECONDS_PER_CARD = 10
 
 export function useIslandPractice() {
