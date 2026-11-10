@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { useMistakes } from '../hooks/useMistakes'
 import { PracticeCounter } from './PracticeCounter'
 import { ConfirmDeleteButton } from './ConfirmDeleteButton'
+import { FocusScreen } from './FocusScreen'
 import { matchesPracticedFilter, PRACTICED_FILTER_OPTIONS } from '../lib/mistakes'
 
 type Props = ReturnType<typeof useMistakes> & {
@@ -138,8 +139,21 @@ export function FoutenTab(fouten: Props) {
     )
   }
 
+  const finished = fouten.done || !fouten.current
+  const focusScreen = (children: ReactNode) => (
+    <FocusScreen
+      title="Vertaling oefenen"
+      progress={{ current: finished ? fouten.queue.length : fouten.currentIndex + 1, total: fouten.queue.length }}
+      status={`Vandaag ${fouten.practicedTodayCount} ${fouten.practicedTodayCount === 1 ? 'zin' : 'zinnen'}`}
+      shortcuts={[{ keys: 'Enter', label: 'toon antwoord / volgende' }]}
+      onStop={fouten.stop}
+    >
+      {children}
+    </FocusScreen>
+  )
+
   if (fouten.done || !fouten.current) {
-    return (
+    return focusScreen(
       <div>
         {counter}
         <div className="border rounded p-4 bg-white text-center space-y-3">
@@ -169,14 +183,12 @@ export function FoutenTab(fouten: Props) {
     </button>
   )
 
-  return (
+  return focusScreen(
     <div>
-      {counter}
-      <div className="border rounded p-4 bg-white space-y-4">
+      <div className="border rounded-3xl p-6 sm:p-8 bg-white space-y-5">
         <div className="flex justify-between items-center text-xs text-gray-400">
-          <span>Fout {fouten.currentIndex + 1} van {fouten.queue.length}{current.type && ` · ${current.type}`}</span>
+          <span>{current.type}</span>
           <span className="flex items-center gap-3">
-            <button onClick={fouten.stop} className="text-xs text-gray-400 hover:text-gray-600">✕ Stoppen</button>
             <span title="Aantal keer goed (noOfTimesPracticed)">✓ {current.timesPracticed}× goed</span>
             <ConfirmDeleteButton key={current.row} onDelete={() => fouten.deleteMistakeAsync(current.row)} deleting={fouten.deletingRow === current.row} title="Rij verwijderen" />
           </span>
@@ -185,12 +197,12 @@ export function FoutenTab(fouten: Props) {
         {current.translation ? (
           <div>
             <p className="text-xs text-gray-500 mb-1">Vertaal naar het Nederlands:</p>
-            <p className="text-lg">{current.translation}</p>
+            <p className="text-2xl font-semibold">{current.translation}</p>
           </div>
         ) : (
           <div>
             <p className="text-xs text-gray-500 mb-1">Verbeter deze zin:</p>
-            <p className="text-lg text-red-700">{current.mistake}</p>
+            <p className="text-2xl font-semibold text-red-700">{current.mistake}</p>
           </div>
         )}
 
@@ -205,7 +217,7 @@ export function FoutenTab(fouten: Props) {
             else fouten.reveal()
           }}
           placeholder={current.translation ? 'Jouw vertaling...' : 'Jouw verbetering...'}
-          className="w-full border rounded p-2 text-sm"
+          className="w-full border rounded-xl p-3 text-base"
         />
 
         {!revealed ? (

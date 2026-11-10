@@ -8,3 +8,84 @@ video::cue {
   font-size: 1.1rem;
   background: rgb(0 0 0 / 0.7);
 }
+
+/*
+  Dark theme for FocusScreen. Tailwind's color classes read these variables, so the practice
+  tabs inside it keep their normal classes: white and light grays become dark surfaces, dark
+  grays become light text, and each color swaps its light and dark ends (bg-green-50 turns into
+  a dark green, text-green-700 into a light green). The 300–500 shades stay as they are.
+*/
+.focus-mode {
+  color-scheme: dark;
+  --color-white: #161f29;
+  --color-gray-50: #1a2430;
+  --color-gray-100: #202b37;
+  --color-gray-200: #2a3846;
+  --color-gray-300: #3a4a5b;
+  --color-gray-400: #8695a4;
+  --color-gray-500: #9aa8b6;
+  --color-gray-600: #b4c0cb;
+  --color-gray-700: #c9d4de;
+  --color-gray-800: #dce4eb;
+  --color-gray-900: #e8eef4;
+  --color-gray-950: #f3f6f9;
+
+  --color-red-50: oklch(25.8% 0.092 26.042);
+  --color-red-100: oklch(39.6% 0.141 25.723);
+  --color-red-200: oklch(44.4% 0.177 26.899);
+  --color-red-600: oklch(70.4% 0.191 22.216);
+  --color-red-700: oklch(80.8% 0.114 19.571);
+  --color-red-800: oklch(88.5% 0.062 18.334);
+
+  --color-green-50: oklch(26.6% 0.065 152.934);
+  --color-green-100: oklch(39.3% 0.095 152.535);
+  --color-green-200: oklch(44.8% 0.119 151.328);
+  --color-green-600: oklch(79.2% 0.209 151.711);
+  --color-green-700: oklch(87.1% 0.15 154.449);
+  --color-green-800: oklch(92.5% 0.084 155.995);
+
+  --color-blue-50: oklch(28.2% 0.091 267.935);
+  --color-blue-100: oklch(37.9% 0.146 265.522);
+  --color-blue-200: oklch(42.4% 0.199 265.638);
+  --color-blue-600: oklch(70.7% 0.165 254.624);
+  --color-blue-700: oklch(80.9% 0.105 251.813);
+  --color-blue-800: oklch(88.2% 0.059 254.128);
+
+  --color-teal-50: oklch(27.7% 0.046 192.524);
+  --color-teal-100: oklch(38.6% 0.063 188.416);
+  --color-teal-200: oklch(43.7% 0.078 188.216);
+  --color-teal-600: oklch(77.7% 0.152 181.912);
+  --color-teal-700: oklch(85.5% 0.138 181.071);
+  --color-teal-800: oklch(91% 0.096 180.426);
+
+  --color-yellow-50: oklch(28.6% 0.066 53.813);
+  --color-yellow-100: oklch(42.1% 0.095 57.708);
+  --color-yellow-200: oklch(47.6% 0.114 61.907);
+  --color-yellow-600: oklch(85.2% 0.199 91.936);
+  --color-yellow-700: oklch(90.5% 0.182 98.111);
+  --color-yellow-800: oklch(94.5% 0.129 101.54);
+
+  --color-amber-50: oklch(27.9% 0.077 45.635);
+  --color-amber-100: oklch(41.4% 0.112 45.904);
+  --color-amber-200: oklch(47.3% 0.137 46.201);
+  --color-amber-600: oklch(82.8% 0.189 84.429);
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-800: oklch(92.4% 0.12 95.746);
+
+  --color-purple-50: oklch(29.1% 0.149 302.717);
+  --color-purple-100: oklch(38.1% 0.176 304.987);
+  --color-purple-200: oklch(43.8% 0.218 303.724);
+  --color-purple-600: oklch(71.4% 0.203 305.504);
+  --color-purple-700: oklch(82.7% 0.119 306.383);
+  --color-purple-800: oklch(90.2% 0.063 306.703);
+}
+
+@layer base {
+  /* A bare `border` uses the text color, which is far too bright on the dark screen. In the
+     base layer, so a border color class still wins. */
+  .focus-mode *,
+  .focus-mode ::before,
+  .focus-mode ::after {
+    border-color: var(--color-gray-200);
+  }
+}

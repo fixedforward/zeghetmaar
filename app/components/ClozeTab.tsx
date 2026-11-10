@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState, type ComponentProps } from 'react'
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import type { useCloze } from '../hooks/useCloze'
 import type { useWords } from '../hooks/useWords'
 import { buildClozeQuestions, buildFlashcards, maskWord } from '../lib/cloze'
 import { DEFAULT_DAY_RANGE, filterWordsByDaysSinceAdded, type DayRange } from '../lib/wordFilters'
-import { isTypingTarget } from '../lib/keyboard'
+import { useRevealMarkShortcuts } from '../hooks/useRevealMarkShortcuts'
 import { DayRangeSelect } from './DayRangeSelect'
 import { PracticeCounter } from './PracticeCounter'
 import { PhraseDetailModal } from './PhraseDetailModal'
 import { MeaningPicture } from './PhrasePicture'
 import { CardScratchField } from './CardScratchField'
+import { FocusScreen } from './FocusScreen'
+import { MarkButtons } from './MarkButtons'
 import { usePictures } from '../hooks/usePictures'
 import { findMeaningPictureId } from '../lib/pictures'
 
@@ -41,22 +43,7 @@ export function ClozeTab(props: Props) {
     inputRef.current?.focus()
   }, [currentIndex, questions[currentIndex]])
 
-  // Anki-style shortcuts: Space/Enter reveals, then 1 = Fout and 2 = Goed.
-  const kaartenActive = questionMode === 'kaarten' && isActive && !done
-  useEffect(() => {
-    if (!kaartenActive) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (isTypingTarget(e.target)) return
-      if (!checked && (e.key === ' ' || e.key === 'Enter')) {
-        e.preventDefault()
-        reveal()
-      } else if (checked && (e.key === '1' || e.key === '2')) {
-        markAndNext(e.key === '2')
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [kaartenActive, checked, reveal, markAndNext])
+  useRevealMarkShortcuts(questionMode === 'kaarten' && isActive && !done, checked, reveal, markAndNext)
 
   if (!isActive) {
     const filteredWords = filterWordsByDaysSinceAdded(words, daysFilter)
@@ -98,8 +85,22 @@ export function ClozeTab(props: Props) {
     )
   }
 
+  const focusScreen = (children: ReactNode) => (
+    <FocusScreen
+      title="Cloze"
+      progress={{ current: done ? total : currentIndex + 1, total }}
+      status={`${score.correct} goed · ${score.incorrect} fout`}
+      shortcuts={questionMode === 'kaarten'
+        ? [{ keys: 'Spatie', label: 'omdraaien' }, { keys: '1', label: 'fout' }, { keys: '2', label: 'goed' }]
+        : [{ keys: 'Enter', label: 'controleren / volgende' }, { keys: 'Tab', label: 'hint' }]}
+      onStop={stop}
+    >
+      {children}
+    </FocusScreen>
+  )
+
   if (done) {
-    return (
+    return focusScreen(
       <div className="space-y-4 text-center py-8">
         {isLoggedIn && <div className="flex justify-center"><PracticeCounter {...tracker} /></div>}
         <p className="text-lg font-semibold text-gray-900">Klaar!</p>
@@ -173,23 +174,20 @@ export function ClozeTab(props: Props) {
     </div>
   )
 
-  return (
+  return focusScreen(
     <div className="space-y-5">
       <div className="flex justify-between items-center">
-        <span className="text-xs font-medium text-gray-500">
-          {questionMode === 'kaarten' ? 'Kaart' : 'Zin'} {currentIndex + 1} van {total} · {score.correct} goed, {score.incorrect} fout
+        <span className="text-xs font-semibold uppercase tracking-wider text-teal-400">
+          {questionMode === 'kaarten' ? 'Kaart' : 'Zin invullen'}
         </span>
-        <div className="flex items-center gap-3">
-          {currentEntry && (
-            <button
-              onClick={() => startEdit(currentEntry)}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Beheren
-            </button>
-          )}
-          <button onClick={stop} className="text-xs text-gray-400 hover:text-gray-600">✕ Stoppen</button>
-        </div>
+        {currentEntry && (
+          <button
+            onClick={() => startEdit(currentEntry)}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Beheren
+          </button>
+        )}
       </div>
 
       {givenUpWord && (
@@ -211,13 +209,13 @@ export function ClozeTab(props: Props) {
             <div
               className={`grid transition-transform duration-500 [transform-style:preserve-3d] ${checked ? '[transform:rotateY(180deg)]' : ''}`}
             >
-              <div className="[grid-area:1/1] [backface-visibility:hidden] border rounded bg-white p-8 min-h-40 flex flex-col items-center justify-center gap-2">
+              <div className="[grid-area:1/1] [backface-visibility:hidden] border rounded-3xl bg-white p-10 min-h-64 flex flex-col items-center justify-center gap-3">
                 {reversed
                   ? (
                     <>
                       {meanings.map((m, i) => (
                         <div key={i}>
-                          <p className="text-2xl font-semibold text-gray-900">{m.translation}</p>
+                          <p className="text-3xl font-semibold text-gray-900">{m.translation}</p>
                           {meaningPicture(m.translation, i, 'mx-auto')}
                         </div>
                       ))}
@@ -225,7 +223,7 @@ export function ClozeTab(props: Props) {
                   )
                   : (
                     <>
-                      <p className="text-2xl font-semibold text-gray-900">{question.word}</p>
+                      <p className="text-4xl font-extrabold tracking-tight text-gray-900">{question.word}</p>
                       <p className="text-sm text-gray-500">
                         {meanings.length} {meanings.length === 1 ? 'betekenis' : 'betekenissen'}
                       </p>
@@ -233,11 +231,11 @@ export function ClozeTab(props: Props) {
                   )}
                 <p className="text-xs text-gray-400">Klik om om te draaien (Spatie)</p>
               </div>
-              <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] border rounded bg-blue-50 p-8 min-h-40 flex flex-col items-center justify-center gap-2 text-center">
+              <div className="[grid-area:1/1] [backface-visibility:hidden] [transform:rotateY(180deg)] border rounded-3xl bg-blue-50 p-10 min-h-64 flex flex-col items-center justify-center gap-3 text-center">
                 {reversed ? (
                   <>
                     <p className="text-sm text-gray-500">{meanings.map(m => m.translation).join(' · ')}</p>
-                    <p className="text-2xl font-semibold text-gray-900">{question.word}</p>
+                    <p className="text-4xl font-extrabold tracking-tight text-gray-900">{question.word}</p>
                     {meanings.map((m, i) => m.examples[0] && (
                       <p key={i} className="text-xs text-gray-500 italic">{m.examples[0]}</p>
                     ))}
@@ -247,7 +245,7 @@ export function ClozeTab(props: Props) {
                     <p className="text-sm text-gray-500">{question.word}</p>
                     {meanings.map((m, i) => (
                       <div key={i}>
-                        <p className="text-xl font-semibold text-gray-900">{m.translation}</p>
+                        <p className="text-2xl font-semibold text-gray-900">{m.translation}</p>
                         {meaningPicture(m.translation, i, 'mx-auto')}
                         {m.examples[0] && <p className="text-xs text-gray-500 italic">{m.examples[0]}</p>}
                       </div>
@@ -261,28 +259,13 @@ export function ClozeTab(props: Props) {
           {checked && (
             <div className="space-y-2">
               {beheersingButtons}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => markAndNext(false)}
-                  title="Sneltoets: 1"
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-                >
-                  ✗ Fout (1)
-                </button>
-                <button
-                  onClick={() => markAndNext(true)}
-                  title="Sneltoets: 2"
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
-                >
-                  ✓ Goed (2)
-                </button>
-              </div>
+              <MarkButtons onMark={markAndNext} />
             </div>
           )}
         </div>
       ) : (
-        <div className="border rounded p-4 bg-white space-y-3">
-          <p className="text-lg">{maskWord(question.sentence, question.word)}</p>
+        <div className="border rounded-3xl p-6 bg-white space-y-4">
+          <p className="text-2xl">{maskWord(question.sentence, question.word)}</p>
 
           <div className="relative">
             <div

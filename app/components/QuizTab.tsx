@@ -9,6 +9,9 @@ import { formatDutchDate } from '../lib/date'
 import { PracticeCounter } from './PracticeCounter'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { DayRangeSelect } from './DayRangeSelect'
+import { FocusScreen } from './FocusScreen'
+import { MarkButtons } from './MarkButtons'
+import { useRevealMarkShortcuts } from '../hooks/useRevealMarkShortcuts'
 
 type Props = ReturnType<typeof useQuiz> & ReturnType<typeof useWords> & {
   isLoggedIn: boolean
@@ -52,6 +55,9 @@ export function QuizTab(quiz: Props) {
       // localStorage unavailable — notes just won't persist.
     }
   }
+
+  const inSession = !!quiz.selectedFile && !quiz.pairsLoading && !quiz.pairsError && quiz.currentIndex < quiz.pairs.length
+  useRevealMarkShortcuts(inSession, quiz.revealed, quiz.reveal, quiz.markAndNext)
 
   if (!quiz.isLoggedIn) {
     return <p className="text-sm text-gray-500">Log in om de quiz te gebruiken.</p>
@@ -177,14 +183,13 @@ export function QuizTab(quiz: Props) {
   const currentWord = currentPhraseId ? quiz.words.find(w => w.id === currentPhraseId) : undefined
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-sm text-gray-500">{quiz.selectedFile.name}</span>
-        <button onClick={quiz.backToFiles} className="text-sm text-blue-600 hover:underline">
-          ← Terug
-        </button>
-      </div>
-
+    <FocusScreen
+      title={quiz.selectedFile.name}
+      progress={{ current: done ? total : quiz.currentIndex + 1, total }}
+      status={`${quiz.score.correct} goed · ${quiz.score.incorrect} fout`}
+      shortcuts={[{ keys: 'Spatie', label: 'toon antwoord' }, { keys: '1', label: 'fout' }, { keys: '2', label: 'goed' }]}
+      onStop={quiz.backToFiles}
+    >
       {!done && (
         <p className="text-xs text-gray-400 mb-2">
           Tip: selecteer een woord of zin om uitleg te krijgen via ChatGPT.
@@ -205,11 +210,8 @@ export function QuizTab(quiz: Props) {
           </button>
         </div>
       ) : (
-        <div className="border rounded p-4 bg-white space-y-4">
-          <p className="text-xs text-gray-400">
-            Zin {quiz.currentIndex + 1} van {total} · {quiz.score.correct} goed, {quiz.score.incorrect} fout
-          </p>
-          <p className="text-lg" onMouseUp={handleTextSelection}>{quiz.pairs[quiz.currentIndex].dutch}</p>
+        <div className="border rounded-3xl p-6 sm:p-8 bg-white space-y-5">
+          <p className="text-2xl font-semibold" onMouseUp={handleTextSelection}>{quiz.pairs[quiz.currentIndex].dutch}</p>
 
           {!quiz.revealed ? (
             <>
@@ -222,28 +224,15 @@ export function QuizTab(quiz: Props) {
               />
               <button
                 onClick={quiz.reveal}
-                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="min-h-11 px-5 text-sm font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-600"
               >
-                Toon antwoord
+                Toon antwoord (Spatie)
               </button>
             </>
           ) : (
             <>
-              <p className="text-lg text-gray-700 border-t pt-3" onMouseUp={handleTextSelection}>{quiz.pairs[quiz.currentIndex].english}</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => quiz.markAndNext(true)}
-                  className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600"
-                >
-                  ✓ Goed
-                </button>
-                <button
-                  onClick={() => quiz.markAndNext(false)}
-                  className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  ✗ Fout
-                </button>
-              </div>
+              <p className="text-xl text-gray-700 border-t pt-4" onMouseUp={handleTextSelection}>{quiz.pairs[quiz.currentIndex].english}</p>
+              <MarkButtons onMark={quiz.markAndNext} />
               {currentPhraseId && (
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 mr-1">Beheersing:</span>
@@ -295,6 +284,6 @@ export function QuizTab(quiz: Props) {
       </details>
 
       <ChatGptSelectionLink link={chatGptLink} onClose={closeChatGptLink} />
-    </div>
+    </FocusScreen>
   )
 }

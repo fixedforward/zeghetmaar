@@ -76,7 +76,7 @@ export function useIslandPractice() {
   const results = Object.values(firstTry)
 
   return {
-    active, finished, current, cardIndex: index, revealed, secondsLeft,
+    active, finished, current, cardIndex: index, queueLength: queue.length, revealed, secondsLeft,
     score: results.filter(Boolean).length,
     total: results.length,
     totalSeconds: finishedAt === null ? 0 : Math.round((finishedAt - startedAt) / 1000),
