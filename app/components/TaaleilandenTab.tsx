@@ -5,7 +5,7 @@ import { ConfirmDeleteButton } from './ConfirmDeleteButton'
 import { Pagination } from './Pagination'
 import { SearchInput } from './SearchInput'
 import { filterIslands } from '../lib/languageIslands'
-import { PRACTICE_SIZE, useIslandPractice } from '../hooks/useIslandPractice'
+import { PRACTICE_SIZE_OPTIONS, useIslandPractice } from '../hooks/useIslandPractice'
 import { IslandPractice } from './IslandPractice'
 import { PracticeCounter } from './PracticeCounter'
 
@@ -183,12 +183,26 @@ export function TaaleilandenTab({ isLoggedIn, tracker, ...islands }: Props) {
       {islands.error && <p className="text-sm text-red-500">{islands.error}</p>}
       {islands.loading && <p className="text-sm text-gray-400">Laden...</p>}
       {practiceCount > 0 && (
-        <button
-          onClick={() => practice.start(islands.islands)}
-          className="px-3 py-1.5 text-sm rounded bg-teal-500 text-white hover:bg-teal-600"
-        >
-          Oefenen ({Math.min(PRACTICE_SIZE, practiceCount)} willekeurige)
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => practice.start(islands.islands)}
+            className="px-3 py-1.5 text-sm rounded bg-teal-500 text-white hover:bg-teal-600"
+          >
+            Oefenen ({Math.min(practice.size, practiceCount)} willekeurige)
+          </button>
+          <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            Aantal
+            <select
+              value={String(practice.size)}
+              onChange={e => practice.setSize(Number(e.target.value))}
+              className="border rounded px-1.5 py-0.5 text-xs bg-white text-gray-700"
+            >
+              {PRACTICE_SIZE_OPTIONS.map(option => (
+                <option key={option} value={String(option)}>{option === Infinity ? 'alle' : option}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       )}
       {islands.islands.length > 0 && (
         <SearchInput

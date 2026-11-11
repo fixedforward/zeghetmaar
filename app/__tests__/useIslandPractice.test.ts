@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useIslandPractice, PRACTICE_SIZE, SECONDS_PER_CARD } from '../hooks/useIslandPractice'
+import { useIslandPractice, PRACTICE_SIZE, PRACTICE_SIZE_STORAGE_KEY, SECONDS_PER_CARD } from '../hooks/useIslandPractice'
 import type { LanguageIsland } from '../types'
 
 vi.mock('../lib/requeue', async importOriginal => ({
@@ -20,6 +20,7 @@ function answer(result: { current: ReturnType<typeof useIslandPractice> }, corre
 
 describe('useIslandPractice', () => {
   beforeEach(() => {
+    localStorage.clear()
     vi.useFakeTimers()
   })
 
@@ -115,6 +116,33 @@ describe('useIslandPractice', () => {
 
     act(() => { result.current.markAndNext(false) })
     expect(onPractice).toHaveBeenCalledTimes(1)
+  })
+
+  it('practices the chosen number of islands, or all of them', () => {
+    const { result } = renderHook(() => useIslandPractice())
+
+    act(() => { result.current.setSize(5) })
+    act(() => { result.current.start(islands) })
+    expect(result.current.queueLength).toBe(5)
+
+    act(() => { result.current.setSize(Infinity) })
+    act(() => { result.current.start(islands) })
+    expect(result.current.queueLength).toBe(islands.length)
+  })
+
+  it('remembers the chosen number on this device', () => {
+    const { result } = renderHook(() => useIslandPractice())
+    act(() => { result.current.setSize(20) })
+    expect(localStorage.getItem(PRACTICE_SIZE_STORAGE_KEY)).toBe('20')
+
+    const { result: later } = renderHook(() => useIslandPractice())
+    expect(later.current.size).toBe(20)
+  })
+
+  it('ignores a stored number that is not an option', () => {
+    localStorage.setItem(PRACTICE_SIZE_STORAGE_KEY, '7')
+    const { result } = renderHook(() => useIslandPractice())
+    expect(result.current.size).toBe(PRACTICE_SIZE)
   })
 
   it('stop goes back to the list', () => {

@@ -100,6 +100,18 @@ describe('TaaleilandenTab', () => {
     expect(screen.queryByRole('button', { name: '›' })).toBeNull()
   })
 
+  it('the Oefenen button shows the chosen number, capped at the islands with options', () => {
+    localStorage.clear()
+    const many = Array.from({ length: 12 }, (_, i) => ({ ...island, id: `i${i}`, english: `Phrase ${i}` }))
+    renderTab(many)
+
+    expect(screen.getByText('Oefenen (10 willekeurige)')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Aantal'), { target: { value: '5' } })
+    expect(screen.getByText('Oefenen (5 willekeurige)')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Aantal'), { target: { value: 'Infinity' } })
+    expect(screen.getByText('Oefenen (12 willekeurige)')).toBeTruthy()
+  })
+
   it('Oefenen shows a card: Space shows the options, 2 marks it Goed', () => {
     renderTab()
 
