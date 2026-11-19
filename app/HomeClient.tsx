@@ -17,6 +17,7 @@ import { useUsefulLinks } from './hooks/useUsefulLinks'
 import { useNotes } from './hooks/useNotes'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
+import { useTheme } from './hooks/useTheme'
 import { TAB_LABELS, isTab } from './config/tabs'
 import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates } from './lib/dailyGoals'
 import { todayLocalIso } from './lib/date'
@@ -73,6 +74,7 @@ export default function HomeClient() {
   const usefulLinks = useUsefulLinks()
   const notes = useNotes()
   const tabSettings = useTabSettings()
+  const { theme, setTheme } = useTheme()
 
   const selectTab = (tab: Tab) => {
     setActiveTab(tab)
@@ -282,6 +284,8 @@ export default function HomeClient() {
         {...tabSettings}
         activeModel={activeModel}
         setActiveModel={setActiveModel}
+        theme={theme}
+        setTheme={setTheme}
         session={session}
         onSignIn={() => signIn('google')}
         onSignOut={() => signOut()}

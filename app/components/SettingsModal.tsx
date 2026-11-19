@@ -1,6 +1,7 @@
 import { TAB_LABELS } from '../config/tabs'
 import { MODEL_OPTIONS } from '../config/models'
 import type { useTabSettings } from '../hooks/useTabSettings'
+import { THEME_CHOICES, type ThemeChoice } from '../lib/theme'
 
 interface SessionLike {
   user?: {
@@ -12,13 +13,15 @@ interface SessionLike {
 type Props = ReturnType<typeof useTabSettings> & {
   activeModel: string
   setActiveModel: (model: string) => void
+  theme: ThemeChoice
+  setTheme: (theme: ThemeChoice) => void
   session: SessionLike | null
   onSignIn: () => void
   onSignOut: () => void
 }
 
 export function SettingsModal(props: Props) {
-  const { isOpen, close, order, hidden, toggleVisible, moveUp, moveDown, activeModel, setActiveModel, session, onSignIn, onSignOut } = props
+  const { isOpen, close, order, hidden, toggleVisible, moveUp, moveDown, activeModel, setActiveModel, theme, setTheme, session, onSignIn, onSignOut } = props
 
   if (!isOpen) return null
 
@@ -59,6 +62,23 @@ export function SettingsModal(props: Props) {
               Log in om frases te beheren
             </button>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Weergave</p>
+          <div role="radiogroup" aria-label="Weergave" className="flex gap-1">
+            {THEME_CHOICES.map(({ value, label }) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={theme === value}
+                onClick={() => setTheme(value)}
+                className={`flex-1 text-sm border rounded px-2 py-1 ${theme === value ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2">

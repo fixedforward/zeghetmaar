@@ -4,18 +4,25 @@ body {
   background: #fafafa;
 }
 
+html.dark body {
+  background: #0e141b;
+  color: var(--color-gray-900);
+}
+
 video::cue {
   font-size: 1.1rem;
   background: rgb(0 0 0 / 0.7);
 }
 
 /*
-  Dark theme for FocusScreen. Tailwind's color classes read these variables, so the practice
+  Dark theme for FocusScreen, and for the whole app in dark mode (`dark` on <html>, see
+  app/lib/theme.ts). Tailwind's color classes read these variables, so the practice
   tabs inside it keep their normal classes: white and light grays become dark surfaces, dark
   grays become light text, and each color swaps its light and dark ends (bg-green-50 turns into
   a dark green, text-green-700 into a light green). The 300–500 shades stay as they are.
 */
-.focus-mode {
+.focus-mode,
+html.dark {
   color-scheme: dark;
   --color-white: #161f29;
   --color-gray-50: #1a2430;
@@ -78,6 +85,13 @@ video::cue {
   --color-purple-600: oklch(71.4% 0.203 305.504);
   --color-purple-700: oklch(82.7% 0.119 306.383);
   --color-purple-800: oklch(90.2% 0.063 306.703);
+
+  --color-orange-50: oklch(26.6% 0.079 36.259);
+  --color-orange-100: oklch(40.8% 0.123 38.172);
+  --color-orange-200: oklch(47% 0.157 37.304);
+  --color-orange-600: oklch(75% 0.183 55.934);
+  --color-orange-700: oklch(83.7% 0.128 66.29);
+  --color-orange-800: oklch(90.1% 0.076 70.697);
 }
 
 @layer base {
@@ -85,7 +99,10 @@ video::cue {
      base layer, so a border color class still wins. */
   .focus-mode *,
   .focus-mode ::before,
-  .focus-mode ::after {
+  .focus-mode ::after,
+  html.dark *,
+  html.dark ::before,
+  html.dark ::after {
     border-color: var(--color-gray-200);
   }
 }
