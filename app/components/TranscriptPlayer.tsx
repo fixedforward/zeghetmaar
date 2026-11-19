@@ -9,6 +9,7 @@ import { useSwipeGestures } from '../hooks/useSwipeGestures'
 import { useVideoSize } from '../hooks/useVideoSize'
 import { useHardToHearPhrases } from '../hooks/useHardToHearPhrases'
 import { useHardToHearPractice } from '../hooks/useHardToHearPractice'
+import { saveLastVideo } from '../hooks/useLastVideo'
 import { ChatGptSelectionLink } from './ChatGptSelectionLink'
 import { AddPhraseModal } from './AddPhraseModal'
 import { HardToHearPractice } from './HardToHearPractice'
@@ -53,6 +54,11 @@ export function TranscriptPlayer({ folderId, fileId }: { folderId: string; fileI
   const [transcriptOpen, setTranscriptOpen] = useState(false)
   const { size, setSize } = useVideoSize()
   const sizeClasses = VIDEO_SIZES[size]
+
+  const lessonName = player.lesson?.name
+  useEffect(() => {
+    if (lessonName) saveLastVideo({ folderId, fileId, name: lessonName })
+  }, [folderId, fileId, lessonName])
 
   // Keeps the current line at the top of the transcript list, also right after opening it.
   // Scrolls only the list, not the whole page, so the video stays in view.
