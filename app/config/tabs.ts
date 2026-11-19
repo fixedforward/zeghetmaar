@@ -2,7 +2,7 @@ import type { Tab } from '../types'
 
 // The tabs you can show, hide and order in Instellingen. 'vandaag' isn't one of them:
 // it's the start page and always in the menu.
-export const ALL_TABS: Tab[] = ['quiz', 'oefensessie', 'cloze', 'fraselijst', 'vertaler', 'links', 'herschrijver', 'artikelen', 'luisteren', 'taaleilanden']
+export const ALL_TABS: Tab[] = ['quiz', 'oefensessie', 'cloze', 'fraselijst', 'vertaler', 'links', 'herschrijver', 'artikelen', 'luisteren', 'taaleilanden', 'notities']
 
 export const DEFAULT_HIDDEN_TABS: Tab[] = ['vertaler', 'herschrijver']
 
@@ -18,6 +18,7 @@ export const TAB_LABELS: Record<Tab, string> = {
   artikelen: 'Artikelen',
   luisteren: 'Luisteren',
   taaleilanden: 'Taaleilanden',
+  notities: 'Notities',
 }
 
 export interface TabGroup {
@@ -30,7 +31,7 @@ export interface TabGroup {
 export const TAB_GROUPS: TabGroup[] = [
   { id: 'oefenen', label: 'Oefenen', tabs: ['quiz', 'cloze', 'oefensessie', 'taaleilanden'] },
   { id: 'lezen', label: 'Lezen & luisteren', tabs: ['artikelen', 'luisteren'] },
-  { id: 'lijsten', label: 'Mijn lijsten', tabs: ['fraselijst'] },
+  { id: 'lijsten', label: 'Mijn lijsten', tabs: ['fraselijst', 'notities'] },
   { id: 'hulpmiddelen', label: 'Hulpmiddelen', tabs: ['herschrijver', 'vertaler', 'links'] },
 ]
 

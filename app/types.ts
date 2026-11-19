@@ -1,4 +1,4 @@
-export type Tab = 'vandaag' | 'herschrijver' | 'vertaler' | 'fraselijst' | 'links' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'taaleilanden'
+export type Tab = 'vandaag' | 'herschrijver' | 'vertaler' | 'fraselijst' | 'links' | 'quiz' | 'oefensessie' | 'cloze' | 'artikelen' | 'luisteren' | 'taaleilanden' | 'notities'
 
 export interface QuizFile {
   id: string
@@ -74,6 +74,14 @@ export interface LanguageIsland {
   english: string
   options: string[]
   createdAt: string
+}
+
+export interface Note {
+  id: string
+  title: string
+  text: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface UsefulLink {

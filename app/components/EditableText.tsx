@@ -1,11 +1,13 @@
 import { useState } from 'react'
 
-export function EditableText({ text, saving, onSave, onDelete, textClassName }: {
+export function EditableText({ text, saving, onSave, onDelete, textClassName, multiline = false }: {
   text: string
   saving: boolean
   onSave: (text: string) => Promise<unknown>
   onDelete?: () => void
   textClassName: string
+  // A text area that keeps Enter for new lines; ⌘/Ctrl+Enter saves.
+  multiline?: boolean
 }) {
   const [draft, setDraft] = useState<string | null>(null)
 
@@ -27,17 +29,28 @@ export function EditableText({ text, saving, onSave, onDelete, textClassName }: 
     setDraft(null)
   }
 
+  const fieldProps = {
+    value: draft,
+    onChange: (e: { target: { value: string } }) => setDraft(e.target.value),
+    autoFocus: true,
+    className: 'flex-1 border rounded px-2 py-1 text-sm',
+  }
+
   return (
-    <div className="flex gap-2">
-      <input
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setDraft(null) }}
-        autoFocus
-        className="flex-1 border rounded px-2 py-1 text-sm"
-      />
-      <button onClick={save} disabled={saving} className="text-xs text-blue-600 hover:underline">Opslaan</button>
-      <button onClick={() => setDraft(null)} className="text-xs text-gray-500 hover:underline">Annuleren</button>
+    <div className={multiline ? 'flex flex-col gap-2' : 'flex gap-2'}>
+      {multiline
+        ? (
+          <textarea
+            {...fieldProps}
+            rows={8}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save(); if (e.key === 'Escape') setDraft(null) }}
+          />
+        )
+        : <input {...fieldProps} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setDraft(null) }} />}
+      <span className="flex gap-2">
+        <button onClick={save} disabled={saving} className="text-xs text-blue-600 hover:underline">Opslaan</button>
+        <button onClick={() => setDraft(null)} className="text-xs text-gray-500 hover:underline">Annuleren</button>
+      </span>
     </div>
   )
 }

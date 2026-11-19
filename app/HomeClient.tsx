@@ -14,6 +14,7 @@ import { useArticles } from './hooks/useArticles'
 import { useListeningTree } from './hooks/useListeningTree'
 import { useLanguageIslands } from './hooks/useLanguageIslands'
 import { useUsefulLinks } from './hooks/useUsefulLinks'
+import { useNotes } from './hooks/useNotes'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { TAB_LABELS, isTab } from './config/tabs'
@@ -26,6 +27,7 @@ import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
 import { HandigeLinksTab } from './components/HandigeLinksTab'
+import { NotitiesTab } from './components/NotitiesTab'
 import { OefenSessieTab } from './components/OefenSessieTab'
 import { QuizTab } from './components/QuizTab'
 import { ClozeTab } from './components/ClozeTab'
@@ -69,6 +71,7 @@ export default function HomeClient() {
   const listeningTree = useListeningTree()
   const languageIslands = useLanguageIslands()
   const usefulLinks = useUsefulLinks()
+  const notes = useNotes()
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {
@@ -188,6 +191,7 @@ export default function HomeClient() {
           {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
           {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
           {activeTab === 'links' && <ErrorBoundary><HandigeLinksTab {...usefulLinks} isLoggedIn={!!session} /></ErrorBoundary>}
+          {activeTab === 'notities' && <ErrorBoundary><NotitiesTab {...notes} isLoggedIn={!!session} /></ErrorBoundary>}
           {activeTab === 'oefensessie' && (
             <ErrorBoundary>
               <OefenSessieTab

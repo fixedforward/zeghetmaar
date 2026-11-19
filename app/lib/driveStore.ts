@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase, LanguageIsland, UsefulLink } from '../types'
+import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase, LanguageIsland, UsefulLink, Note } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -153,7 +153,7 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 
 // The file's root used to just be the phrases array. It's now
-// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases, languageIslands, usefulLinks } so other,
+// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases, languageIslands, usefulLinks, notes } so other,
 // unrelated concerns (which quiz files / articles the user has ticked off, the Luisteren
 // YouTube links, the hard-to-hear subtitle lines per video) can live in the same
 // file without a new Drive file (service accounts can't create one). A legacy
@@ -168,6 +168,7 @@ interface StoredRoot {
   hardToHearPhrases: Record<string, HardToHearPhrase[]>
   languageIslands: LanguageIsland[]
   usefulLinks: UsefulLink[]
+  notes: Note[]
 }
 
 function toStringArray(value: unknown): string[] {
@@ -239,6 +240,14 @@ function toUsefulLinks(value: unknown): UsefulLink[] {
   )
 }
 
+function toNotes(value: unknown): Note[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((x): x is Note =>
+    !!x && typeof x.id === 'string' && typeof x.title === 'string' && typeof x.text === 'string' &&
+    typeof x.createdAt === 'string' && typeof x.updatedAt === 'string'
+  )
+}
+
 async function driveReadRoot(): Promise<StoredRoot> {
   const drive = getDriveClient()
   const res = await drive.files.get(
@@ -248,7 +257,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
   const parsed = JSON.parse(res.data as string) as unknown
 
   if (Array.isArray(parsed)) {
-    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {}, languageIslands: [], usefulLinks: DEFAULT_USEFUL_LINKS }
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {}, languageIslands: [], usefulLinks: DEFAULT_USEFUL_LINKS, notes: [] }
   }
 
   const obj = (parsed ?? {}) as Record<string, unknown>
@@ -261,6 +270,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
     hardToHearPhrases: toHardToHearPhrases(obj.hardToHearPhrases),
     languageIslands: toLanguageIslands(obj.languageIslands),
     usefulLinks: toUsefulLinks(obj.usefulLinks),
+    notes: toNotes(obj.notes),
   }
 }
 
@@ -275,6 +285,7 @@ async function driveWriteRoot(root: StoredRoot): Promise<void> {
       hardToHearPhrases: root.hardToHearPhrases,
       languageIslands: root.languageIslands,
       usefulLinks: root.usefulLinks,
+      notes: root.notes,
     },
     null,
     2
@@ -649,4 +660,40 @@ export async function deleteUsefulLinkAsync(id: string): Promise<UsefulLink[]> {
   const usefulLinks = root.usefulLinks.filter(l => l.id !== id)
   if (usefulLinks.length !== root.usefulLinks.length) await driveWriteRoot({ ...root, usefulLinks })
   return usefulLinks
+}
+
+// ---------------------------------------------------------------------------
+// Notities — my personal notes, stored on the same root (see StoredRoot), newest first.
+// ---------------------------------------------------------------------------
+export async function getNotesAsync(): Promise<Note[]> {
+  return (await driveReadRoot()).notes
+}
+
+export async function addNoteAsync(title: string, text: string): Promise<Note[]> {
+  const root = await driveReadRoot()
+  const now = new Date().toISOString()
+  const notes = [{ id: randomUUID(), title, text, createdAt: now, updatedAt: now }, ...root.notes]
+  await driveWriteRoot({ ...root, notes })
+  return notes
+}
+
+export interface NoteUpdate {
+  title?: string
+  text?: string
+}
+
+export async function updateNoteAsync(id: string, update: NoteUpdate): Promise<Note[]> {
+  const root = await driveReadRoot()
+  if (!root.notes.some(n => n.id === id)) return root.notes
+  const updatedAt = new Date().toISOString()
+  const notes = root.notes.map(n => n.id === id ? { ...n, ...update, updatedAt } : n)
+  await driveWriteRoot({ ...root, notes })
+  return notes
+}
+
+export async function deleteNoteAsync(id: string): Promise<Note[]> {
+  const root = await driveReadRoot()
+  const notes = root.notes.filter(n => n.id !== id)
+  if (notes.length !== root.notes.length) await driveWriteRoot({ ...root, notes })
+  return notes
 }
