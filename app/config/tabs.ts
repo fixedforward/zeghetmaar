@@ -2,9 +2,9 @@ import type { Tab } from '../types'
 
 // The tabs you can show, hide and order in Instellingen. 'vandaag' isn't one of them:
 // it's the start page and always in the menu.
-export const ALL_TABS: Tab[] = ['quiz', 'oefensessie', 'cloze', 'fraselijst', 'vertaler', 'oefeningen', 'herschrijver', 'artikelen', 'luisteren', 'taaleilanden']
+export const ALL_TABS: Tab[] = ['quiz', 'oefensessie', 'cloze', 'fraselijst', 'vertaler', 'links', 'herschrijver', 'artikelen', 'luisteren', 'taaleilanden']
 
-export const DEFAULT_HIDDEN_TABS: Tab[] = ['vertaler', 'oefeningen', 'herschrijver']
+export const DEFAULT_HIDDEN_TABS: Tab[] = ['vertaler', 'herschrijver']
 
 export const TAB_LABELS: Record<Tab, string> = {
   vandaag: 'Vandaag',
@@ -13,7 +13,7 @@ export const TAB_LABELS: Record<Tab, string> = {
   fraselijst: 'Fraselijst',
   herschrijver: 'Herschrijver',
   vertaler: 'Engels → Nederlands',
-  oefeningen: 'Extra Oefeningen',
+  links: 'Handige links',
   cloze: 'Cloze',
   artikelen: 'Artikelen',
   luisteren: 'Luisteren',
@@ -31,7 +31,7 @@ export const TAB_GROUPS: TabGroup[] = [
   { id: 'oefenen', label: 'Oefenen', tabs: ['quiz', 'cloze', 'oefensessie', 'taaleilanden'] },
   { id: 'lezen', label: 'Lezen & luisteren', tabs: ['artikelen', 'luisteren'] },
   { id: 'lijsten', label: 'Mijn lijsten', tabs: ['fraselijst'] },
-  { id: 'hulpmiddelen', label: 'Hulpmiddelen', tabs: ['herschrijver', 'vertaler', 'oefeningen'] },
+  { id: 'hulpmiddelen', label: 'Hulpmiddelen', tabs: ['herschrijver', 'vertaler', 'links'] },
 ]
 
 // Each group with only the tabs that are shown, in the order from Instellingen; a group left empty is dropped.

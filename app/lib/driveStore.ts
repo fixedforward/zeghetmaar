@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 import { config } from './config'
-import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase, LanguageIsland } from '../types'
+import type { Phrase, WordEntry, Meaning, ListeningLink, ListeningPhrase, HardToHearPhrase, LanguageIsland, UsefulLink } from '../types'
 import {
   isValidIsoDate,
   isoDateToYearDay,
@@ -153,7 +153,7 @@ function migrate(parsed: Record<string, unknown>[]): Phrase[] {
 // ---------------------------------------------------------------------------
 
 // The file's root used to just be the phrases array. It's now
-// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases, languageIslands } so other,
+// { phrases, preparedQuizFileIds, readArticleIds, listeningLinks, hardToHearPhrases, languageIslands, usefulLinks } so other,
 // unrelated concerns (which quiz files / articles the user has ticked off, the Luisteren
 // YouTube links, the hard-to-hear subtitle lines per video) can live in the same
 // file without a new Drive file (service accounts can't create one). A legacy
@@ -167,6 +167,7 @@ interface StoredRoot {
   // video that's moved to another folder.
   hardToHearPhrases: Record<string, HardToHearPhrase[]>
   languageIslands: LanguageIsland[]
+  usefulLinks: UsefulLink[]
 }
 
 function toStringArray(value: unknown): string[] {
@@ -221,6 +222,23 @@ function toLanguageIslands(value: unknown): LanguageIsland[] {
     .map(i => ({ ...i, options: i.options.filter((o: unknown): o is string => typeof o === 'string') }))
 }
 
+export const DEFAULT_USEFUL_LINKS: UsefulLink[] = [{
+  id: 'nt2-schrijven',
+  title: 'NT2 schrijven',
+  url: 'https://docs.google.com/document/d/1-wJ6gufratEw-caqq4eg28VpQtLgPpAg1-eNEsgNme4/edit?usp=drive_link',
+  createdAt: '2026-11-19T00:00:00.000Z',
+}]
+
+// A file that never had the key starts with the default links; an empty list stays empty.
+function toUsefulLinks(value: unknown): UsefulLink[] {
+  if (value === undefined) return DEFAULT_USEFUL_LINKS
+  if (!Array.isArray(value)) return []
+  return value.filter((x): x is UsefulLink =>
+    !!x && typeof x.id === 'string' && typeof x.title === 'string' &&
+    typeof x.url === 'string' && typeof x.createdAt === 'string'
+  )
+}
+
 async function driveReadRoot(): Promise<StoredRoot> {
   const drive = getDriveClient()
   const res = await drive.files.get(
@@ -230,7 +248,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
   const parsed = JSON.parse(res.data as string) as unknown
 
   if (Array.isArray(parsed)) {
-    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {}, languageIslands: [] }
+    return { phrases: migrate(parsed as Record<string, unknown>[]), preparedQuizFileIds: [], readArticleIds: [], listeningLinks: [], hardToHearPhrases: {}, languageIslands: [], usefulLinks: DEFAULT_USEFUL_LINKS }
   }
 
   const obj = (parsed ?? {}) as Record<string, unknown>
@@ -242,6 +260,7 @@ async function driveReadRoot(): Promise<StoredRoot> {
     listeningLinks: toListeningLinks(obj.listeningLinks),
     hardToHearPhrases: toHardToHearPhrases(obj.hardToHearPhrases),
     languageIslands: toLanguageIslands(obj.languageIslands),
+    usefulLinks: toUsefulLinks(obj.usefulLinks),
   }
 }
 
@@ -255,6 +274,7 @@ async function driveWriteRoot(root: StoredRoot): Promise<void> {
       listeningLinks: root.listeningLinks,
       hardToHearPhrases: root.hardToHearPhrases,
       languageIslands: root.languageIslands,
+      usefulLinks: root.usefulLinks,
     },
     null,
     2
@@ -593,4 +613,40 @@ export async function deleteLanguageIslandAsync(id: string): Promise<LanguageIsl
   const languageIslands = root.languageIslands.filter(i => i.id !== id)
   if (languageIslands.length !== root.languageIslands.length) await driveWriteRoot({ ...root, languageIslands })
   return languageIslands
+}
+
+// ---------------------------------------------------------------------------
+// Handige links — links I keep at hand, stored on the same root (see StoredRoot),
+// in the order I added them.
+// ---------------------------------------------------------------------------
+export async function getUsefulLinksAsync(): Promise<UsefulLink[]> {
+  return (await driveReadRoot()).usefulLinks
+}
+
+export async function addUsefulLinkAsync(title: string, url: string): Promise<UsefulLink[]> {
+  const root = await driveReadRoot()
+  const link: UsefulLink = { id: randomUUID(), title, url, createdAt: new Date().toISOString() }
+  const usefulLinks = [...root.usefulLinks, link]
+  await driveWriteRoot({ ...root, usefulLinks })
+  return usefulLinks
+}
+
+export interface UsefulLinkUpdate {
+  title?: string
+  url?: string
+}
+
+export async function updateUsefulLinkAsync(id: string, update: UsefulLinkUpdate): Promise<UsefulLink[]> {
+  const root = await driveReadRoot()
+  if (!root.usefulLinks.some(l => l.id === id)) return root.usefulLinks
+  const usefulLinks = root.usefulLinks.map(l => l.id === id ? { ...l, ...update } : l)
+  await driveWriteRoot({ ...root, usefulLinks })
+  return usefulLinks
+}
+
+export async function deleteUsefulLinkAsync(id: string): Promise<UsefulLink[]> {
+  const root = await driveReadRoot()
+  const usefulLinks = root.usefulLinks.filter(l => l.id !== id)
+  if (usefulLinks.length !== root.usefulLinks.length) await driveWriteRoot({ ...root, usefulLinks })
+  return usefulLinks
 }

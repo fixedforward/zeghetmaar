@@ -22,4 +22,4 @@ Playwright is installed for e2e tests but has no npm script; invoke it directly.
   `app/config.json` — the latter is git-ignored; see `app/config.example.json`.
 - Selectable AI models are defined in `app/config/models.ts`.
 - Business logic lives in hooks (`app/hooks/useWords.ts`, `useAiChat.ts`,
-  `usePhrasePractice.ts`, `useExercises.ts`); keep components thin.
+  `usePhrasePractice.ts`, `useUsefulLinks.ts`); keep components thin.

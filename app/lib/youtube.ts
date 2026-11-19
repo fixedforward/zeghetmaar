@@ -1,12 +1,10 @@
+import { parseWebUrl } from './url'
+
 const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'])
 
 export function isYouTubeUrl(value: string): boolean {
-  try {
-    const url = new URL(value.trim())
-    return (url.protocol === 'https:' || url.protocol === 'http:') && YOUTUBE_HOSTS.has(url.hostname.toLowerCase())
-  } catch {
-    return false
-  }
+  const url = parseWebUrl(value)
+  return url !== null && YOUTUBE_HOSTS.has(url.hostname.toLowerCase())
 }
 
 // Compact "where I left off" input: the last two digits are seconds, the rest

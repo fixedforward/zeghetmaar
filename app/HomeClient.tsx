@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import type { Tab } from './types'
 import { DEFAULT_MODEL } from './config/models'
-import { useExercises } from './hooks/useExercises'
 import { useWords } from './hooks/useWords'
 import { useAiChat } from './hooks/useAiChat'
 import { usePhrasePractice } from './hooks/usePhrasePractice'
@@ -14,6 +13,7 @@ import { useCloze } from './hooks/useCloze'
 import { useArticles } from './hooks/useArticles'
 import { useListeningTree } from './hooks/useListeningTree'
 import { useLanguageIslands } from './hooks/useLanguageIslands'
+import { useUsefulLinks } from './hooks/useUsefulLinks'
 import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { TAB_LABELS, isTab } from './config/tabs'
@@ -25,7 +25,7 @@ import { VandaagTab } from './components/VandaagTab'
 import { FraselijstTab } from './components/FraselijstTab'
 import { HerschrijverTab } from './components/HerschrijverTab'
 import { VertalerTab } from './components/VertalerTab'
-import { OefeningenTab } from './components/OefeningenTab'
+import { HandigeLinksTab } from './components/HandigeLinksTab'
 import { OefenSessieTab } from './components/OefenSessieTab'
 import { QuizTab } from './components/QuizTab'
 import { ClozeTab } from './components/ClozeTab'
@@ -59,7 +59,6 @@ export default function HomeClient() {
     voorzetsels: usePracticeTracker('voorzetsels', !!session),
   }
 
-  const exercises = useExercises()
   const words = useWords(activeModel)
   const chat = useAiChat(activeModel)
   const practice = usePhrasePractice(activeModel, words.words)
@@ -69,6 +68,7 @@ export default function HomeClient() {
   const articles = useArticles(artikelenTracker.markPracticedToday)
   const listeningTree = useListeningTree()
   const languageIslands = useLanguageIslands()
+  const usefulLinks = useUsefulLinks()
   const tabSettings = useTabSettings()
 
   const selectTab = (tab: Tab) => {
@@ -187,7 +187,7 @@ export default function HomeClient() {
           {activeTab === 'fraselijst' && <ErrorBoundary><FraselijstTab {...words} isLoggedIn={!!session} onPractice={practice.open} /></ErrorBoundary>}
           {activeTab === 'herschrijver' && <ErrorBoundary><HerschrijverTab {...chat} /></ErrorBoundary>}
           {activeTab === 'vertaler' && <ErrorBoundary><VertalerTab {...chat} /></ErrorBoundary>}
-          {activeTab === 'oefeningen' && <ErrorBoundary><OefeningenTab {...exercises} /></ErrorBoundary>}
+          {activeTab === 'links' && <ErrorBoundary><HandigeLinksTab {...usefulLinks} isLoggedIn={!!session} /></ErrorBoundary>}
           {activeTab === 'oefensessie' && (
             <ErrorBoundary>
               <OefenSessieTab

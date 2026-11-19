@@ -7,7 +7,7 @@ applyTo: '**/*'
 
 A web app for learning Dutch. Users can submit Dutch text for AI-powered feedback,
 translate English sentences into Dutch, manage a personal phrase list, practice phrases
-in mini AI-graded conversations, and keep a list of external exercise links.
+in mini AI-graded conversations, and keep a list of handy links.
 
 ## Architecture
 
@@ -19,8 +19,8 @@ in mini AI-graded conversations, and keep a list of external exercise links.
 - **Auth:** Google login via NextAuth (`auth.ts`), restricted to an allowlist of emails.
   Only used to gate writes to the phrase list — reading and the AI tabs work when logged out.
 - **Storage:** the phrase list is not a static file — it's a JSON blob stored in Google
-  Drive, read/written via a service account (`app/lib/driveStore.ts`). Exercise links are
-  stored in the browser's `localStorage` instead.
+  Drive, read/written via a service account (`app/lib/driveStore.ts`). The Handige links live on
+  the same file (`usefulLinks`).
 
 Everything is served from a single Next.js process on a single port.
 
@@ -40,10 +40,10 @@ Everything is served from a single Next.js process on a single port.
 | `app/hooks/usePracticeEngine.ts` | Shared prompt-generation + answer-evaluation for a single phrase, used by both `usePhrasePractice` and `useOefenSessie`; exposes both a stateful `generatePrompt` and a raw `fetchPromptFor` for prefetch-aware callers |
 | `app/hooks/usePhrasePractice.ts` | Practice modal state: generates a prompt, evaluates the user's answer |
 | `app/hooks/useOefenSessie.ts` | Oefensessie tab state: preview/session phrases, navigation, and a prompt cache (`Map` keyed by phrase id, in-flight fetches deduped) that prefetches every previewed phrase's prompt in the background as soon as the preview loads |
-| `app/hooks/useExercises.ts` | Extra Oefeningen state, persisted to `localStorage` |
+| `app/hooks/useUsefulLinks.ts` + `app/components/HandigeLinksTab.tsx` + `app/api/useful-links/route.ts` | Handige links tab (key `links`): add (name optional, the URL is used then), edit (name and URL, through the shared `app/components/EditableText.tsx` row, also used by Taaleilanden) and delete (`ConfirmDeleteButton`) links. Stored as `usefulLinks` on the phrase-list JSON root, in the order added (`get/add/update/deleteUsefulLinkAsync` in `driveStore.ts`); a file without the key yet starts with `DEFAULT_USEFUL_LINKS` (the "NT2 schrijven" Google Doc). The route GET/POST `{ title?, url }`/PUT `{ id, title?, url? }`/DELETE `{ id }` only accepts http(s) URLs (`parseWebUrl` in `app/lib/url.ts`, also used by `isYouTubeUrl`); login required |
 | `app/hooks/useCloze.ts` | Cloze tab state. The tab only starts `gemengd` sessions now; the hook still supports the single modes it mixes: `typen` (type the missing word, Clozemaster-style) and `kaarten` (Anki-style flip cards built by `buildFlashcards`: `reveal()` then `markAndNext(correct)`; below each card an unchecked text field (`app/components/CardScratchField.tsx`) to type your answer, where Enter flips the card; each phrase produces two shuffled cards with a per-card `reversed` flag for both directions); plus `gemengd`, which shuffles both kinds into one session (each item carries its own `mode`, exposed as `questionMode`, and counts toward that mode's daily counter); a wrong answer is requeued 2–5 cards later in all of them |
 | `app/hooks/useQuiz.ts` | Quiz tab state: file list, pairs, current question, derived score, `jumpTo` |
-| `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `OefeningenTab`, `QuizTab`) |
+| `app/components/*Tab.tsx` | One component per tab (`FraselijstTab`, `HerschrijverTab`, `VertalerTab`, `HandigeLinksTab`, `QuizTab`) |
 | `app/components/PracticeModal.tsx` | Modal for the phrase-practice flow |
 | `app/components/SelectionPopup.tsx` | Floating explain-this-text popup (Herschrijver) |
 | `app/components/ErrorBoundary.tsx` | Wraps each tab so one tab crashing doesn't take down the app |
@@ -196,7 +196,7 @@ See `app/config.example.json` for the full shape. The default selectable model i
 | **Fraselijst** | Personal phrase list backed by Google Drive; add/edit/delete/favorite (login required), tags per phrase picked from a dropdown of existing tags (or typed to create a new one) with a tag filter bar and a "Tags beheren" modal to rename/delete tags across all phrases, collapsible examples, launches phrase practice, and a "ChatGPT" button per entry that opens a ChatGPT popup window with a prompt to explain that word |
 | **Herschrijver** | Paste Dutch text, get AI feedback: likely meaning, errors, and a rewrite suggestion |
 | **Engels → Nederlands** | Translate an English sentence into 2–3 natural Dutch options |
-| **Extra Oefeningen** | User-managed list of external exercise links, persisted in `localStorage` |
+| **Handige links** | My own list of handy links (the first is the "NT2 schrijven" Google Doc); add, edit and delete them; stored on Drive, so they sync across devices; login required |
 | **Artikelen** | Browse a Drive folder of articles (Google Docs / `.txt`, subfolders navigable via a breadcrumb), read one, click "Comprehension controleren" (below the article) to open ChatGPT with the whole article and a request for 7 comprehension questions, each with the rough paragraph that holds the answer and 1–3 new/difficult words from the text to use in my answer, and select text to open a ChatGPT explanation (the whole article is sent along as context) or add it to the Fraselijst via a modal (`AddPhraseModal`, prefilled through `useWords`'s `startAddWord`); login required |
 | **Cloze** | Fill-in-the-blank and flashcards on the Fraselijst, in one mixed session ("Start gemengd"): typen questions (type the missing word in an example sentence, letter hints, the meaning's picture after checking) and Anki-style cards (phrase on the front, click/Space flips it to its meanings, then self-mark Goed/Fout with 1/2; any phrase with a meaning qualifies; both frase → vertaling and vertaling → frase; an unchecked answer field below the card) shuffled together. One daily counter (`cloze`) |
 | **Luisteren** | Shows a daily goal (listen 10 minutes a day) with its own day counter (`luisteren`), checked in by hand here or on Vandaag. A "▶ Verder kijken: <naam>" button opens the last video opened on the player page (`useLastVideo` in `app/hooks/useLastVideo.ts`: `TranscriptPlayer` saves it in `localStorage` once the video has loaded, so per device; hidden until one was opened). A "Moeilijk te verstaan oefenen" link opens `/luisteren-oefenen`, where the saved hard-to-hear lines can be practiced per video. A Drive tree (`googleListeningFolder`) lists the .mp3/.mp4 files; clicking one opens the player page with its same-name `.srt` as a synced transcript. Save YouTube links (stored on Drive, so they sync across devices) and click one to open the video, starting where you left off if you filled that in; note words/phrases per video and import them into the Fraselijst; login required |
