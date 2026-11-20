@@ -1,6 +1,6 @@
 import type { Tab, WordEntry } from '../types'
 import { TAB_LABELS } from '../config/tabs'
-import { weekDates, type ChatGptGoal, type ChatGptGoalType, type DailyGoal } from '../lib/dailyGoals'
+import { weekDates, type ChatGptGoal, type ChatGptGoalType, type DailyGoal, type WordGoal } from '../lib/dailyGoals'
 import { dutchWeekday, formatDutchWeekdayDate } from '../lib/date'
 import { TabIcon } from './TabIcon'
 
@@ -13,6 +13,7 @@ type Props = {
   recentWords: WordEntry[]
   onSelect: (tab: Tab) => void
   onCheckInListening: () => void
+  wordGoal: WordGoal
   chatGptGoals: ChatGptGoal[]
   onCheckInChatGpt: (type: ChatGptGoalType) => void
   onCancelChatGpt: (type: ChatGptGoalType) => void
@@ -24,9 +25,9 @@ function goalDetail(goal: DailyGoal): string | null {
   return null
 }
 
-export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, recentWords, onSelect, onCheckInListening, chatGptGoals, onCheckInChatGpt, onCancelChatGpt, onSignIn }: Props) {
-  const goalCount = goals.length + chatGptGoals.length
-  const doneCount = [...goals, ...chatGptGoals].filter(g => g.done).length
+export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, recentWords, onSelect, onCheckInListening, wordGoal, chatGptGoals, onCheckInChatGpt, onCancelChatGpt, onSignIn }: Props) {
+  const goalCount = goals.length + 1 + chatGptGoals.length
+  const doneCount = [...goals, wordGoal, ...chatGptGoals].filter(g => g.done).length
   const next = goals.find(g => !g.done)
 
   return (
@@ -128,6 +129,43 @@ export function VandaagTab({ isLoggedIn, today, goals, streak, practicedDays, re
                   </article>
                 )
               })}
+              <article aria-label="Woorden verzamelen" className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${wordGoal.done ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
+                    <TabIcon name="fraselijst" />
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${wordGoal.done ? 'bg-green-50 text-green-800' : 'bg-orange-50 text-orange-800'}`}>
+                    {wordGoal.done ? 'Gedaan' : 'Nog niet'}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Woorden verzamelen</h4>
+                  <p className="text-sm text-gray-500">{wordGoal.added} van {wordGoal.target} nieuwe woorden</p>
+                  <div
+                    role="progressbar"
+                    aria-label="Nieuwe woorden vandaag"
+                    aria-valuemin={0}
+                    aria-valuemax={wordGoal.target}
+                    aria-valuenow={Math.min(wordGoal.added, wordGoal.target)}
+                    className="h-1.5 rounded-full bg-gray-100 overflow-hidden"
+                  >
+                    <div
+                      className={`h-full ${wordGoal.done ? 'bg-green-500' : 'bg-blue-500'}`}
+                      style={{ width: `${Math.min(wordGoal.added / wordGoal.target, 1) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelect('fraselijst')}
+                  className={[
+                    'mt-auto w-full min-h-11 rounded-lg text-sm font-semibold',
+                    wordGoal.done ? 'border border-gray-200 text-gray-700 hover:bg-gray-50' : 'bg-blue-700 text-white hover:bg-blue-800',
+                  ].join(' ')}
+                >
+                  {wordGoal.done ? 'Meer toevoegen' : 'Woorden toevoegen'}
+                </button>
+              </article>
               {chatGptGoals.map(goal => (
                 <article key={goal.type} className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-2">

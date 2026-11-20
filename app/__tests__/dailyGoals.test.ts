@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates, weekDates } from '../lib/dailyGoals'
-import type { Tab } from '../types'
+import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates, weekDates, wordGoalDates, wordGoalFor } from '../lib/dailyGoals'
+import type { Tab, WordEntry } from '../types'
 
 const noDates = () => ({
   quiz: new Set<string>(), cloze: new Set<string>(), oefensessie: new Set<string>(), taaleilanden: new Set<string>(), artikelen: new Set<string>(), luisteren: new Set<string>(),
@@ -33,6 +33,33 @@ describe('chatGptGoalsFor', () => {
       { type: 'schrijven', label: 'Schrijfoefening in ChatGPT', done: false },
       { type: 'voorzetsels', label: 'Voorzetseloefening in ChatGPT', done: true },
     ])
+  })
+})
+
+// Noon local time, so the day is the same in every timezone the tests run in.
+const wordsAddedOn = (day: string, count: number): WordEntry[] =>
+  Array.from({ length: count }, (_, i) => ({ id: `${day}-${i}`, word: `woord ${i}`, meanings: [], createdAt: new Date(`${day}T12:00:00`).toISOString() }) as unknown as WordEntry)
+
+describe('wordGoalFor', () => {
+  it('counts only the words added today, and is done from 5', () => {
+    const words = [...wordsAddedOn('2026-11-19', 9), ...wordsAddedOn('2026-11-20', 4)]
+
+    expect(wordGoalFor(words, '2026-11-20')).toEqual({ added: 4, target: 5, done: false })
+    expect(wordGoalFor([...words, ...wordsAddedOn('2026-11-20', 1)], '2026-11-20')).toEqual({ added: 5, target: 5, done: true })
+  })
+
+  it('skips words without a createdAt', () => {
+    const words = [{ id: 'x', word: 'oud', meanings: [] } as unknown as WordEntry]
+
+    expect(wordGoalFor(words, '2026-11-20').added).toBe(0)
+  })
+})
+
+describe('wordGoalDates', () => {
+  it('gives only the days with at least 5 new words', () => {
+    const words = [...wordsAddedOn('2026-11-17', 5), ...wordsAddedOn('2026-11-18', 4), ...wordsAddedOn('2026-11-19', 8)]
+
+    expect(wordGoalDates(words)).toEqual(new Set(['2026-11-17', '2026-11-19']))
   })
 })
 

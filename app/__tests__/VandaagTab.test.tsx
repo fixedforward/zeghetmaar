@@ -17,6 +17,7 @@ function renderVandaag(overrides: Partial<ComponentProps<typeof VandaagTab>> = {
     recentWords: [],
     onSelect: vi.fn(),
     onCheckInListening: vi.fn(),
+    wordGoal: { added: 2, target: 5, done: false },
     chatGptGoals: [
       { type: 'schrijven', label: 'Schrijfoefening in ChatGPT', done: false },
       { type: 'voorzetsels', label: 'Voorzetseloefening in ChatGPT', done: true },
@@ -31,9 +32,9 @@ function renderVandaag(overrides: Partial<ComponentProps<typeof VandaagTab>> = {
 }
 
 describe('VandaagTab', () => {
-  it('says how many goals are done, ChatGPT exercises included, and offers the first open tab next', () => {
+  it('says how many goals are done, the word goal and ChatGPT exercises included, and offers the first open tab next', () => {
     const props = renderVandaag()
-    expect(screen.getByText('Je hebt 2 van de 5 dagdoelen gehaald.')).toBeTruthy()
+    expect(screen.getByText('Je hebt 2 van de 6 dagdoelen gehaald.')).toBeTruthy()
     fireEvent.click(screen.getByText('▶ Volgende: Quiz'))
     expect(props.onSelect).toHaveBeenCalledWith('quiz')
   })
@@ -71,10 +72,30 @@ describe('VandaagTab', () => {
     expect(within(dagdoelen).getByText('Voorzetseloefening in ChatGPT')).toBeTruthy()
   })
 
-  it('has no Volgende button when only ChatGPT exercises are left', () => {
+  it('has no Volgende button when only the word goal and ChatGPT exercises are left', () => {
     renderVandaag({ goals: [{ tab: 'cloze', done: true }] })
-    expect(screen.getByText('Je hebt 2 van de 3 dagdoelen gehaald.')).toBeTruthy()
+    expect(screen.getByText('Je hebt 2 van de 4 dagdoelen gehaald.')).toBeTruthy()
     expect(screen.queryByText(/Volgende/)).toBeNull()
+  })
+
+  it('shows how many new words were added today and opens the Fraselijst', () => {
+    const props = renderVandaag()
+    const card = screen.getByRole('article', { name: 'Woorden verzamelen' })
+
+    expect(within(card).getByText('2 van 5 nieuwe woorden')).toBeTruthy()
+    expect(within(card).getByText('Nog niet')).toBeTruthy()
+    expect(within(card).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('2')
+    fireEvent.click(within(card).getByText('Woorden toevoegen'))
+    expect(props.onSelect).toHaveBeenCalledWith('fraselijst')
+  })
+
+  it('marks the word goal done from 5 new words, with the bar full', () => {
+    renderVandaag({ wordGoal: { added: 7, target: 5, done: true } })
+    const card = screen.getByRole('article', { name: 'Woorden verzamelen' })
+
+    expect(within(card).getByText('Gedaan')).toBeTruthy()
+    expect(within(card).getByText('Meer toevoegen')).toBeTruthy()
+    expect(within(card).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('5')
   })
 
   it('shows the streak', () => {
@@ -85,6 +106,7 @@ describe('VandaagTab', () => {
   it('has no Volgende button once every goal is done', () => {
     renderVandaag({
       goals: [{ tab: 'cloze', done: true }],
+      wordGoal: { added: 6, target: 5, done: true },
       chatGptGoals: [{ type: 'schrijven', label: 'Schrijfoefening in ChatGPT', done: true }],
     })
     expect(screen.getByText('Alle dagdoelen gehaald. Goed bezig!')).toBeTruthy()

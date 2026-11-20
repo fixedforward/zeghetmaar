@@ -19,7 +19,7 @@ import { usePracticeTracker } from './hooks/usePracticeTracker'
 import { useTabSettings } from './hooks/useTabSettings'
 import { useTheme } from './hooks/useTheme'
 import { TAB_LABELS, isTab } from './config/tabs'
-import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates } from './lib/dailyGoals'
+import { chatGptGoalsFor, currentStreak, dailyGoalsFor, mergeDates, wordGoalDates, wordGoalFor } from './lib/dailyGoals'
 import { todayLocalIso } from './lib/date'
 import { newestWords } from './lib/wordFilters'
 import { SideNav, BottomNav } from './components/AppNav'
@@ -142,11 +142,12 @@ export default function HomeClient() {
     voorzetsels: chatGptTrackers.voorzetsels.practicedDates,
   }
   const goals = dailyGoalsFor(practicedDates, tabSettings.visibleTabs, today)
-  const practicedDays = mergeDates(Object.values(practicedDates))
+  const wordGoal = wordGoalFor(words.words, today)
+  const practicedDays = mergeDates([...Object.values(practicedDates), wordGoalDates(words.words)])
   const navProps = {
     activeTab,
     visibleTabs: tabSettings.visibleTabs,
-    doneToday: new Set<Tab>(goals.filter(g => g.done).map(g => g.tab)),
+    doneToday: new Set<Tab>([...goals.filter(g => g.done).map(g => g.tab), ...(wordGoal.done ? ['fraselijst' as const] : [])]),
     onSelect: selectTab,
     onOpenSettings: tabSettings.open,
   }
@@ -182,6 +183,7 @@ export default function HomeClient() {
                 recentWords={newestWords(words.words, 4)}
                 onSelect={selectTab}
                 onCheckInListening={luisterenTracker.markPracticedToday}
+                wordGoal={wordGoal}
                 chatGptGoals={chatGptGoalsFor(practicedDates, today)}
                 onCheckInChatGpt={type => chatGptTrackers[type].markPracticedToday()}
                 onCancelChatGpt={type => chatGptTrackers[type].cancelPracticedToday()}

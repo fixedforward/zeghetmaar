@@ -1,6 +1,6 @@
-import type { Tab } from '../types'
+import type { Tab, WordEntry } from '../types'
 import type { PracticeLogType } from './practiceLog'
-import { addDaysIso } from './date'
+import { addDaysIso, localIsoDate } from './date'
 
 type TabLogType = Extract<PracticeLogType, Tab>
 
@@ -35,6 +35,35 @@ export function dailyGoalsFor(practicedDates: Record<PracticeLogType, Set<string
   return DAILY_GOALS
     .filter(tab => visibleTabs.includes(tab))
     .map(tab => ({ tab, done: practicedDates[tab].has(today) }))
+}
+
+// Collect at least this many new phrases in the Fraselijst every day.
+export const WORD_GOAL_TARGET = 5
+
+export interface WordGoal {
+  added: number
+  target: number
+  done: boolean
+}
+
+function wordsAddedPerDay(words: WordEntry[]): Map<string, number> {
+  const perDay = new Map<string, number>()
+  for (const word of words) {
+    if (word.createdAt === undefined) continue
+    const day = localIsoDate(new Date(word.createdAt))
+    perDay.set(day, (perDay.get(day) ?? 0) + 1)
+  }
+  return perDay
+}
+
+export function wordGoalFor(words: WordEntry[], today: string): WordGoal {
+  const added = wordsAddedPerDay(words).get(today) ?? 0
+  return { added, target: WORD_GOAL_TARGET, done: added >= WORD_GOAL_TARGET }
+}
+
+// The days on which the word goal was reached, so they count toward the streak.
+export function wordGoalDates(words: WordEntry[]): Set<string> {
+  return new Set([...wordsAddedPerDay(words)].filter(([, count]) => count >= WORD_GOAL_TARGET).map(([day]) => day))
 }
 
 // Every day on which at least one goal was done.
